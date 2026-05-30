@@ -1,6 +1,5 @@
 
-import { Color } from 'pdf-lib';
-import { RenderContext } from './RenderContext';
+import { RenderContext, type RenderColor } from './RenderContext';
 import { fromHex } from './utils/color-utils';
 import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
 
@@ -10,11 +9,11 @@ interface TableOptions extends WidgetOptions {
   width?: YogaStyleValue;
   rowHeight?: number;
   cellPadding?: number;
-  borderColor?: Color;
+  borderColor?: RenderColor;
   borderWidth?: number;
-  headBgColor?: Color;
-  rowBgColor?: Color;
-  alternateRowBgColor?: Color;
+  headBgColor?: RenderColor;
+  rowBgColor?: RenderColor;
+  alternateRowBgColor?: RenderColor;
   columnWidths?: YogaStyleValue[];
   columnWeights?: number[];
 }
@@ -25,7 +24,7 @@ interface TableSectionOptions extends WidgetOptions {
 
 interface TableRowOptions extends WidgetOptions {
   cells?: Widget[];
-  bgColor?: Color;
+  bgColor?: RenderColor;
   minHeight?: number;
 }
 
@@ -34,8 +33,8 @@ interface TableCellOptions extends WidgetOptions {
   width?: YogaStyleValue;
   weight?: number;
   padding?: number;
-  bgColor?: Color;
-  borderColor?: Color;
+  bgColor?: RenderColor;
+  borderColor?: RenderColor;
   borderWidth?: number;
 }
 
@@ -87,7 +86,7 @@ export class TableBodyWidget extends TableSectionWidget { }
 
 export class TableRowWidget extends Widget {
   private readonly cells: TableCellWidget[];
-  private readonly bgColor?: Color;
+  private readonly bgColor?: RenderColor;
   private readonly minHeight?: number;
 
   constructor(options: TableRowOptions = {}) {
@@ -113,7 +112,7 @@ export class TableRowWidget extends Widget {
     return this.cells.indexOf(cell);
   }
 
-  getResolvedBackgroundColor(): Color | undefined {
+  getResolvedBackgroundColor(): RenderColor | undefined {
     if (this.bgColor) {
       return this.bgColor;
     }
@@ -176,8 +175,8 @@ export class TableCellWidget extends Widget {
   private readonly width?: YogaStyleValue;
   private readonly weight?: number;
   private readonly padding?: number;
-  private readonly bgColor?: Color;
-  private readonly borderColor?: Color;
+  private readonly bgColor?: RenderColor;
+  private readonly borderColor?: RenderColor;
   private readonly borderWidth?: number;
 
   constructor(options: TableCellOptions = {}) {
@@ -206,7 +205,7 @@ export class TableCellWidget extends Widget {
     return this.getRow()?.getTable();
   }
 
-  private getResolvedBorderColor(): Color | undefined {
+  private getResolvedBorderColor(): RenderColor | undefined {
     return this.borderColor ?? this.getTable()?.getBorderColor();
   }
 
@@ -218,7 +217,7 @@ export class TableCellWidget extends Widget {
     return this.padding ?? this.getTable()?.getCellPadding() ?? 0;
   }
 
-  private getResolvedBackgroundColor(): Color | undefined {
+  private getResolvedBackgroundColor(): RenderColor | undefined {
     return this.bgColor ?? this.getRow()?.getResolvedBackgroundColor();
   }
 
@@ -285,11 +284,11 @@ export class TableWidget extends Widget {
   private readonly width?: YogaStyleValue;
   private readonly rowHeight?: number;
   private readonly cellPadding: number;
-  private readonly borderColor: Color;
+  private readonly borderColor: RenderColor;
   private readonly borderWidth: number;
-  private readonly headBgColor?: Color;
-  private readonly rowBgColor?: Color;
-  private readonly alternateRowBgColor?: Color;
+  private readonly headBgColor?: RenderColor;
+  private readonly rowBgColor?: RenderColor;
+  private readonly alternateRowBgColor?: RenderColor;
   private readonly columnWidths?: YogaStyleValue[];
   private readonly columnWeights?: number[];
 
@@ -325,7 +324,7 @@ export class TableWidget extends Widget {
     return this.cellPadding;
   }
 
-  getBorderColor(): Color {
+  getBorderColor(): RenderColor {
     return this.borderColor;
   }
 
@@ -333,15 +332,15 @@ export class TableWidget extends Widget {
     return this.borderWidth;
   }
 
-  getHeadBgColor(): Color | undefined {
+  getHeadBgColor(): RenderColor | undefined {
     return this.headBgColor;
   }
 
-  getRowBgColor(): Color | undefined {
+  getRowBgColor(): RenderColor | undefined {
     return this.rowBgColor;
   }
 
-  getAlternateRowBgColor(): Color | undefined {
+  getAlternateRowBgColor(): RenderColor | undefined {
     return this.alternateRowBgColor;
   }
 

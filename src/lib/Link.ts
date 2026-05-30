@@ -10,7 +10,6 @@ import { RenderContext } from './RenderContext';
 import { fromHex } from './utils/color-utils';
 import { Widget, WidgetOptions } from './Widget';
 import type { RenderColor } from './RenderContext';
-import type { Color } from 'pdf-lib';
 
 type TextOverflow = 'visible' | 'clip' | 'ellipsis';
 
@@ -27,7 +26,7 @@ interface LinkLayoutResult {
 export interface LinkOptions extends WidgetOptions {
   href: string;
   size?: number;
-  color?: string | Color;
+  color?: string | RenderColor;
   underline?: boolean;
   align?: 'left' | 'center' | 'right';
   font?: string;

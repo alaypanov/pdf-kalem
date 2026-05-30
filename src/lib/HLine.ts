@@ -1,16 +1,15 @@
-import { Color } from 'pdf-lib';
-import { RenderContext } from './RenderContext';
+import { RenderContext, type RenderColor } from './RenderContext';
 import { fromHex } from './utils/color-utils';
 import { Widget, WidgetOptions, YogaStyleValue } from './Widget';
 
 export interface HLineOptions extends WidgetOptions {
-  color?: Color;
+  color?: RenderColor;
   thickness?: number;
   width?: YogaStyleValue;
 }
 
 export class HLineWidget extends Widget {
-  private color: Color;
+  private color: RenderColor;
   private thickness: number;
   private width: YogaStyleValue;
 

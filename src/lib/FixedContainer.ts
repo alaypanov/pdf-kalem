@@ -1,7 +1,6 @@
 import { Widget, WidgetOptions } from './Widget';
 import { RenderContext, type RenderColor } from './RenderContext';
 import { PositionType } from 'yoga-layout';
-import { Color } from 'pdf-lib';
 
 interface FixedContainerOptions extends WidgetOptions {
   top?: number;
@@ -10,7 +9,7 @@ interface FixedContainerOptions extends WidgetOptions {
   right?: number;
   width?: number;
   height?: number;
-  bgColor?: Color;
+  bgColor?: RenderColor;
 }
 
 export class FixedContainerWidget extends Widget {
@@ -20,7 +19,7 @@ export class FixedContainerWidget extends Widget {
   private right?: number;
   private width?: number;
   private height?: number;
-  private bgColor?: Color;
+  private bgColor?: RenderColor;
 
   constructor(options: FixedContainerOptions) {
     super(options);

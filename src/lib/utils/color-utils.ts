@@ -1,25 +1,72 @@
-import { rgb, Color } from 'pdf-lib';
+import { rgb, type Color as PdfLibColor } from 'pdf-lib';
 
-// Accept hex color and convert it to a pdf-lib Color.
-export function convertToPDFColor(color?: string): Color {
-    if (!color) return rgb(1, 1, 1); // Default color
-
-    const hex = color.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16) / 255;
-    const g = parseInt(hex.substring(2, 4), 16) / 255;
-    const b = parseInt(hex.substring(4, 6), 16) / 255;
-    return rgb(r, g, b);
+export interface ColorValue {
+    kind: 'rgb';
+    red: number;
+    green: number;
+    blue: number;
+    alpha?: number;
 }
 
-export function fromHex(hex?: string): Color {
-    if (!hex) return rgb(1, 1, 1); // Default color
-    const cleanHex = hex.replace('#', '');
-    const r = parseInt(cleanHex.substring(0, 2), 16) / 255;
-    const g = parseInt(cleanHex.substring(2, 4), 16) / 255;
-    const b = parseInt(cleanHex.substring(4, 6), 16) / 255;
-    return rgb(r, g, b);
+function clampByte(value: number): number {
+    if (!Number.isFinite(value)) {
+        return 0;
+    }
+
+    return Math.max(0, Math.min(255, Math.round(value)));
 }
 
-export function fromRGB(r: number, g: number, b: number): Color {
-    return rgb(r / 255, g / 255, b / 255);
+function normalizeHex(hex: string): string {
+    const cleanHex = hex.trim().replace(/^#/, '');
+
+    if (cleanHex.length === 3 || cleanHex.length === 4) {
+        return cleanHex
+            .split('')
+            .map((char) => `${char}${char}`)
+            .join('');
+    }
+
+    if (cleanHex.length === 6 || cleanHex.length === 8) {
+        return cleanHex;
+    }
+
+    throw new Error(`Invalid hex color: ${hex}`);
+}
+
+export function fromHex(hex?: string): ColorValue {
+    if (!hex) {
+        return fromRGB(255, 255, 255);
+    }
+
+    const normalizedHex = normalizeHex(hex);
+    return {
+        kind: 'rgb',
+        red: parseInt(normalizedHex.slice(0, 2), 16),
+        green: parseInt(normalizedHex.slice(2, 4), 16),
+        blue: parseInt(normalizedHex.slice(4, 6), 16),
+        alpha: normalizedHex.length === 8 ? parseInt(normalizedHex.slice(6, 8), 16) : undefined,
+    };
+}
+
+export function fromRGB(red: number, green: number, blue: number, alpha?: number): ColorValue {
+    return {
+        kind: 'rgb',
+        red: clampByte(red),
+        green: clampByte(green),
+        blue: clampByte(blue),
+        alpha: alpha === undefined ? undefined : clampByte(alpha),
+    };
+}
+
+export function toPdfLibColor(color?: ColorValue): PdfLibColor | undefined {
+    if (!color) {
+        return undefined;
+    }
+
+    return rgb(color.red / 255, color.green / 255, color.blue / 255);
+}
+
+export function convertToPDFColor(color?: string | ColorValue): PdfLibColor {
+    const resolvedColor = typeof color === 'string' ? fromHex(color) : color ?? fromRGB(255, 255, 255);
+    return toPdfLibColor(resolvedColor) ?? rgb(1, 1, 1);
 }

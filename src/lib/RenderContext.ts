@@ -7,8 +7,8 @@ import {
   PDFString,
   PDFFont,
   StandardFonts,
-  type Color,
 } from 'pdf-lib';
+import { toPdfLibColor, type ColorValue } from './utils/color-utils';
 
 export interface RenderContextOptions {
   height?: number; // Default page height if needed before page creation
@@ -25,7 +25,7 @@ export interface RenderContextOptions {
   debugStrokeWidth?: number;
 }
 
-export type RenderColor = Color;
+export type RenderColor = ColorValue;
 export type RenderImage = PDFImage;
 
 export interface DrawRectangleArgs {
@@ -252,7 +252,11 @@ export class RenderContext {
   }
 
   drawRectangle(args: DrawRectangleArgs): void {
-    this.requireCurrentPage().drawRectangle(args);
+    this.requireCurrentPage().drawRectangle({
+      ...args,
+      color: toPdfLibColor(args.color),
+      borderColor: toPdfLibColor(args.borderColor),
+    });
   }
 
   async drawText({ text, x, y, size, color, fontName, maxWidth }: DrawTextArgs): Promise<void> {
@@ -262,13 +266,16 @@ export class RenderContext {
       y,
       size,
       font,
-      color,
+      color: toPdfLibColor(color),
       maxWidth,
     });
   }
 
   drawLine(args: DrawLineArgs): void {
-    this.requireCurrentPage().drawLine(args);
+    this.requireCurrentPage().drawLine({
+      ...args,
+      color: toPdfLibColor(args.color),
+    });
   }
 
   drawImage(image: RenderImage, args: DrawImageArgs): void {
@@ -276,7 +283,11 @@ export class RenderContext {
   }
 
   drawSvgPath({ d, ...options }: DrawSvgPathArgs): void {
-    this.requireCurrentPage().drawSvgPath(d, options);
+    this.requireCurrentPage().drawSvgPath(d, {
+      ...options,
+      color: toPdfLibColor(options.color),
+      borderColor: toPdfLibColor(options.borderColor),
+    });
   }
 
   addLinkAnnotation({ href, rect }: LinkAnnotationArgs): void {

@@ -7,15 +7,15 @@ import {
 } from '@chenglou/pretext';
 import { Widget, WidgetOptions } from './Widget';
 import { RenderContext } from './RenderContext';
+import type { RenderColor } from './RenderContext';
 import { fromHex } from './utils/color-utils';
 import { MeasureMode } from 'yoga-layout';
-import { Color } from 'pdf-lib';
 
 type TextOverflow = 'visible' | 'clip' | 'ellipsis';
 
 interface TextOptions extends WidgetOptions {
   size?: number;
-  color?: Color;
+  color?: RenderColor;
   align?: 'left' | 'center' | 'right';
   font?: string;
   lineHeight?: number;
@@ -38,7 +38,7 @@ interface TextLayoutResult {
 class TextWidget extends Widget {
   private readonly text: string;
   private readonly size: number;
-  private readonly color: Color;
+  private readonly color: RenderColor;
   private readonly align: 'left' | 'center' | 'right';
   private readonly fontName?: string;
   private readonly lineHeight?: number;
