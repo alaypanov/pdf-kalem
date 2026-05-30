@@ -12,8 +12,10 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@chenglou/pretext": "^0.0.7",
     "pdf-lib": "^1.17.1",
-    "vite": "8.0.0-beta.6",
+    "vite": "8.0.14",
     "yoga-layout": "^3.2.1"
-  }
+  },
+  "packageManager": "pnpm@11.3.0"
 }

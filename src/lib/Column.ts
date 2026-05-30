@@ -6,6 +6,7 @@ import { FlexContainer, FlexContainerOptions } from './FlexContainer';
 export interface ColumnOptions extends FlexContainerOptions {
   mainAxisAlignment?: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly';
   crossAxisAlignment?: 'flex-start' | 'center' | 'flex-end' | 'stretch';
+  gap?: number;
 }
 
 /**
@@ -16,6 +17,7 @@ export function Column(options: ColumnOptions = {}): FlexContainer {
   const style = {
     ...options.style,
     flexDirection: 'column',
+    gap: options?.gap || 0,
     justifyContent: options.mainAxisAlignment || 'flex-start',
     alignItems: options.crossAxisAlignment || 'flex-start',
   };

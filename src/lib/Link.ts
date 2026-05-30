@@ -5,17 +5,30 @@ import {
   type PrepareOptions,
   type PreparedTextWithSegments,
 } from '@chenglou/pretext';
-import { Widget, WidgetOptions } from './Widget';
+import { MeasureMode } from 'yoga-layout';
 import { RenderContext } from './RenderContext';
 import { fromHex } from './utils/color-utils';
-import { MeasureMode } from 'yoga-layout';
-import { Color } from 'pdf-lib';
+import { Widget, WidgetOptions } from './Widget';
+import type { RenderColor } from './RenderContext';
+import type { Color } from 'pdf-lib';
 
 type TextOverflow = 'visible' | 'clip' | 'ellipsis';
 
-interface TextOptions extends WidgetOptions {
+interface LinkLayoutLine {
+  text: string;
+  width: number;
+}
+
+interface LinkLayoutResult {
+  lines: LinkLayoutLine[];
+  maxLineWidth: number;
+}
+
+export interface LinkOptions extends WidgetOptions {
+  href: string;
   size?: number;
-  color?: Color;
+  color?: string | Color;
+  underline?: boolean;
   align?: 'left' | 'center' | 'right';
   font?: string;
   lineHeight?: number;
@@ -25,20 +38,12 @@ interface TextOptions extends WidgetOptions {
   wordBreak?: PrepareOptions['wordBreak'];
 }
 
-interface TextLayoutLine {
-  text: string;
-  width: number;
-}
-
-interface TextLayoutResult {
-  lines: TextLayoutLine[];
-  maxLineWidth: number;
-}
-
-class TextWidget extends Widget {
+class LinkWidget extends Widget {
   private readonly text: string;
+  private readonly href: string;
   private readonly size: number;
-  private readonly color: Color;
+  private readonly color: RenderColor;
+  private readonly underline: boolean;
   private readonly align: 'left' | 'center' | 'right';
   private readonly fontName?: string;
   private readonly lineHeight?: number;
@@ -54,12 +59,16 @@ class TextWidget extends Widget {
       ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
       : undefined;
 
-  constructor(text: string, options: TextOptions) {
+  constructor(text: string, options: LinkOptions) {
     super(options);
     this.text = text;
-    this.size = options.size || 12;
-    this.color = options.color ?? fromHex('#000000');
-    this.align = options.align || 'left';
+    this.href = options.href;
+    this.size = options.size ?? 12;
+    this.color = typeof options.color === 'string'
+      ? fromHex(options.color)
+      : options.color ?? fromHex('#0000EE');
+    this.underline = options.underline ?? true;
+    this.align = options.align ?? 'left';
     this.fontName = options.font;
     this.lineHeight = options.lineHeight;
     this.maxLines = options.maxLines;
@@ -77,7 +86,7 @@ class TextWidget extends Widget {
       return this.context.measureDefaultLineHeight(this.size, this.fontName);
     }
 
-    return this.size * 1.15;
+    return this.size * 1.2;
   }
 
   private getFontName(): string {
@@ -148,7 +157,7 @@ class TextWidget extends Widget {
     return Array.from(this.graphemeSegmenter.segment(text), (segment) => segment.segment);
   }
 
-  private ellipsizeLine(text: string, maxWidth: number): TextLayoutLine {
+  private ellipsizeLine(text: string, maxWidth: number): LinkLayoutLine {
     if (maxWidth <= 0) {
       return { text: '', width: 0 };
     }
@@ -184,17 +193,17 @@ class TextWidget extends Widget {
     return { text: best, width: bestWidth };
   }
 
-  private appendFallbackLine(lines: TextLayoutLine[], lineText: string): void {
+  private appendFallbackLine(lines: LinkLayoutLine[], lineText: string): void {
     lines.push({ text: lineText, width: this.measureTextWidth(lineText) });
   }
 
-  private breakLongToken(token: string, maxWidth: number): TextLayoutLine[] {
+  private breakLongToken(token: string, maxWidth: number): LinkLayoutLine[] {
     if (maxWidth <= 0) {
       return [{ text: token, width: this.measureTextWidth(token) }];
     }
 
     const graphemes = this.splitGraphemes(token);
-    const lines: TextLayoutLine[] = [];
+    const lines: LinkLayoutLine[] = [];
     let current = '';
 
     for (const grapheme of graphemes) {
@@ -215,10 +224,10 @@ class TextWidget extends Widget {
     return lines;
   }
 
-  private layoutFallback(maxWidth: number): TextLayoutLine[] {
+  private layoutFallback(maxWidth: number): LinkLayoutLine[] {
     const normalizedText = this.text.replace(/\r\n?/g, '\n');
     const paragraphs = normalizedText.split('\n');
-    const lines: TextLayoutLine[] = [];
+    const lines: LinkLayoutLine[] = [];
 
     for (const paragraph of paragraphs) {
       const normalizedParagraph = this.whiteSpace === 'pre-wrap'
@@ -293,7 +302,7 @@ class TextWidget extends Widget {
     return Math.max(0, Math.min(...limits));
   }
 
-  private layoutText(maxWidth: number, heightLineLimit?: number): TextLayoutResult {
+  private layoutText(maxWidth: number, heightLineLimit?: number): LinkLayoutResult {
     const lineHeight = this.getLineHeight();
     const preparedText = this.ensurePreparedText();
     const effectiveWidth = maxWidth > 0 ? maxWidth : this.getNaturalWidth();
@@ -353,14 +362,20 @@ class TextWidget extends Widget {
     await super.prepareLayout(context);
   }
 
+  private addLinkAnnotation(context: RenderContext, rect: [number, number, number, number]): void {
+    context.addLinkAnnotation({ href: this.href, rect });
+  }
+
   async render(context: RenderContext): Promise<void> {
     const { x: baseX, y: baseY, width, height } = this.getLayoutBoxInPdfCoords(context);
     const maxWidth = width > 0 ? width : this.getWidth();
     const lineHeight = this.getLineHeight();
     const heightLineLimit = this.getHeightLineLimit(height);
     const layout = this.layoutText(maxWidth, heightLineLimit);
-
     const topY = baseY + height;
+
+    // Clickable rect covers the whole layout box.
+    this.addLinkAnnotation(context, [baseX, baseY, baseX + maxWidth, baseY + height]);
 
     for (let i = 0; i < layout.lines.length; i++) {
       const line = layout.lines[i];
@@ -382,6 +397,16 @@ class TextWidget extends Widget {
         color: this.color,
         fontName: this.fontName,
       });
+
+      if (this.underline) {
+        const underlineY = y - Math.max(1, this.size * 0.08);
+        context.drawLine({
+          start: { x, y: underlineY },
+          end: { x: x + line.width, y: underlineY },
+          thickness: Math.max(0.5, this.size * 0.06),
+          color: this.color,
+        });
+      }
     }
   }
 
@@ -397,6 +422,6 @@ class TextWidget extends Widget {
   }
 }
 
-export function Text(text: string, options: TextOptions = {}): TextWidget {
-  return new TextWidget(text, options);
+export function Link(text: string, options: LinkOptions): LinkWidget {
+  return new LinkWidget(text, options);
 }

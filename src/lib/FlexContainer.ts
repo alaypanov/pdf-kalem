@@ -1,13 +1,13 @@
 import { Widget } from './Widget';
 import { RenderContext } from './RenderContext';
-import { FlexLayoutEngine, FlexNode, FlexStyle } from './utils/FlexLayoutEngine';
+import { YogaStyle } from './Widget';
 
 /**
  * Options for configuring a FlexContainer widget
  */
 export interface FlexContainerOptions {
   children?: Widget[];
-  style?: FlexStyle;
+  style?: YogaStyle;
   width?: number | string;
   height?: number | string;
 }
@@ -17,27 +17,19 @@ export interface FlexContainerOptions {
  * using CSS Flexbox-like properties for PDF documents
  */
 export class FlexContainer extends Widget {
-  public children: Widget[];
   public width: number | string;
   protected height: number | string;
 
   constructor(options: FlexContainerOptions = {}) {
     super({ children: options.children });
-    this.children = options.children || [];
     this.width = options.width || 'auto';
     this.height = options.height || 'auto';
 
-    // Set style on the node directly
-    this.node.style = {
-      ...this.node.style,
+    this.setYogaStyle({
       ...(options.style || {}),
-    };
-    if (options.width) {
-      this.node.style.width = options.width;
-    }
-    if (options.height) {
-      this.node.style.height = options.height;
-    }
+      width: options.width ?? this.width,
+      height: options.height ?? this.height,
+    } as any);
   }
 
   /**
@@ -66,21 +58,14 @@ export class FlexContainer extends Widget {
    * Render the flex container and its children using flex layout
    */
   async render(context: RenderContext): Promise<void> {
-    // Calculate layout for this container and its children
-    const layoutEngine = new FlexLayoutEngine();
-    layoutEngine.calculateLayout(
-      this.node,
-      this.getWidth(),
-      this.getHeight()
-    );
-    // Now render children at their computed positions
+    // Layout is calculated once at the Page root.
     await this.renderChildren(context);
   }
 
   /**
    * Draw the flex container at the specified position
    */
-  protected async drawWithOffset(context: RenderContext, x: number, y: number): Promise<void> {
+  protected async drawWithOffset(context: RenderContext, _x: number, _y: number): Promise<void> {
     // The actual drawing is handled by the flex layout engine
     // We just need to trigger the layout calculation
     await this.render(context);

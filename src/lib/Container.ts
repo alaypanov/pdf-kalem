@@ -1,7 +1,6 @@
 import { Widget, WidgetOptions } from './Widget';
-import { rgb, Color } from 'pdf-lib';
-import { RenderContext } from './RenderContext';
-import { convertToPDFColor } from './utils/color-utils';
+import { RenderContext, type RenderColor } from './RenderContext';
+import { fromHex } from './utils/color-utils';
 
 interface BorderOptions {
   width?: number;
@@ -16,7 +15,7 @@ const borderDefaults: BorderOptions = {
 };
 
 interface ContainerOptions extends WidgetOptions {
-  bgColor?: string;
+  bgColor?: RenderColor;
   width?: number | string;
   height?: number | string;
   padding?: number;
@@ -25,7 +24,7 @@ interface ContainerOptions extends WidgetOptions {
 }
 
 export class ContainerWidget extends Widget {
-  private bgColor: Color;
+  private bgColor: RenderColor;
   private width: number | string;
   private height: number | string;
   private border?: BorderOptions;
@@ -39,35 +38,37 @@ export class ContainerWidget extends Widget {
     }
     super({ ...options, children });
     this.border = options.border;
-    this.bgColor = convertToPDFColor(options.bgColor) || rgb(1, 0, 1); // Default color
+    this.bgColor = options.bgColor || fromHex('#FFFFFF');
     this.width = options.width || 100; // Default width
     this.height = options.height || 100; // Default height
-    this.node.style.width = this.width;
-    this.node.style.height = this.height;
-    this.node.style.flexDirection = 'column';
-    this.node.style.alignItems = 'flex-start';
-    this.node.style.alignSelf = 'flex-start';
-    this.node.style.justifyContent = 'flex-start';
-    this.node.style.padding = this.padding || 0;
+    this.padding = options.padding ?? 0;
+
+    console.log('container options', options);
+
+    this.setYogaStyle({
+      width: this.width as any,
+      height: this.height as any,
+      flexDirection: 'column',
+      justifyContent: 'flex-start',
+      alignItems: 'flex-start',
+      alignSelf: 'flex-start',
+      padding: this.padding,
+    });
   }
 
   getWidth(): number {
-    return this.width;
+    return typeof this.width === 'number' ? this.width : 0;
   }
 
   getHeight(): number {
-    return this.height;
+    return typeof this.height === 'number' ? this.height : 0;
   }
 
   async render(context: RenderContext): Promise<void> {
-    const page = context.getCurrentPage();
-    const x = this.node.computed.x;
-    const y = this.node.computed.flippedY || 0;
-    const width = this.node.computed.width;
-    const height = this.node.computed.height;
+    const { x, y, width, height } = this.getLayoutBoxInPdfCoords(context);
 
     // Draw background
-    page.drawRectangle({
+    context.drawRectangle({
       x,
       y,
       width,
@@ -79,20 +80,19 @@ export class ContainerWidget extends Widget {
     if (this.border) {
       const borderWidth = this.border.width || borderDefaults.width;
       const borderColor = this.border.color || borderDefaults.color;
-      const borderRadius = this.border.radius || borderDefaults.radius;
-      page.drawRectangle({
+      context.drawRectangle({
         x,
         y,
         width,
         height,
         borderWidth,
-        borderColor: convertToPDFColor(borderColor),
+        borderColor: fromHex(borderColor),
         color: undefined, // No fill, just border
       });
     }
 
     console.log(
-      `[ContainerWidget] computed.x=${x}, computed.y=${y}, width=${this.node.computed.width}, height=${this.node.computed.height}`
+      `[ContainerWidget] x=${x}, y=${y}, width=${width}, height=${height}`
     );
 
     // Render all children (now always uses children array)
