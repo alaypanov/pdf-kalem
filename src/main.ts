@@ -1,5 +1,5 @@
-import { Text, Page, Container, Row, Column, Table, TableHead, TableBody, TableRow, TableCell, Image, Justify, ImageSizing, Link, FixedContainer, SVGPath, HLine } from './lib/widgets'
-import { PdfDoc, PageSize } from './lib';
+import { Text, Page, Container, Row, Column, Table, TableHead, TableBody, TableRow, TableCell, Image, ImageSizing, Link, FixedContainer, SVGPath, HLine } from './lib/widgets'
+import { PdfDoc, PageSize, createTheme } from './lib';
 import { fromHex } from './lib/utils/color-utils';
 
 async function generatePdf() {
@@ -21,9 +21,44 @@ async function generatePdf() {
     console.log('After save, pages:', doc.getPageCount(), 'bytes:', bytes.length);
   });
 
+  const theme = createTheme({
+    fonts: {
+      body: 'Inter',
+      heading: 'Inter',
+    },
+    colors: {
+      text: fromHex('#0f172a'),
+      muted: fromHex('#475569'),
+      surface: fromHex('#ffffff'),
+      surfaceAlt: fromHex('#f8fafc'),
+      primary: fromHex('#1d4ed8'),
+      border: fromHex('#cbd5e1'),
+      link: fromHex('#0f766e'),
+    },
+    text: {
+      body: { font: 'body', size: 12, lineHeight: 14.5, color: 'text' },
+      h1: { font: 'heading', size: 20, lineHeight: 24, color: 'text' },
+      h2: { font: 'heading', size: 18, lineHeight: 22, color: 'text' },
+      caption: { font: 'body', size: 11, lineHeight: 13, color: 'muted' },
+      link: { font: 'body', size: 13, lineHeight: 15, color: 'link', underline: true },
+    },
+    container: {
+      bgColor: 'surface',
+    },
+    table: {
+      borderColor: 'border',
+      borderWidth: 1,
+      cellPadding: 8,
+      headBgColor: 'primary',
+      rowBgColor: 'surface',
+      alternateRowBgColor: 'surfaceAlt',
+    },
+  });
+
   const doc = new PdfDoc({
     size: PageSize.LETTER,
     debug: true,
+    theme,
     meta: {
       title: 'pdf-compose demo',
       author: 'pdf-compose',
@@ -38,10 +73,7 @@ async function generatePdf() {
         size: PageSize.A3,
         padding: 10,
         children: [
-          Text('start', {
-            size: 16,
-            // font: 'Inter',
-          }),
+          Text('lorem ipsum iblis dolor', { variant: 'body', color: fromHex('#ff0000') }),
           Container({
             height: 100,
             width: '100%',
@@ -72,7 +104,7 @@ async function generatePdf() {
               'M 10 30 C 10 10 40 10 40 30 C 40 50 25 60 25 60 C 25 60 10 50 10 30 Z',
               {
                 viewBoxWidth: 64,
-                viewBoxHeight: 1,
+                viewBoxHeight: 4,
                 sizing: ImageSizing.Fit,
                 fill: '#E11D48',
                 stroke: '#111827',
@@ -95,42 +127,34 @@ async function generatePdf() {
           }),
 
           Row({
-            mainAxisAlignment: Justify.Center,
+            mainAxisAlignment: Row.justifyCenter,
             children: [
               Container({
                 width: 100,
                 height: 100,
                 bgColor: fromHex('#AE12DEFF'),
                 padding: 10,
-                child: Link('hellow purple ', { href: 'https://google.com' })
+                child: Link('hellow purple ', { href: 'https://google.com', variant: 'link' })
               }),
               Container({
                 width: 100,
                 height: 100,
                 padding: 10,
                 bgColor: fromHex('#DE1912FF'),
-                child: Text('hello green', {})
+                child: Text('hello green', { variant: 'body' })
               }),
             ]
           }),
 
           Table({
             width: '100%',
-            borderColor: fromHex('#0f172a'),
-            borderWidth: 1,
-            headBgColor: fromHex('#1d4ed8'),
-            rowBgColor: fromHex('#f8fafc'),
-            alternateRowBgColor: fromHex('#e2e8f0'),
-            cellPadding: 8,
             columnWeights: [2, 1, 1],
             head: TableHead({
               rows: [
                 TableRow({
-                  children: [
-                    TableCell({ child: Text('Header 1', { size: 14, color: fromHex('#ffffff') }) }),
-                    TableCell({ child: Text('Header 2', { size: 14, color: fromHex('#ffffff') }) }),
-                    TableCell({ child: Text('Header 3', { size: 14, color: fromHex('#ffffff') }) }),
-                  ],
+                  children: ['KPI', 'Value', 'Change vs last quarter'].map(value =>
+                    TableCell({ child: Text(value, { size: 14, color: '#ffffff' }) })
+                  )
                 }),
               ],
             }),
@@ -138,9 +162,9 @@ async function generatePdf() {
               rows: [
                 TableRow({
                   children: [
-                    TableCell({ child: Text('Quarterly revenue summary', {}) }),
-                    TableCell({ child: Text('$42k', {}) }),
-                    TableCell({ child: Text('+12%', {}) }),
+                    TableCell({ child: Text('Quarterly revenue summary') }),
+                    TableCell({ child: Text('$42k') }),
+                    TableCell({ child: Text('+12%') }),
                   ],
                 }),
                 TableRow({
@@ -165,7 +189,7 @@ async function generatePdf() {
       Page({
         padding: 10,
         children: [
-          Text('Second page', { size: 16 }),
+          Text('Second page', { variant: 'h1' }),
           HLine({ color: fromHex('#0000ff'), thickness: 2, width: '100%' }),
           Container({
             width: '100%',
@@ -174,16 +198,16 @@ async function generatePdf() {
             child: Column({
               gap: 8,
               children: [
-                Text('Text overflow demos', { size: 18, font: 'Inter' }),
+                Text('Text overflow demos', { variant: 'h2' }),
                 Row({
                   children: [
                     Container({
                       width: 220,
                       height: 70,
                       padding: 8,
-                      bgColor: fromHex('#FFFFFF'),
+                      bgColor: 'surface',
                       child: Text('This paragraph is intentionally long so the new text engine has to wrap it, respect max lines, and end with an ellipsis once it runs out of room.', {
-                        font: 'Inter',
+                        variant: 'body',
                         size: 13,
                         maxLines: 2,
                         overflow: 'ellipsis',
@@ -193,14 +217,13 @@ async function generatePdf() {
                       width: 220,
                       height: 70,
                       padding: 8,
-                      bgColor: fromHex('#FFFFFF'),
+                      bgColor: 'surface',
                       child: Link('https://example.com/docs/very/long/link/path/that/needs/wrapping/and/truncation/to-stay-readable-in-tight-cards', {
                         href: 'https://example.com/docs/very/long/link/path/that/needs/wrapping/and/truncation/to-stay-readable-in-tight-cards',
-                        font: 'Inter',
+                        variant: 'link',
                         size: 13,
                         maxLines: 2,
                         overflow: 'ellipsis',
-                        underline: true,
                       })
                     }),
                   ]
@@ -218,10 +241,8 @@ async function generatePdf() {
           Column({
             gap: 10,
             children: [
-              Text('start', {
-                size: 20,
-              }),
-              Text('hello world', {}),
+              Text('start', { variant: 'h1' }),
+              Text('hello world', { variant: 'caption' }),
               Container({
                 width: 200,
                 height: 100,
