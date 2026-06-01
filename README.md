@@ -67,7 +67,35 @@ const doc = new Doc({
 const pdfBytes = await doc.save();
 ```
 
+Additional output helpers are available when you want a runtime-specific result:
+
+```ts
+const bytes = await doc.save();
+const blob = await doc.getBlob();
+await doc.download('invoice.pdf');
+const buffer = await doc.getBuffer();
+await doc.writeToFile('invoice.pdf');
+```
+
+`getBuffer()` and `writeToFile()` are intended for Node runtimes. `writeToFile()` uses `node:fs/promises`.
+
 ## Fonts
+
+Kalem ships with a few built-in font aliases that work without registration:
+
+```ts
+import { BuiltinPdfFonts } from './src/lib';
+
+const theme = createTheme({
+  fonts: {
+    body: 'sans',
+    heading: 'sans-bold',
+    code: 'mono',
+  },
+});
+```
+
+Available aliases: `sans`, `sans-bold`, `sans-italic`, `sans-bold-italic`, `serif`, `serif-bold`, `serif-italic`, `serif-bold-italic`, `mono`, `mono-bold`, `mono-italic`, `mono-bold-italic`.
 
 You can register fonts at the document level:
 
@@ -84,6 +112,56 @@ import fontkit from '@pdf-lib/fontkit';
 
 Doc.registerFontkit(fontkit);
 ```
+
+## Theme
+
+You can define document-scoped theme tokens and widget defaults on the document itself.
+
+```ts
+import { Doc, PageSize, createTheme } from './src/lib';
+import { Page, Text, Table } from './src/lib/widgets';
+import { fromHex } from './src/lib/utils/color-utils';
+
+const theme = createTheme({
+  fonts: {
+    body: 'Inter',
+    heading: 'Inter',
+  },
+  colors: {
+    text: fromHex('#0f172a'),
+    primary: fromHex('#1d4ed8'),
+    border: fromHex('#cbd5e1'),
+  },
+  text: {
+    body: { font: 'body', size: 12, color: 'text' },
+    h1: { font: 'heading', size: 20, color: 'text' },
+    link: { font: 'body', size: 12, color: 'primary', underline: true },
+  },
+  table: {
+    borderColor: 'border',
+    headBgColor: 'primary',
+    cellPadding: 8,
+  },
+});
+
+const doc = new Doc({
+  size: PageSize.LETTER,
+  theme,
+  children: [
+    Page({
+      children: [
+        Text('Quarterly report', { variant: 'h1' }),
+        Text('Prepared with shared theme defaults', { variant: 'body' }),
+        Table({
+          width: '100%',
+        }),
+      ],
+    }),
+  ],
+});
+```
+
+Widget props still override theme defaults, so the theme can stay focused on typography and visual tokens while layout remains explicit in the document tree.
 
 ## Project Status
 
