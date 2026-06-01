@@ -8,6 +8,9 @@ import {
   PDFFont,
   StandardFonts,
 } from 'pdf-lib';
+import type { Widget } from './Widget';
+import type { Theme } from './Theme';
+import { resolveBuiltinPdfFont } from './types/doc-fonts';
 import { toPdfLibColor, type ColorValue } from './utils/color-utils';
 
 export interface RenderContextOptions {
@@ -83,6 +86,7 @@ export class RenderContext {
   private static fontkit: any | undefined;
 
   private options: RenderContextOptions;
+  private theme?: Theme;
   private doc?: PDFDocument;
   private page: PDFPage | null;
   private dimensions?: [number, number];
@@ -100,6 +104,14 @@ export class RenderContext {
 
   setDebug(enabled: boolean): void {
     this.options.debug = !!enabled;
+  }
+
+  setTheme(theme?: Theme): void {
+    this.theme = theme;
+  }
+
+  getTheme(): Theme | undefined {
+    return this.theme;
   }
 
   isDebugEnabled(): boolean {
@@ -148,7 +160,7 @@ export class RenderContext {
   }
 
   async getFont(fontName: StandardFonts | string = StandardFonts.Helvetica): Promise<PDFFont> {
-    const requestedName = fontName;
+    const requestedName = resolveBuiltinPdfFont(fontName) ?? StandardFonts.Helvetica;
     const cached = this.fontCache.get(requestedName);
     if (cached) return cached;
 
@@ -221,6 +233,10 @@ export class RenderContext {
   measureDefaultLineHeight(size: number, fontName: StandardFonts | string = StandardFonts.Helvetica): number {
     const fontHeight = this.measureFontHeight(size, fontName);
     return fontHeight + fontHeight * 0.2;
+  }
+
+  measureFontAscent(size: number, fontName: StandardFonts | string = StandardFonts.Helvetica): number {
+    return this.measureFontHeight(size, fontName, { descender: false });
   }
 
   async embedImage(bytes: ArrayBuffer, format: 'png' | 'jpeg'): Promise<RenderImage> {
@@ -338,6 +354,17 @@ export class RenderContext {
       return [page.getWidth(), page.getHeight()];
     }
     return [this.options.width || 0, this.options.height || 0];
+  }
+
+  getLayoutBoxInPdfCoords(widget: Widget): { x: number; y: number; width: number; height: number } {
+    const { x, y, width, height } = widget.getAbsoluteLayoutBox();
+    const pageHeight = this.getPageHeight();
+    return {
+      x,
+      y: pageHeight - y - height,
+      width,
+      height,
+    };
   }
 
   setCurrentPage(currentPage: PDFPage): void {

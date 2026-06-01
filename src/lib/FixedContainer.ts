@@ -50,7 +50,7 @@ export class FixedContainerWidget extends Widget {
   }
 
   async render(context: RenderContext): Promise<void> {
-    const { x, y, width, height } = this.getLayoutBoxInPdfCoords(context);
+    const { x, y, width, height } = context.getLayoutBoxInPdfCoords(this);
 
     if (this.bgColor) {
       context.drawRectangle({

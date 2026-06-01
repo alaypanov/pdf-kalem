@@ -21,6 +21,14 @@ The project is split into two layers:
 
 ## Install
 
+From npm:
+
+```bash
+pnpm add kalem
+```
+
+For local development in this repository:
+
 ```bash
 pnpm install
 ```
@@ -31,23 +39,35 @@ pnpm install
 pnpm dev
 ```
 
+`pnpm dev` runs the local Vite invoice demo.
+
 ## Build
 
 ```bash
 pnpm build
 ```
 
+`pnpm build` emits the publishable library into `dist/`.
+
+To build the local demo app instead:
+
+```bash
+pnpm build:demo
+```
+
+`pnpm build:demo` emits the example site into `dist-examples/`.
+
 ## Example
 
 ```ts
 import {
-  Doc,
+  PdfDoc,
   PageSize,
-} from './src/lib';
-import { Page, Text, Container } from './src/lib/widgets';
-import { fromHex } from './src/lib/utils/color-utils';
+} from 'kalem';
+import { Page, Text, Container } from 'kalem/widgets';
+import { fromHex } from 'kalem/utils/color-utils';
 
-const doc = new Doc({
+const doc = new PdfDoc({
   size: PageSize.LETTER,
   children: [
     Page({
@@ -84,7 +104,7 @@ await doc.writeToFile('invoice.pdf');
 Kalem ships with a few built-in font aliases that work without registration:
 
 ```ts
-import { BuiltinPdfFonts } from './src/lib';
+import { BuiltinPdfFonts } from 'kalem';
 
 const theme = createTheme({
   fonts: {
@@ -118,9 +138,9 @@ Doc.registerFontkit(fontkit);
 You can define document-scoped theme tokens and widget defaults on the document itself.
 
 ```ts
-import { Doc, PageSize, createTheme } from './src/lib';
-import { Page, Text, Table } from './src/lib/widgets';
-import { fromHex } from './src/lib/utils/color-utils';
+import { PdfDoc, PageSize, createTheme } from 'kalem';
+import { Page, Text, Table } from 'kalem/widgets';
+import { fromHex } from 'kalem/utils/color-utils';
 
 const theme = createTheme({
   fonts: {
@@ -144,7 +164,7 @@ const theme = createTheme({
   },
 });
 
-const doc = new Doc({
+const doc = new PdfDoc({
   size: PageSize.LETTER,
   theme,
   children: [
@@ -180,5 +200,22 @@ There are still unrelated TypeScript issues in the current repo build outside th
 ## Scripts
 
 - `pnpm dev` starts Vite.
-- `pnpm build` runs TypeScript and the Vite production build.
+- `pnpm build` builds the npm package into `dist/`.
+- `pnpm build:demo` builds the local Vite demo.
+- `pnpm typecheck` runs TypeScript without emitting files.
 - `pnpm preview` serves the built app.
+
+## Release Checklist
+
+Before publishing, verify:
+
+- the package name is available on npm
+- `package.json` has the final `license`, `repository`, and author metadata you want to publish
+- `pnpm build` succeeds
+- `pnpm pack --dry-run` contains only the files you expect
+
+To publish a public release:
+
+```bash
+pnpm publish --access public
+```

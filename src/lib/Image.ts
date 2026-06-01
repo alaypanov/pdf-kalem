@@ -121,7 +121,7 @@ export class ImageWidget extends Widget {
     await this.loadImage(context);
     if (!this.pdfImage) return;
 
-    const { x, y, width, height } = this.getLayoutBoxInPdfCoords(context);
+    const { x, y, width, height } = context.getLayoutBoxInPdfCoords(this);
 
     const aspect = this.imageWidth > 0 ? this.imageWidth / this.imageHeight : 1;
     let drawWidth = width || this.imageWidth;

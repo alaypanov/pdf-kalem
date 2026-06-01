@@ -1,42 +1,55 @@
 import { FlexContainer, FlexContainerOptions } from './FlexContainer';
-
-
-export const Justify = {
-  FlexStart: 'flex-start',
-  Center: 'center',
-  FlexEnd: 'flex-end',
-  SpaceBetween: 'space-between',
-  SpaceAround: 'space-around',
-  SpaceEvenly: 'space-evenly',
-} as const;
-
-export const Align = {
-  FlexStart: 'flex-start',
-  Center: 'center',
-  FlexEnd: 'flex-end',
-  Stretch: 'stretch',
-} as const;
+import {
+  alignCenter,
+  alignEnd,
+  alignStart,
+  alignStretch,
+  AlignValue,
+  justifyAround,
+  justifyBetween,
+  justifyCenter,
+  justifyEnd,
+  justifyEvenly,
+  justifyStart,
+  JustifyValue,
+} from './types/styles';
+import { YogaStyle } from './Widget';
 
 /**
  * Options for configuring a Row widget
  */
 export interface RowOptions extends FlexContainerOptions {
-  mainAxisAlignment?: typeof Justify[keyof typeof Justify];
-  crossAxisAlignment?: typeof Align[keyof typeof Align];
+  mainAxisAlignment?: JustifyValue;
+  crossAxisAlignment?: Exclude<AlignValue, 'auto'>;
 }
+
+const rowStatics = {
+  justifyStart,
+  justifyCenter,
+  justifyEnd,
+  justifyBetween,
+  justifyAround,
+  justifyEvenly,
+  alignStart,
+  alignCenter,
+  alignEnd,
+  alignStretch,
+} as const;
+
+export type RowComponent = ((options?: RowOptions) => FlexContainer) &
+  typeof rowStatics;
 
 /**
  * Creates a Row widget that arranges its children horizontally
  */
-export function Row(options: RowOptions = {}): FlexContainer {
-
+function createRow(options: RowOptions = {}): FlexContainer {
   // console.log('Creating Row with options:', this);
   // Map alignment properties to flex style
-  const style = {
+  const style: YogaStyle = {
     ...options.style,
     flexDirection: 'row',
-    justifyContent: options.mainAxisAlignment || Justify.FlexStart,
-    alignItems: options.crossAxisAlignment || Align.FlexStart,
+    justifyContent: options.mainAxisAlignment || justifyStart,
+    alignItems: options.crossAxisAlignment || alignStart,
   };
 
   return new FlexContainer({
@@ -44,3 +57,5 @@ export function Row(options: RowOptions = {}): FlexContainer {
     style,
   });
 }
+
+export const Row: RowComponent = Object.assign(createRow, rowStatics);

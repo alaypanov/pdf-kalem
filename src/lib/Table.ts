@@ -1,19 +1,20 @@
 
 import { RenderContext, type RenderColor } from './RenderContext';
+import { resolveThemeColor, type ThemeColorValue } from './Theme';
 import { fromHex } from './utils/color-utils';
 import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
 
-interface TableOptions extends WidgetOptions {
+export interface TableOptions extends WidgetOptions {
   head?: TableHeadWidget;
   body?: TableBodyWidget;
   width?: YogaStyleValue;
   rowHeight?: number;
   cellPadding?: number;
-  borderColor?: RenderColor;
+  borderColor?: ThemeColorValue;
   borderWidth?: number;
-  headBgColor?: RenderColor;
-  rowBgColor?: RenderColor;
-  alternateRowBgColor?: RenderColor;
+  headBgColor?: ThemeColorValue;
+  rowBgColor?: ThemeColorValue;
+  alternateRowBgColor?: ThemeColorValue;
   columnWidths?: YogaStyleValue[];
   columnWeights?: number[];
 }
@@ -24,7 +25,7 @@ interface TableSectionOptions extends WidgetOptions {
 
 interface TableRowOptions extends WidgetOptions {
   cells?: Widget[];
-  bgColor?: RenderColor;
+  bgColor?: ThemeColorValue;
   minHeight?: number;
 }
 
@@ -33,8 +34,8 @@ interface TableCellOptions extends WidgetOptions {
   width?: YogaStyleValue;
   weight?: number;
   padding?: number;
-  bgColor?: RenderColor;
-  borderColor?: RenderColor;
+  bgColor?: ThemeColorValue;
+  borderColor?: ThemeColorValue;
   borderWidth?: number;
 }
 
@@ -86,7 +87,7 @@ export class TableBodyWidget extends TableSectionWidget { }
 
 export class TableRowWidget extends Widget {
   private readonly cells: TableCellWidget[];
-  private readonly bgColor?: RenderColor;
+  private readonly bgColor?: ThemeColorValue;
   private readonly minHeight?: number;
 
   constructor(options: TableRowOptions = {}) {
@@ -113,8 +114,9 @@ export class TableRowWidget extends Widget {
   }
 
   getResolvedBackgroundColor(): RenderColor | undefined {
+    const theme = this.context?.getTheme();
     if (this.bgColor) {
-      return this.bgColor;
+      return resolveThemeColor(theme, this.bgColor);
     }
 
     const table = this.getTable();
@@ -175,8 +177,8 @@ export class TableCellWidget extends Widget {
   private readonly width?: YogaStyleValue;
   private readonly weight?: number;
   private readonly padding?: number;
-  private readonly bgColor?: RenderColor;
-  private readonly borderColor?: RenderColor;
+  private readonly bgColor?: ThemeColorValue;
+  private readonly borderColor?: ThemeColorValue;
   private readonly borderWidth?: number;
 
   constructor(options: TableCellOptions = {}) {
@@ -206,7 +208,7 @@ export class TableCellWidget extends Widget {
   }
 
   private getResolvedBorderColor(): RenderColor | undefined {
-    return this.borderColor ?? this.getTable()?.getBorderColor();
+    return resolveThemeColor(this.context?.getTheme(), this.borderColor) ?? this.getTable()?.getBorderColor();
   }
 
   private getResolvedBorderWidth(): number {
@@ -218,7 +220,7 @@ export class TableCellWidget extends Widget {
   }
 
   private getResolvedBackgroundColor(): RenderColor | undefined {
-    return this.bgColor ?? this.getRow()?.getResolvedBackgroundColor();
+    return resolveThemeColor(this.context?.getTheme(), this.bgColor) ?? this.getRow()?.getResolvedBackgroundColor();
   }
 
   override async prepareLayout(context: RenderContext): Promise<void> {
@@ -259,7 +261,7 @@ export class TableCellWidget extends Widget {
   }
 
   async render(context: RenderContext): Promise<void> {
-    const { x, y, width, height } = this.getLayoutBoxInPdfCoords(context);
+    const { x, y, width, height } = context.getLayoutBoxInPdfCoords(this);
     const bgColor = this.getResolvedBackgroundColor();
     const borderColor = this.getResolvedBorderColor();
     const borderWidth = this.getResolvedBorderWidth();
@@ -283,12 +285,12 @@ export class TableWidget extends Widget {
   private readonly body?: TableBodyWidget;
   private readonly width?: YogaStyleValue;
   private readonly rowHeight?: number;
-  private readonly cellPadding: number;
-  private readonly borderColor: RenderColor;
-  private readonly borderWidth: number;
-  private readonly headBgColor?: RenderColor;
-  private readonly rowBgColor?: RenderColor;
-  private readonly alternateRowBgColor?: RenderColor;
+  private readonly cellPadding?: number;
+  private readonly borderColor?: ThemeColorValue;
+  private readonly borderWidth?: number;
+  private readonly headBgColor?: ThemeColorValue;
+  private readonly rowBgColor?: ThemeColorValue;
+  private readonly alternateRowBgColor?: ThemeColorValue;
   private readonly columnWidths?: YogaStyleValue[];
   private readonly columnWeights?: number[];
 
@@ -299,9 +301,9 @@ export class TableWidget extends Widget {
     this.body = options.body;
     this.width = options.width;
     this.rowHeight = options.rowHeight;
-    this.cellPadding = options.cellPadding ?? 0;
-    this.borderColor = options.borderColor ?? fromHex('#000000');
-    this.borderWidth = options.borderWidth ?? 1;
+    this.cellPadding = options.cellPadding;
+    this.borderColor = options.borderColor;
+    this.borderWidth = options.borderWidth;
     this.headBgColor = options.headBgColor;
     this.rowBgColor = options.rowBgColor;
     this.alternateRowBgColor = options.alternateRowBgColor;
@@ -317,31 +319,31 @@ export class TableWidget extends Widget {
   }
 
   getRowHeight(): number | undefined {
-    return this.rowHeight;
+    return this.rowHeight ?? this.context?.getTheme()?.table?.rowHeight;
   }
 
   getCellPadding(): number {
-    return this.cellPadding;
+    return this.cellPadding ?? this.context?.getTheme()?.table?.cellPadding ?? 0;
   }
 
   getBorderColor(): RenderColor {
-    return this.borderColor;
+    return resolveThemeColor(this.context?.getTheme(), this.borderColor ?? this.context?.getTheme()?.table?.borderColor) ?? fromHex('#000000');
   }
 
   getBorderWidth(): number {
-    return this.borderWidth;
+    return this.borderWidth ?? this.context?.getTheme()?.table?.borderWidth ?? 1;
   }
 
   getHeadBgColor(): RenderColor | undefined {
-    return this.headBgColor;
+    return resolveThemeColor(this.context?.getTheme(), this.headBgColor ?? this.context?.getTheme()?.table?.headBgColor);
   }
 
   getRowBgColor(): RenderColor | undefined {
-    return this.rowBgColor;
+    return resolveThemeColor(this.context?.getTheme(), this.rowBgColor ?? this.context?.getTheme()?.table?.rowBgColor);
   }
 
   getAlternateRowBgColor(): RenderColor | undefined {
-    return this.alternateRowBgColor;
+    return resolveThemeColor(this.context?.getTheme(), this.alternateRowBgColor ?? this.context?.getTheme()?.table?.alternateRowBgColor);
   }
 
   getColumnWidth(index: number): YogaStyleValue | undefined {

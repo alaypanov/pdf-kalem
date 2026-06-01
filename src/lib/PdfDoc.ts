@@ -1,11 +1,37 @@
 import { Widget, WidgetOptions } from './Widget';
 import { RenderContext } from './RenderContext';
+import type { Theme } from './Theme';
 import { PageSize, PDFDocSize } from './types/doc-sizes';
 import { PageWidget } from './Page';
 import { PDFDocument } from 'pdf-lib';
 // Changed PDFDocSize to a constant object
 
 type Awaitable<T> = T | Promise<T>;
+type NodeBufferLike = Uint8Array;
+type NodeFsLike = {
+  writeFile(path: string, data: NodeBufferLike): Promise<void>;
+};
+
+function getNodeBufferFactory(): { from(data: Uint8Array): NodeBufferLike } | undefined {
+  const maybeBuffer = (globalThis as typeof globalThis & {
+    Buffer?: { from(data: Uint8Array): NodeBufferLike };
+  }).Buffer;
+
+  if (!maybeBuffer || typeof maybeBuffer.from !== 'function') {
+    return undefined;
+  }
+
+  return maybeBuffer;
+}
+
+async function getNodeFs(): Promise<NodeFsLike> {
+  try {
+    const loadFs = new Function("return import('node:fs/promises')") as () => Promise<NodeFsLike>;
+    return await loadFs();
+  } catch (err) {
+    throw new Error('node:fs/promises is not available in this runtime', { cause: err });
+  }
+}
 
 function applyMeta(doc: PDFDocument, meta?: PdfDocMeta): void {
   if (!meta) return;
@@ -31,6 +57,7 @@ export interface PdfDocOptions extends WidgetOptions {
   size?: PageSize; // Use standard size names
   dimensions?: [number, number]; // Optional custom dimensions
   layout?: 'portrait' | 'landscape';
+  theme?: Theme;
   /** Enables drawing colored debug outlines around every widget. */
   debug?: boolean;
   meta?: PdfDocMeta;
@@ -73,6 +100,11 @@ export class PdfDoc extends Widget {
       return;
     }
 
+    const fontSet = document.fonts as FontFaceSet & {
+      add(font: FontFace): FontFaceSet;
+      ready: Promise<FontFaceSet>;
+    };
+
     const cachedLoad = PdfDoc.browserFontLoads.get(fontName);
     if (cachedLoad) {
       await cachedLoad;
@@ -84,8 +116,8 @@ export class PdfDoc extends Widget {
         const fontSource = fontData.slice().buffer;
         const fontFace = new FontFace(fontName, fontSource);
         const loadedFont = await fontFace.load();
-        document.fonts.add(loadedFont);
-        await document.fonts.ready;
+        fontSet.add(loadedFont);
+        await fontSet.ready;
       } catch (err) {
         console.warn(`PdfDoc.registerBrowserFont: failed to load '${fontName}' into browser fonts`, err);
       }
@@ -156,6 +188,7 @@ export class PdfDoc extends Widget {
   protected size?: PageSize; // Can be undefined if customSize is used
   protected dimensions?: [number, number];
   protected layout: 'portrait' | 'landscape';
+  protected theme?: Theme;
   protected meta?: PdfDocMeta;
   protected beforeCreate?: (args: PdfDocBeforeCreateArgs) => Awaitable<void>;
   protected afterSave?: (args: PdfDocAfterSaveArgs) => Awaitable<void>;
@@ -168,6 +201,9 @@ export class PdfDoc extends Widget {
     if (options.debug !== undefined) {
       context.setDebug(!!options.debug);
     }
+
+    this.theme = options.theme;
+    context.setTheme(this.theme);
 
     // Prioritize customSize if provided
     if (options.dimensions) {
@@ -198,6 +234,10 @@ export class PdfDoc extends Widget {
 
   getMeta(): PdfDocMeta | undefined {
     return this.meta;
+  }
+
+  getTheme(): Theme | undefined {
+    return this.theme;
   }
 
   async render(context: RenderContext): Promise<void> {
@@ -249,6 +289,53 @@ export class PdfDoc extends Widget {
     }
 
     return bytes;
+  }
+
+  async getBlob(): Promise<Blob> {
+    if (typeof Blob === 'undefined') {
+      throw new Error('Blob is not available in this runtime');
+    }
+
+    const bytes = await this.savePdf();
+    return new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
+  }
+
+  async download(fileName = 'document.pdf'): Promise<void> {
+    if (typeof document === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+      throw new Error('PdfDoc.download is only available in browser-like runtimes');
+    }
+
+    const blob = await this.getBlob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async getBuffer(): Promise<NodeBufferLike> {
+    const bufferFactory = getNodeBufferFactory();
+    if (!bufferFactory) {
+      throw new Error('Node Buffer is not available in this runtime');
+    }
+
+    const bytes = await this.savePdf();
+    return bufferFactory.from(bytes);
+  }
+
+  async writeToFile(filePath: string): Promise<void> {
+    if (!filePath.trim()) {
+      throw new Error('PdfDoc.writeToFile requires a file path');
+    }
+
+    const fsModule = await getNodeFs();
+    const buffer = await this.getBuffer();
+    await fsModule.writeFile(filePath, buffer);
   }
 
   async save(): Promise<Uint8Array> {

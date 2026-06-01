@@ -285,17 +285,11 @@ export abstract class Widget {
     return { x, y };
   }
 
-  protected getLayoutBoxInPdfCoords(context: RenderContext): { x: number; y: number; width: number; height: number } {
+  getAbsoluteLayoutBox(): { x: number; y: number; width: number; height: number } {
     const { x, y } = this.getAbsoluteTopLeft();
-    console.log(`Widget absolute top-left in Yoga coords: (${x}, ${y})`);
     const width = this.node.getComputedWidth();
     const height = this.node.getComputedHeight();
 
-    // Yoga is top-left origin with +y downward. pdf-lib is bottom-left origin with +y upward.
-    const pageHeight = context.getPageHeight();
-    const pdfY = pageHeight - y - height;
-    console.log('height=', height, 'pageHeight=', pageHeight);
-
-    return { x, y: pdfY, width, height };
+    return { x, y, width, height };
   }
 }

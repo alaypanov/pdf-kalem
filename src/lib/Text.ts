@@ -5,17 +5,19 @@ import {
   type PrepareOptions,
   type PreparedTextWithSegments,
 } from '@chenglou/pretext';
+import { MeasureMode } from 'yoga-layout';
+import { resolveThemeColor, resolveThemeFont, resolveThemeTextStyle, type ThemeColorValue } from './Theme';
 import { Widget, WidgetOptions } from './Widget';
 import { RenderContext } from './RenderContext';
 import type { RenderColor } from './RenderContext';
+import { resolveBuiltinCanvasFont, resolveBuiltinPdfFont } from './types/doc-fonts';
 import { fromHex } from './utils/color-utils';
-import { MeasureMode } from 'yoga-layout';
 
-type TextOverflow = 'visible' | 'clip' | 'ellipsis';
+export type TextOverflow = 'visible' | 'clip' | 'ellipsis';
 
-interface TextOptions extends WidgetOptions {
+export interface TextOptions extends WidgetOptions {
   size?: number;
-  color?: RenderColor;
+  color?: ThemeColorValue;
   align?: 'left' | 'center' | 'right';
   font?: string;
   lineHeight?: number;
@@ -23,6 +25,7 @@ interface TextOptions extends WidgetOptions {
   overflow?: TextOverflow;
   whiteSpace?: PrepareOptions['whiteSpace'];
   wordBreak?: PrepareOptions['wordBreak'];
+  variant?: string;
 }
 
 interface TextLayoutLine {
@@ -35,17 +38,18 @@ interface TextLayoutResult {
   maxLineWidth: number;
 }
 
-class TextWidget extends Widget {
+export class TextWidget extends Widget {
   private readonly text: string;
-  private readonly size: number;
-  private readonly color: RenderColor;
-  private readonly align: 'left' | 'center' | 'right';
-  private readonly fontName?: string;
-  private readonly lineHeight?: number;
+  private readonly sizeOverride?: number;
+  private readonly colorOverride?: ThemeColorValue;
+  private readonly alignOverride?: 'left' | 'center' | 'right';
+  private readonly fontNameOverride?: string;
+  private readonly lineHeightOverride?: number;
   private readonly maxLines?: number;
   private readonly overflow: TextOverflow;
   private readonly whiteSpace: PrepareOptions['whiteSpace'];
   private readonly wordBreak: PrepareOptions['wordBreak'];
+  private readonly variant?: string;
   private measureConfigured = false;
   private preparedText?: PreparedTextWithSegments;
   private preparedTextKey?: string;
@@ -57,52 +61,98 @@ class TextWidget extends Widget {
   constructor(text: string, options: TextOptions) {
     super(options);
     this.text = text;
-    this.size = options.size || 12;
-    this.color = options.color ?? fromHex('#000000');
-    this.align = options.align || 'left';
-    this.fontName = options.font;
-    this.lineHeight = options.lineHeight;
+    this.sizeOverride = options.size;
+    this.colorOverride = options.color;
+    this.alignOverride = options.align;
+    this.fontNameOverride = options.font;
+    this.lineHeightOverride = options.lineHeight;
     this.maxLines = options.maxLines;
     this.overflow = options.overflow ?? 'visible';
     this.whiteSpace = options.whiteSpace ?? 'normal';
     this.wordBreak = options.wordBreak ?? 'normal';
+    this.variant = options.variant;
   }
 
-  private getLineHeight(): number {
-    if (this.lineHeight !== undefined) {
-      return this.lineHeight;
+  protected getThemeVariantNames(): string[] {
+    return ['body', this.variant ?? ''];
+  }
+
+  protected getVariantName(): string | undefined {
+    return this.variant;
+  }
+
+  protected getThemeTextStyle() {
+    return resolveThemeTextStyle(this.context?.getTheme(), this.getThemeVariantNames());
+  }
+
+  protected getFallbackColor(): RenderColor {
+    return fromHex('#000000');
+  }
+
+  protected getFallbackLineHeightMultiplier(): number {
+    return 1.15;
+  }
+
+  protected getSize(): number {
+    return this.sizeOverride ?? this.getThemeTextStyle()?.size ?? 12;
+  }
+
+  protected getColor(): RenderColor {
+    return resolveThemeColor(this.context?.getTheme(), this.colorOverride ?? this.getThemeTextStyle()?.color) ?? this.getFallbackColor();
+  }
+
+  protected getAlign(): 'left' | 'center' | 'right' {
+    return this.alignOverride ?? this.getThemeTextStyle()?.align ?? 'left';
+  }
+
+  protected getLineHeight(): number {
+    const resolvedLineHeight = this.lineHeightOverride ?? this.getThemeTextStyle()?.lineHeight;
+    if (resolvedLineHeight !== undefined) {
+      return resolvedLineHeight;
     }
 
     if (this.context) {
-      return this.context.measureDefaultLineHeight(this.size, this.fontName);
+      return this.context.measureDefaultLineHeight(this.getSize(), this.getFontName());
     }
 
-    return this.size * 1.15;
+    return this.getSize() * this.getFallbackLineHeightMultiplier();
   }
 
-  private getFontName(): string {
-    return this.fontName ?? 'Helvetica';
+  protected getFontName(): string {
+    return resolveBuiltinPdfFont(
+      resolveThemeFont(this.context?.getTheme(), this.fontNameOverride ?? this.getThemeTextStyle()?.font)
+    ) ?? 'Helvetica';
   }
 
-  private getCanvasFont(): string {
-    const fontFamily = this.getFontName();
+  protected getFontAscent(): number {
+    if (this.context) {
+      return this.context.measureFontAscent(this.getSize(), this.getFontName());
+    }
+
+    return this.getSize();
+  }
+
+  protected getCanvasFont(): string {
+    const fontFamily = resolveBuiltinCanvasFont(
+      resolveThemeFont(this.context?.getTheme(), this.fontNameOverride ?? this.getThemeTextStyle()?.font)
+    ) ?? this.getFontName();
     const escapedFamily = fontFamily.replace(/"/g, '\\"');
     const quotedFamily = /\s|,/.test(fontFamily) ? `"${escapedFamily}"` : escapedFamily;
-    return `${this.size}px ${quotedFamily}`;
+    return `${this.getSize()}px ${quotedFamily}`;
   }
 
-  private getPrepareOptions(): PrepareOptions {
+  protected getPrepareOptions(): PrepareOptions {
     return {
       whiteSpace: this.whiteSpace,
       wordBreak: this.wordBreak,
     };
   }
 
-  private canUsePretext(): boolean {
+  protected canUsePretext(): boolean {
     return typeof Intl !== 'undefined' && 'Segmenter' in Intl;
   }
 
-  private ensurePreparedText(): PreparedTextWithSegments | undefined {
+  protected ensurePreparedText(): PreparedTextWithSegments | undefined {
     if (!this.canUsePretext()) {
       return undefined;
     }
@@ -123,15 +173,15 @@ class TextWidget extends Widget {
     return this.preparedText;
   }
 
-  private measureTextWidth(text: string): number {
+  protected measureTextWidth(text: string): number {
     if (this.context) {
-      return this.context.measureTextWidth(text, this.size, this.fontName);
+      return this.context.measureTextWidth(text, this.getSize(), this.getFontName());
     }
 
-    return text.length * this.size * 0.6;
+    return text.length * this.getSize() * 0.6;
   }
 
-  private getNaturalWidth(): number {
+  protected getNaturalWidth(): number {
     const preparedText = this.ensurePreparedText();
     if (preparedText) {
       return measureNaturalWidth(preparedText);
@@ -140,7 +190,7 @@ class TextWidget extends Widget {
     return this.measureTextWidth(this.text);
   }
 
-  private splitGraphemes(text: string): string[] {
+  protected splitGraphemes(text: string): string[] {
     if (!this.graphemeSegmenter) {
       return Array.from(text);
     }
@@ -148,7 +198,7 @@ class TextWidget extends Widget {
     return Array.from(this.graphemeSegmenter.segment(text), (segment) => segment.segment);
   }
 
-  private ellipsizeLine(text: string, maxWidth: number): TextLayoutLine {
+  protected ellipsizeLine(text: string, maxWidth: number): TextLayoutLine {
     if (maxWidth <= 0) {
       return { text: '', width: 0 };
     }
@@ -184,11 +234,11 @@ class TextWidget extends Widget {
     return { text: best, width: bestWidth };
   }
 
-  private appendFallbackLine(lines: TextLayoutLine[], lineText: string): void {
+  protected appendFallbackLine(lines: TextLayoutLine[], lineText: string): void {
     lines.push({ text: lineText, width: this.measureTextWidth(lineText) });
   }
 
-  private breakLongToken(token: string, maxWidth: number): TextLayoutLine[] {
+  protected breakLongToken(token: string, maxWidth: number): TextLayoutLine[] {
     if (maxWidth <= 0) {
       return [{ text: token, width: this.measureTextWidth(token) }];
     }
@@ -215,7 +265,7 @@ class TextWidget extends Widget {
     return lines;
   }
 
-  private layoutFallback(maxWidth: number): TextLayoutLine[] {
+  protected layoutFallback(maxWidth: number): TextLayoutLine[] {
     const normalizedText = this.text.replace(/\r\n?/g, '\n');
     const paragraphs = normalizedText.split('\n');
     const lines: TextLayoutLine[] = [];
@@ -267,7 +317,7 @@ class TextWidget extends Widget {
     return lines;
   }
 
-  private getHeightLineLimit(height: number): number | undefined {
+  protected getHeightLineLimit(height: number): number | undefined {
     if (!Number.isFinite(height) || height <= 0) {
       return undefined;
     }
@@ -275,7 +325,7 @@ class TextWidget extends Widget {
     return Math.max(0, Math.floor((height + 0.001) / this.getLineHeight()));
   }
 
-  private getEffectiveMaxLines(heightLineLimit?: number): number | undefined {
+  protected getEffectiveMaxLines(heightLineLimit?: number): number | undefined {
     const limits: number[] = [];
 
     if (typeof this.maxLines === 'number' && Number.isFinite(this.maxLines) && this.maxLines >= 0) {
@@ -293,7 +343,7 @@ class TextWidget extends Widget {
     return Math.max(0, Math.min(...limits));
   }
 
-  private layoutText(maxWidth: number, heightLineLimit?: number): TextLayoutResult {
+  protected layoutText(maxWidth: number, heightLineLimit?: number): TextLayoutResult {
     const lineHeight = this.getLineHeight();
     const preparedText = this.ensurePreparedText();
     const effectiveWidth = maxWidth > 0 ? maxWidth : this.getNaturalWidth();
@@ -316,8 +366,68 @@ class TextWidget extends Widget {
     };
   }
 
+  protected getRenderedTextLayout(context: RenderContext): {
+    box: { x: number; y: number; width: number; height: number };
+    lines: Array<TextLayoutLine & { x: number; y: number }>;
+    maxWidth: number;
+  } {
+    const box = context.getLayoutBoxInPdfCoords(this);
+    const maxWidth = box.width > 0 ? box.width : this.getWidth();
+    const lineHeight = this.getLineHeight();
+    const ascent = this.getFontAscent();
+    const heightLineLimit = this.getHeightLineLimit(box.height);
+    const layout = this.layoutText(maxWidth, heightLineLimit);
+    const topY = box.y + box.height;
+
+    return {
+      box,
+      maxWidth,
+      lines: layout.lines.map((line, index) => {
+        let x = box.x;
+        if (this.getAlign() === 'center') {
+          x = box.x + (maxWidth - line.width) / 2;
+        } else if (this.getAlign() === 'right') {
+          x = box.x + (maxWidth - line.width);
+        }
+
+        return {
+          ...line,
+          x,
+          y: topY - index * lineHeight - ascent,
+        };
+      }),
+    };
+  }
+
+  protected async drawRenderedTextLayout(
+    context: RenderContext,
+    renderedLayout: ReturnType<TextWidget['getRenderedTextLayout']>,
+    options?: { underline?: boolean; underlineColor?: RenderColor },
+  ): Promise<void> {
+    for (const line of renderedLayout.lines) {
+      await context.drawText({
+        text: line.text,
+        x: line.x,
+        y: line.y,
+        size: this.getSize(),
+        color: this.getColor(),
+        fontName: this.getFontName(),
+      });
+
+      if (options?.underline) {
+        const underlineY = line.y - Math.max(1, this.getSize() * 0.08);
+        context.drawLine({
+          start: { x: line.x, y: underlineY },
+          end: { x: line.x + line.width, y: underlineY },
+          thickness: Math.max(0.5, this.getSize() * 0.06),
+          color: options.underlineColor ?? this.getColor(),
+        });
+      }
+    }
+  }
+
   override async prepareLayout(context: RenderContext): Promise<void> {
-    await context.preloadFont(this.fontName);
+    await context.preloadFont(this.getFontName());
 
     if (typeof document !== 'undefined' && 'fonts' in document) {
       await document.fonts.load(this.getCanvasFont(), this.text);
@@ -354,35 +464,7 @@ class TextWidget extends Widget {
   }
 
   async render(context: RenderContext): Promise<void> {
-    const { x: baseX, y: baseY, width, height } = this.getLayoutBoxInPdfCoords(context);
-    const maxWidth = width > 0 ? width : this.getWidth();
-    const lineHeight = this.getLineHeight();
-    const heightLineLimit = this.getHeightLineLimit(height);
-    const layout = this.layoutText(maxWidth, heightLineLimit);
-
-    const topY = baseY + height;
-
-    for (let i = 0; i < layout.lines.length; i++) {
-      const line = layout.lines[i];
-
-      let x = baseX;
-      if (this.align === 'center') {
-        x = baseX + (maxWidth - line.width) / 2;
-      } else if (this.align === 'right') {
-        x = baseX + (maxWidth - line.width);
-      }
-
-      const y = topY - (i + 1) * lineHeight;
-
-      await context.drawText({
-        text: line.text,
-        x,
-        y,
-        size: this.size,
-        color: this.color,
-        fontName: this.fontName,
-      });
-    }
+    await this.drawRenderedTextLayout(context, this.getRenderedTextLayout(context));
   }
 
   getWidth(): number {

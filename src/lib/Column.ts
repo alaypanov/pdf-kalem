@@ -1,25 +1,55 @@
 import { FlexContainer, FlexContainerOptions } from './FlexContainer';
+import {
+  alignCenter,
+  alignEnd,
+  alignStart,
+  alignStretch,
+  AlignValue,
+  justifyAround,
+  justifyBetween,
+  justifyCenter,
+  justifyEnd,
+  justifyEvenly,
+  justifyStart,
+  JustifyValue,
+} from './types/styles';
+import { YogaStyle } from './Widget';
 
 /**
  * Options for configuring a Column widget
  */
 export interface ColumnOptions extends FlexContainerOptions {
-  mainAxisAlignment?: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly';
-  crossAxisAlignment?: 'flex-start' | 'center' | 'flex-end' | 'stretch';
+  mainAxisAlignment?: JustifyValue;
+  crossAxisAlignment?: Exclude<AlignValue, 'auto'>;
   gap?: number;
 }
+
+const columnStatics = {
+  justifyStart,
+  justifyCenter,
+  justifyEnd,
+  justifyBetween,
+  justifyAround,
+  justifyEvenly,
+  alignStart,
+  alignCenter,
+  alignEnd,
+  alignStretch,
+} as const;
+
+export type ColumnComponent = ((options?: ColumnOptions) => FlexContainer) & typeof columnStatics;
 
 /**
  * Creates a Column widget that arranges its children vertically
  */
-export function Column(options: ColumnOptions = {}): FlexContainer {
+function createColumn(options: ColumnOptions = {}): FlexContainer {
   // Map alignment properties to flex style
-  const style = {
+  const style: YogaStyle = {
     ...options.style,
     flexDirection: 'column',
     gap: options?.gap || 0,
-    justifyContent: options.mainAxisAlignment || 'flex-start',
-    alignItems: options.crossAxisAlignment || 'flex-start',
+    justifyContent: options.mainAxisAlignment || justifyStart,
+    alignItems: options.crossAxisAlignment || alignStart,
   };
 
   return new FlexContainer({
@@ -27,3 +57,5 @@ export function Column(options: ColumnOptions = {}): FlexContainer {
     style,
   });
 }
+
+export const Column: ColumnComponent = Object.assign(createColumn, columnStatics);

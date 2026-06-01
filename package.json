@@ -1,21 +1,55 @@
 {
-  "name": "pdf-compose",
-  "private": true,
+  "name": "kalem",
   "version": "0.0.1",
+  "description": "PDF-focused widget-tree UI library for document layout and generation.",
   "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./widgets": {
+      "types": "./dist/widgets.d.ts",
+      "import": "./dist/widgets.js"
+    },
+    "./utils/color-utils": {
+      "types": "./dist/utils/color-utils.d.ts",
+      "import": "./dist/utils/color-utils.js"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "dev": "vite --open /examples/",
+    "build": "tsup",
+    "build:demo": "vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview --open /examples/",
+    "prepublishOnly": "pnpm build"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vite": "8.0.14"
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.7",
     "pdf-lib": "^1.17.1",
-    "vite": "8.0.14",
     "yoga-layout": "^3.2.1"
   },
+  "keywords": [
+    "pdf",
+    "layout",
+    "document",
+    "typescript",
+    "pdf-lib"
+  ],
   "packageManager": "pnpm@11.3.0"
 }

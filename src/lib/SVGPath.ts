@@ -150,7 +150,7 @@ export class SVGPathWidget extends Widget {
   }
 
   async render(context: RenderContext): Promise<void> {
-    const { x, y, width, height } = this.getLayoutBoxInPdfCoords(context);
+    const { x, y, width, height } = context.getLayoutBoxInPdfCoords(this);
 
     const boxW = width > 0 ? width : this.getWidth();
     const boxH = height > 0 ? height : this.getHeight();
