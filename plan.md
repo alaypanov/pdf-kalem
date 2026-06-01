@@ -5,6 +5,9 @@
 - Harden text measurement and fonts.
 - Upgrade tables.
 - Build online design editor.
+- Add template helpers and styling system.
+- Page breaks
+- Printing and PDF export
 - Add reusable document helpers.
 - Add tests and richer examples.
 - Documentation
@@ -32,3 +35,16 @@ Schema and serialization. If you still want long-term live builder potential, de
 Template data binding. Let users pass data into templates cleanly so this becomes useful for invoices, statements, reports, and letters.
 Test coverage for rendering behavior. Add snapshot-style PDF assertions where practical and focused layout tests for text wrapping, page breaks, and table splitting.
 Documentation and examples. Add 3 to 5 serious examples: invoice, report, letterhead, certificate, and multi-page table.
+
+
+Text.ts:391 and Link.ts:405 duplicate nearly the same text measurement, wrapping, layout, and drawing flow. That is the highest-ROI simplification target. I’d extract a shared TextLayoutEngine plus a small TextPainter, then make Link just “text + annotation + underline”.
+Widget.ts:288 is supposed to be the generic base widget, but it already knows about PDF coordinates via getLayoutBoxInPdfCoords. That couples the whole widget tree to one renderer. Move coordinate conversion behind the render layer so widgets deal in layout boxes, not PDF math.
+PdfDoc.ts mixes document model, PDF export lifecycle, browser font loading, Node file output, hooks, and runtime helpers. That makes it hard to reason about what PdfDoc actually is. Split it into: Doc as the tree/root model, PdfExporter or PdfSession for rendering, and small browser/Node helper modules for download, writeToFile, font URL loading.
+RenderContext.ts is carrying backend state, font registry, measurement, page state, and primitive drawing. It wants to be at least three pieces: FontRegistry, PageCanvas, and PdfRenderContext.
+Widget.ts also has a large stringly-typed Yoga property switch. That makes style behavior hard to audit and easy to break. A typed style applier layer would reduce hidden behavior and make Row, Column, Container, and Table easier to follow.
+
+Extract shared text/link layout code.
+Move renderer-specific coordinate conversion out of Widget.
+Split PdfDoc runtime helpers from document/export logic.
+Break RenderContext into smaller backend-focused services.
+Tighten the public API and update the README to match it.
