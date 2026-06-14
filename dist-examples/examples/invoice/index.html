@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalem Invoice Example</title>
+  <style>
+    html,
+    body,
+    iframe {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: inherit;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #ebe5d9;
+    }
+
+    #app {
+      height: 100vh;
+      width: 100vw;
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/invoice-DHwdapGP.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/PdfDoc-C1QID4eQ.js">
+</head>
+<body>
+  <div id="app">
+    <iframe id="pdf" frameborder="0" style="height: 100%; width: 100%;"></iframe>
+  </div>
+</body>
+</html>

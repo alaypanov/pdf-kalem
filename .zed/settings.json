@@ -1,0 +1,14 @@
+{
+  "languages": {
+    "JavaScript": {
+      "prettier": {
+        "singleQuote": true,
+      },
+    },
+    "TypeScript": {
+      "prettier": {
+        "singleQuote": true,
+      },
+    },
+  },
+}
