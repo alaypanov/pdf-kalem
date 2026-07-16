@@ -1,4 +1,6 @@
 export * from './Text';
+export * from './TextLayoutEngine';
+export * from './TextPainter';
 export * from './RenderContext';
 export * from './Page';
 export * from './Container';
