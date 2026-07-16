@@ -10,10 +10,6 @@ import {
   Row,
   SVGPath,
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Text,
 } from '../../src/widgets';
 import { PdfDoc, PageSize, createTheme } from '../../src';
@@ -151,44 +147,19 @@ async function generatePdf() {
             ],
           }),
 
-          Table({
-            width: '100%',
-            columnWeights: [2, 1, 1],
-            head: TableHead({
-              rows: [
-                TableRow({
-                  children: ['KPI', 'Value', 'Change vs last quarter'].map((value) =>
-                    TableCell({ child: Text(value, { size: 14, color: '#ffffff' }) })
-                  ),
-                }),
-              ],
-            }),
-            body: TableBody({
-              rows: [
-                TableRow({
-                  children: [
-                    TableCell({ child: Text('Quarterly revenue summary') }),
-                    TableCell({ child: Text('$42k') }),
-                    TableCell({ child: Text('+12%') }),
-                  ],
-                }),
-                TableRow({
-                  children: [
-                    TableCell({ child: Text('Customer retention', {}) }),
-                    TableCell({ child: Text('93%', {}) }),
-                    TableCell({ child: Text('+4%', {}) }),
-                  ],
-                }),
-                TableRow({
-                  children: [
-                    TableCell({ child: Text('Support backlog', {}) }),
-                    TableCell({ child: Text('18', {}) }),
-                    TableCell({ child: Text('-7', {}) }),
-                  ],
-                }),
-              ],
-            }),
-          }),
+          Table.fromRows(
+            [
+              ['KPI', 'Value', 'Change vs last quarter'],
+              ['Quarterly revenue summary', '$42k', '+12%'],
+              ['Customer retention', '93%', '+4%'],
+              ['Support backlog', '18', '-7%'],
+            ],
+            {
+              width: '100%',
+              columnWeights: [2, 1, 1],
+              header: true,
+            }
+          ),
         ],
       }),
       Page({

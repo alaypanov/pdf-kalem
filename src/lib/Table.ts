@@ -3,6 +3,7 @@ import { RenderContext, type RenderColor } from './RenderContext';
 import { resolveThemeColor, type ThemeColorValue } from './Theme';
 import { fromHex } from './utils/color-utils';
 import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
+import { Text } from './Text';
 
 export interface TableOptions extends WidgetOptions {
   head?: TableHeadWidget;
@@ -393,6 +394,53 @@ export function TableCell(options: TableCellOptions = {}): TableCellWidget {
   return new TableCellWidget(options);
 }
 
-export function Table(options: TableOptions): TableWidget {
+function createTable(options: TableOptions): TableWidget {
   return new TableWidget(options);
 }
+
+/**
+ * Options for {@link Table.fromRows}.
+ */
+export interface TableFromRowsOptions extends Omit<TableOptions, 'head' | 'body'> {
+  /**
+   * When true, the first row is rendered as a table head using the head
+   * background color from the table options or theme.
+   */
+  header?: boolean;
+}
+
+/**
+ * Convenience constructor for the common case: a list of rows where every
+ * cell is plain text. The first row can be promoted to a header via
+ * `{ header: true }`. This collapses the verbose
+ * `TableHead({ rows: [TableRow({ children: [...].map(v => TableCell({ child: Text(v) })) })] })`
+ * ceremony into a single call.
+ *
+ * @example
+ *   Table.fromRows([['KPI', 'Value', 'Change'], ['$42k', '+12%']], {
+ *     header: true,
+ *     columnWeights: [2, 1, 1],
+ *   })
+ */
+export function fromRows(
+  rows: Array<Array<string | Widget>>,
+  options: TableFromRowsOptions = {}
+): TableWidget {
+  const { header = false, ...tableOptions } = options;
+  const toCell = (value: string | Widget) =>
+    TableCell({ child: typeof value === 'string' ? Text(value, {}) : value });
+  const toRow = (cells: Array<string | Widget>) =>
+    TableRow({ children: cells.map(toCell) });
+
+  const bodyRows = rows.map(toRow);
+  const head = header ? TableHead({ rows: [bodyRows.shift()!] }) : undefined;
+  const body = TableBody({ rows: bodyRows });
+
+  return createTable({ ...tableOptions, head, body });
+}
+
+export type TableComponent = ((options: TableOptions) => TableWidget) & {
+  fromRows: typeof fromRows;
+};
+
+export const Table: TableComponent = Object.assign(createTable, { fromRows });
