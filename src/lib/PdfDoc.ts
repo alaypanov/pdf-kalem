@@ -4,6 +4,7 @@ import type { Theme } from './Theme';
 import { PageSize, PDFDocSize } from './types/doc-sizes';
 import { PageWidget } from './Page';
 import { PDFDocument } from 'pdf-lib';
+import { PdfRenderer } from './PdfRenderer';
 // Changed PDFDocSize to a constant object
 
 type Awaitable<T> = T | Promise<T>;
@@ -90,7 +91,13 @@ export interface PdfDocAfterSaveArgs {
   bytes: Uint8Array;
 }
 
-export class PdfDoc extends Widget {
+/**
+ * PdfDoc is the document model: it owns the page tree, theme, metadata, and
+ * lifecycle hooks. It is intentionally not a Widget — a document is not a
+ * layout node. Rendering is delegated to {@link PdfRenderer}, and runtime
+ * helpers (blob/download/buffer/file) live on PdfDoc as convenience methods.
+ */
+export class PdfDoc {
   private static globalBeforeCreate: Array<(args: PdfDocBeforeCreateArgs) => Awaitable<void>> = [];
   private static globalAfterSave: Array<(args: PdfDocAfterSaveArgs) => Awaitable<void>> = [];
   private static browserFontLoads: Map<string, Promise<void>> = new Map();
@@ -184,7 +191,6 @@ export class PdfDoc extends Widget {
     PdfDoc.globalAfterSave = [];
   }
 
-  // Using protected instead of private to indicate these might be used by subclasses
   protected size?: PageSize; // Can be undefined if customSize is used
   protected dimensions?: [number, number];
   protected layout: 'portrait' | 'landscape';
@@ -192,11 +198,11 @@ export class PdfDoc extends Widget {
   protected meta?: PdfDocMeta;
   protected beforeCreate?: (args: PdfDocBeforeCreateArgs) => Awaitable<void>;
   protected afterSave?: (args: PdfDocAfterSaveArgs) => Awaitable<void>;
-  // protected children: Widget[];
+  protected readonly children: Widget[];
+  protected readonly context: RenderContext;
 
   constructor(options: PdfDocOptions = {}, context: RenderContext = new RenderContext({})) {
-    super(options);
-    super.setContext(context);
+    this.context = context;
 
     if (options.debug !== undefined) {
       context.setDebug(!!options.debug);
@@ -219,10 +225,14 @@ export class PdfDoc extends Widget {
     this.afterSave = options.afterSave;
     this.children = options.children || [];
 
+    // Wire the widget tree to the render context (propagates theme, context
+    // to every widget without PdfDoc itself being part of the yoga tree).
+    for (const child of this.children) {
+      child.setContext(context);
+    }
+
     // Make doc dimensions available to Pages that don't specify size/dimensions.
     context.setDefaultDimensions(this.getWidth(), this.getHeight());
-
-    console.log('PdfDoc children:', this.children);
 
     // Enforce only PageWidget children
     for (const child of this.children) {
@@ -232,17 +242,20 @@ export class PdfDoc extends Widget {
     }
   }
 
+  getContext(): RenderContext {
+    return this.context;
+  }
+
+  getChildren(): Widget[] {
+    return this.children;
+  }
+
   getMeta(): PdfDocMeta | undefined {
     return this.meta;
   }
 
   getTheme(): Theme | undefined {
     return this.theme;
-  }
-
-  async render(context: RenderContext): Promise<void> {
-    console.log('Drawing doc');
-    await this.renderChildren(context);
   }
 
   private getDimensions(): number[] {
@@ -256,21 +269,15 @@ export class PdfDoc extends Widget {
 
   getWidth(): number {
     const [width, height] = this.getDimensions();
-    console.log('getWidth: ', width);
     return this.layout === 'portrait' ? width : height;
   }
 
   getHeight(): number {
     const [width, height] = this.getDimensions();
-    console.log('getHeight: ', height);
     return this.layout === 'portrait' ? height : width;
   }
 
   async savePdf(): Promise<Uint8Array> {
-    if (!this.context) {
-      throw new Error('PdfDoc has no RenderContext set');
-    }
-
     for (const hook of PdfDoc.globalBeforeCreate) {
       await hook({ context: this.context, root: this });
     }
@@ -280,7 +287,9 @@ export class PdfDoc extends Widget {
     applyMeta(pdfDoc, this.getMeta());
     this.context.setDocument(pdfDoc);
 
-    await this.render(this.context);
+    const renderer = new PdfRenderer(this);
+    await renderer.render();
+
     const bytes = await pdfDoc.save();
 
     await this.afterSave?.({ doc: pdfDoc, context: this.context, root: this, bytes });
