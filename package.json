@@ -35,12 +35,12 @@
     "prepublishOnly": "pnpm build"
   },
   "devDependencies": {
-    "tsup": "^8.5.0",
-    "typescript": "^5.9.3",
-    "vite": "8.0.14"
+    "tsup": "^8.5.1",
+    "typescript": "^7.0.2",
+    "vite": "8.1.4"
   },
   "dependencies": {
-    "@chenglou/pretext": "^0.0.7",
+    "@chenglou/pretext": "^0.0.8",
     "pdf-lib": "^1.17.1",
     "yoga-layout": "^3.2.1"
   },
