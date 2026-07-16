@@ -1,14 +1,14 @@
-import { Widget, WidgetOptions } from './Widget';
+import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
 import { RenderContext, type RenderColor } from './RenderContext';
-import { PositionType } from 'yoga-layout';
+import { Edge, PositionType } from 'yoga-layout';
 
 interface FixedContainerOptions extends WidgetOptions {
   top?: number;
   bottom?: number;
   left?: number;
   right?: number;
-  width?: number;
-  height?: number;
+  width?: YogaStyleValue;
+  height?: YogaStyleValue;
   bgColor?: RenderColor;
 }
 
@@ -17,8 +17,8 @@ export class FixedContainerWidget extends Widget {
   private bottom?: number;
   private left?: number;
   private right?: number;
-  private width?: number;
-  private height?: number;
+  private width?: YogaStyleValue;
+  private height?: YogaStyleValue;
   private bgColor?: RenderColor;
 
   constructor(options: FixedContainerOptions) {
@@ -31,22 +31,24 @@ export class FixedContainerWidget extends Widget {
     this.height = options.height;
     this.bgColor = options.bgColor;
 
-    // Yoga absolute positioning
+    // Yoga absolute positioning. Set directly on the node — the context is
+    // not wired up until setContext() runs (after the whole tree is built),
+    // so we must not route these through setProperty(context, ...).
     this.node.setPositionType(PositionType.Absolute);
-    if (this.top !== undefined) this.setProperty(this.context as any, 'top', this.top);
-    if (this.right !== undefined) this.setProperty(this.context as any, 'right', this.right);
-    if (this.bottom !== undefined) this.setProperty(this.context as any, 'bottom', this.bottom);
-    if (this.left !== undefined) this.setProperty(this.context as any, 'left', this.left);
-    if (this.width !== undefined) this.setProperty(this.context as any, 'width', this.width);
-    if (this.height !== undefined) this.setProperty(this.context as any, 'height', this.height);
+    if (this.top !== undefined) this.node.setPosition(Edge.Top, this.top);
+    if (this.right !== undefined) this.node.setPosition(Edge.Right, this.right);
+    if (this.bottom !== undefined) this.node.setPosition(Edge.Bottom, this.bottom);
+    if (this.left !== undefined) this.node.setPosition(Edge.Left, this.left);
+    if (this.width !== undefined) this.setYogaStyle({ width: this.width });
+    if (this.height !== undefined) this.setYogaStyle({ height: this.height });
   }
 
   getWidth(): number {
-    return this.width || 0;
+    return typeof this.width === 'number' ? this.width : 0;
   }
 
   getHeight(): number {
-    return this.height || 0;
+    return typeof this.height === 'number' ? this.height : 0;
   }
 
   async render(context: RenderContext): Promise<void> {
