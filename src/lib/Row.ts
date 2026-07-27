@@ -20,6 +20,7 @@ import { YogaStyle } from './Widget';
  */
 export interface RowOptions extends FlexContainerOptions {
   mainAxisAlignment?: JustifyValue;
+
   crossAxisAlignment?: Exclude<AlignValue, 'auto'>;
 }
 

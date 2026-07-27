@@ -196,7 +196,7 @@ export class IconWidget extends Widget {
     this.drawIconAt(context, x, y, width, height);
   }
 
-  override async renderAt(
+  async renderAt(
     context: RenderContext,
     x: number,
     y: number,

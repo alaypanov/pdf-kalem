@@ -47,6 +47,8 @@
     "typecheck": "tsc --noEmit",
     "test": "pnpm build && node tests/pagination.test.mjs && node tests/padding.test.mjs",
     "preview": "vite preview --open /examples/",
+    "pub": "publish --access public",
+    "dry": "publish --dry-run",
     "prepublishOnly": "pnpm build"
   },
   "devDependencies": {
