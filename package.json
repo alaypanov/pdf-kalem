@@ -1,12 +1,26 @@
 {
   "name": "kalem",
   "version": "0.0.1",
-  "description": "PDF-focused widget-tree UI library for document layout and generation.",
+  "description": "PDF-focused widget-tree UI library for document generation.",
   "type": "module",
   "sideEffects": false,
+  "license": "MIT",
+  "author": "A Laypanov",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alaypanov/kalem.git"
+  },
+  "bugs": {
+    "url": "https://github.com/alaypanov/kalem/issues"
+  },
+  "homepage": "https://github.com/alaypanov/kalem#readme",
+  "engines": {
+    "node": ">=18"
+  },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -31,12 +45,14 @@
     "build": "tsup",
     "build:demo": "vite build",
     "typecheck": "tsc --noEmit",
+    "test": "pnpm build && node tests/pagination.test.mjs && node tests/padding.test.mjs",
     "preview": "vite preview --open /examples/",
     "prepublishOnly": "pnpm build"
   },
   "devDependencies": {
+    "@mdi/js": "^7.4.47",
     "tsup": "^8.5.1",
-    "typescript": "^7.0.2",
+    "typescript": "^6.0.3",
     "vite": "8.1.4"
   },
   "dependencies": {

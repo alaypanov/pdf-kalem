@@ -8,6 +8,7 @@ export const theme = createTheme({
     mono: "Inter",
   },
   colors: {
+    primary: fromHex('#0f172a'),
     ink: fromHex("#0f172a"),
     muted: fromHex("#64748b"),
     line: fromHex("#dbe3ef"),
