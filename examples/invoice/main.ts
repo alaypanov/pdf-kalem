@@ -11,9 +11,11 @@ import {
   TableHead,
   TableRow,
   Text,
+  Icon
 } from '../../src/widgets';
 import { PdfDoc, PageSize } from '../../src';
 import { theme } from './theme';
+import { mdiAbacus } from '@mdi/js'
 
 const lineItems = [
   {
@@ -81,7 +83,8 @@ async function generateInvoiceBlob() {
                     gap: 8,
                     children: [
                       Container({
-                        width: 92,
+                        width: 90,
+                        height: 30,
                         padding: 12,
                         bgColor: 'accentSoft',
                         child: Text('ACME STUDIO', {
@@ -89,6 +92,7 @@ async function generateInvoiceBlob() {
                           color: 'brand',
                         }),
                       }),
+                      Icon({ path: mdiAbacus }),
                       Text('INVOICE', { variant: 'h1' }),
                       Text(
                         'Creative services invoice for project delivery and implementation support.',

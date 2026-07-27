@@ -192,7 +192,7 @@ export class IconWidget extends Widget {
   }
 
   async render(context: RenderContext): Promise<void> {
-    const { x, y, width, height } = context.getLayoutBox(this);
+    const { x, y, width, height } = context.getLayoutBoxInPdfCoords(this)
     this.drawIconAt(context, x, y, width, height);
   }
 
