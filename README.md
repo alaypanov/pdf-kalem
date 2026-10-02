@@ -1,14 +1,14 @@
-# Kalem
+# pdf-kalem
 
 > **For AI assistants:** read [`LLM_CONTEXT.md`](./LLM_CONTEXT.md) for a compact codebase orientation before diving into the source.
 
 > **Status: early alpha.** The API is not yet stable and may change between versions. Not recommended for production use yet — feedback and bug reports are welcome.
 
-Kalem is a widget-tree UI library for document-style layout and generation.
+pdf-kalem is a widget-tree UI library for document-style layout and generation.
 
 The core idea is to describe content as a tree of widgets — pages, containers, rows, columns, text, images, links, tables, and SVG paths — run [Yoga](https://github.com/facebook/yoga) for flexbox layout, and render the tree through a backend-specific renderer. The PDF backend (`pdf-lib`).
 
-The design is heavily inspired by [Flutter](https://flutter.dev)'s widget-tree model — the idea of composing documents from declarative widget trees with flexbox layout, theme tokens, and per-widget overrides. Kalem adapts that mental model to the document/PDF domain.
+The design is heavily inspired by [Flutter](https://flutter.dev)'s widget-tree model — the idea of composing documents from declarative widget trees with flexbox layout, theme tokens, and per-widget overrides. pdf-kalem adapts that mental model to the document/PDF domain.
 
 ## What It Does
 
@@ -34,7 +34,7 @@ The project is split into three layers:
 From npm:
 
 ```bash
-pnpm add kalem
+pnpm add pdf-kalem
 ```
 
 For local development in this repository:
@@ -73,9 +73,9 @@ pnpm build:demo
 import {
   PdfDoc,
   PageSize,
-} from 'kalem';
-import { Page, Text, Container } from 'kalem/widgets';
-import { fromHex } from 'kalem/utils/color-utils';
+} from 'pdf-kalem';
+import { Page, Text, Container } from 'pdf-kalem/widgets';
+import { fromHex } from 'pdf-kalem/utils/color-utils';
 
 const doc = new PdfDoc({
   size: PageSize.LETTER,
@@ -111,7 +111,7 @@ await doc.writeToFile('invoice.pdf');
 
 ### Pagination
 
-When a page's content is taller than the page, Kalem splits it across additional pages. It does this with a three-pass approach (layout → paginate → render), similar to react-pdf:
+When a page's content is taller than the page, pdf-kalem splits it across additional pages. It does this with a three-pass approach (layout → paginate → render), similar to react-pdf:
 
 1. **Layout** — the whole page tree is laid out once on a single tall canvas.
 2. **Paginate** — the laid-out tree is walked and split into per-page *fragment* trees. Each fragment is a lightweight view onto a widget for one output page (it reuses the same Yoga node, so there's no re-layout).
@@ -144,7 +144,7 @@ Page({ overflow: false, children: [...] });
 For the common case of a table where every cell is plain text, use `Table.fromRows`:
 
 ```ts
-import { Table, Text } from 'kalem/widgets';
+import { Table, Text } from 'pdf-kalem/widgets';
 
 Table.fromRows(
   [
@@ -164,10 +164,10 @@ Cells accept either strings (auto-wrapped in `Text`) or arbitrary widgets for cu
 
 ## Fonts
 
-Kalem ships with a few built-in font aliases that work without registration:
+pdf-kalem ships with a few built-in font aliases that work without registration:
 
 ```ts
-import { BuiltinPdfFonts } from 'kalem';
+import { BuiltinPdfFonts } from 'pdf-kalem';
 
 const theme = createTheme({
   fonts: {
@@ -203,9 +203,9 @@ Font registration is handled by a shared `FontRegistry` singleton, so any future
 You can define document-scoped theme tokens and widget defaults on the document itself.
 
 ```ts
-import { PdfDoc, PageSize, createTheme } from 'kalem';
-import { Page, Text, Table } from 'kalem/widgets';
-import { fromHex } from 'kalem/utils/color-utils';
+import { PdfDoc, PageSize, createTheme } from 'pdf-kalem';
+import { Page, Text, Table } from 'pdf-kalem/widgets';
+import { fromHex } from 'pdf-kalem/utils/color-utils';
 
 const theme = createTheme({
   fonts: {
@@ -272,9 +272,9 @@ The v2 plan is to add `ImageDoc` and `EmailDoc` that share the widget tree, them
 
 ## Special Thanks
 
-Kalem stands on the shoulders of several excellent open-source projects:
+pdf-kalem stands on the shoulders of several excellent open-source projects:
 
-- [Flutter](https://flutter.dev) — the widget-tree mental model that inspired Kalem's design.
+- [Flutter](https://flutter.dev) — the widget-tree mental model that inspired pdf-kalem's design.
 - [pdf-lib](https://github.com/Hopding/pdf-lib) — the PDF generation engine that powers the PDF backend.
 - [Yoga](https://github.com/facebook/yoga) — the flexbox layout engine (from Meta/Facebook) that handles all layout computation.
 - [`@chenglou/pretext`](https://github.com/chenglou/pretext) — the grapheme-aware text measurement and wrapping engine.

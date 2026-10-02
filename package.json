@@ -1,5 +1,5 @@
 {
-  "name": "kalem",
+  "name": "pdf-kalem",
   "version": "0.0.1",
   "description": "PDF-focused widget-tree UI library for document generation.",
   "type": "module",
@@ -8,12 +8,12 @@
   "author": "A Laypanov",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alaypanov/kalem.git"
+    "url": "git+https://github.com/alaypanov/pdf-kalem.git"
   },
   "bugs": {
-    "url": "https://github.com/alaypanov/kalem/issues"
+    "url": "https://github.com/alaypanov/pdf-kalem/issues"
   },
-  "homepage": "https://github.com/alaypanov/kalem#readme",
+  "homepage": "https://github.com/alaypanov/pdf-kalem#readme",
   "engines": {
     "node": ">=18"
   },

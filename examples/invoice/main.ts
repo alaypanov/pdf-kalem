@@ -61,11 +61,11 @@ async function generateInvoiceBlob() {
     theme,
     meta: {
       title: 'Generic invoice',
-      author: 'Kalem',
+      author: 'pdf-kalem',
       subject: 'Invoice example',
       language: 'en-US',
       keywords: ['invoice', 'example', 'pdf'],
-      creator: 'Kalem',
+      creator: 'pdf-kalem',
       producer: 'pdf-lib',
     },
     children: [

@@ -65,12 +65,12 @@ async function generatePdf() {
     debug: true,
     theme,
     meta: {
-      title: 'Kalem playground demo',
-      author: 'Kalem',
+      title: 'pdf-kalem playground demo',
+      author: 'pdf-kalem',
       subject: 'Widget-tree PDF rendering demo',
       language: 'en-US',
       keywords: ['demo', 'pdf-lib', 'layout'],
-      creator: 'Kalem',
+      creator: 'pdf-kalem',
       producer: 'pdf-lib',
     },
     children: [

@@ -1,10 +1,10 @@
-# Kalem — LLM Context
+# pdf-kalem — LLM Context
 
 > Compact orientation for AI assistants. Read this first; open specific files only when you need implementation detail. Status: **early alpha**, API not stable.
 
 ## What it is
 
-Kalem is a **widget-tree UI library for document/PDF generation** (TypeScript). You describe a document as a tree of widgets (pages, containers, text, images, tables, links, SVG), lay it out with **Yoga (flexbox)**, and render through a backend. The **PDF backend (pdf-lib) ships today**; the architecture is set up for future image/HTML backends.
+pdf-kalem is a **widget-tree UI library for document/PDF generation** (TypeScript). You describe a document as a tree of widgets (pages, containers, text, images, tables, links, SVG), lay it out with **Yoga (flexbox)**, and render through a backend. The **PDF backend (pdf-lib) ships today**; the architecture is set up for future image/HTML backends.
 
 Mental model is borrowed from **Flutter**: declarative widget trees, theme tokens + per-widget overrides, flexbox layout.
 
@@ -64,7 +64,7 @@ Three passes (react-pdf pattern): **layout** (once, on a tall canvas) → **pagi
 
 - `src/index.ts` → `src/lib/index.ts` → `PdfDoc`, `PdfRenderer`, `RenderContext` (hub: interface + types + `PdfRenderContext`), `FontRegistry`, `Theme`, `types/*`.
 - `src/widgets.ts` → `src/lib/widgets.ts` → all widgets + the `RenderContext` seam (interface, types, `PdfRenderContext`) + text engine/painter.
-- `src/lib/utils/color-utils.ts` → published as `kalem/utils/color-utils`.
+- `src/lib/utils/color-utils.ts` → published as `pdf-kalem/utils/color-utils`.
 
 Built by **tsup** (ESM only) into `dist/`. **`splitting: true` is required** — with multiple entries and no shared chunks, classes get duplicated per entry and `instanceof` breaks across entry points (this was a real shipped bug).
 
