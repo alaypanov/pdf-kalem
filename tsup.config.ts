@@ -11,6 +11,11 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   clean: true,
-  splitting: false,
+  // Code splitting is required: with multiple entry points and no shared
+  // chunks, classes like PageWidget get bundled into each entry separately,
+  // giving them distinct identities and breaking `instanceof` checks across
+  // entry points (e.g. `Page()` from 'kalem/widgets' passed to `PdfDoc` from
+  // 'kalem').
+  splitting: true,
   external: ['@chenglou/pretext', 'pdf-lib', 'yoga-layout'],
 });

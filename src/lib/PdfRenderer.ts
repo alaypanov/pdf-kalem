@@ -1,5 +1,5 @@
 import type { PdfDoc } from './PdfDoc';
-import type { RenderContext } from './RenderContext';
+import type { RenderContext } from './RenderContextInterface';
 import type { PageWidget } from './Page';
 
 /**

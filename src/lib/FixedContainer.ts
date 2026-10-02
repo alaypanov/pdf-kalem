@@ -1,5 +1,6 @@
 import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
-import { RenderContext, type RenderColor } from './RenderContext';
+import type { RenderContext } from './RenderContextInterface';
+import type { RenderColor } from './RenderContextTypes';
 import { Edge, PositionType } from 'yoga-layout';
 
 interface FixedContainerOptions extends WidgetOptions {
@@ -52,7 +53,7 @@ export class FixedContainerWidget extends Widget {
   }
 
   async render(context: RenderContext): Promise<void> {
-    const { x, y, width, height } = context.getLayoutBoxInPdfCoords(this);
+    const { x, y, width, height } = context.getLayoutBox(this);
 
     if (this.bgColor) {
       context.drawRectangle({

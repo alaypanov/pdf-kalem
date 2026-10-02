@@ -1,5 +1,6 @@
 import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
-import type { RenderContext, RenderColor } from './RenderContext';
+import type { RenderContext } from './RenderContextInterface';
+import type { RenderColor } from './RenderContextTypes';
 import { resolveThemeColor, type ThemeColorValue } from './Theme';
 import { fromHex } from './utils/color-utils';
 import { ImageSizing } from './Image';
@@ -192,7 +193,7 @@ export class IconWidget extends Widget {
   }
 
   async render(context: RenderContext): Promise<void> {
-    const { x, y, width, height } = context.getLayoutBoxInPdfCoords(this)
+    const { x, y, width, height } = context.getLayoutBox(this)
     this.drawIconAt(context, x, y, width, height);
   }
 

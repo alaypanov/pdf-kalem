@@ -1,5 +1,6 @@
 import { Widget, WidgetOptions } from './Widget';
-import { RenderContext, type RenderImage } from './RenderContext';
+import type { RenderContext } from './RenderContextInterface';
+import type { RenderImage } from './RenderContextTypes';
 import { MeasureMode } from 'yoga-layout';
 
 export enum ImageSizing {
@@ -121,7 +122,7 @@ export class ImageWidget extends Widget {
     await this.loadImage(context);
     if (!this.pdfImage) return;
 
-    const { x, y, width, height } = context.getLayoutBoxInPdfCoords(this);
+    const { x, y, width, height } = context.getLayoutBox(this);
 
     const aspect = this.imageWidth > 0 ? this.imageWidth / this.imageHeight : 1;
     let drawWidth = width || this.imageWidth;

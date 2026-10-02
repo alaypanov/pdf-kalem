@@ -87,7 +87,4 @@ export interface RenderContext {
    * origin) apply the transform here.
    */
   getLayoutBox(widget: Widget): { x: number; y: number; width: number; height: number };
-
-  /** @deprecated Renamed to {@link getLayoutBox}. Kept for back-comat. */
-  getLayoutBoxInPdfCoords(widget: Widget): { x: number; y: number; width: number; height: number };
 }

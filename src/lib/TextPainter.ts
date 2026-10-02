@@ -1,4 +1,5 @@
-import type { RenderContext, RenderColor } from './RenderContext';
+import type { RenderContext } from './RenderContextInterface';
+import type { RenderColor } from './RenderContextTypes';
 import type { TextLayoutLine } from './TextLayoutEngine';
 
 /**

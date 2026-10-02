@@ -1,4 +1,4 @@
-import { RenderContext } from './RenderContext';
+import type { RenderContext } from './RenderContextInterface';
 import Yoga, {
   Align,
   Direction,

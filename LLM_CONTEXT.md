@@ -43,7 +43,7 @@ Three passes (react-pdf pattern): **layout** (once, on a tall canvas) → **pagi
 | `PdfRenderer.ts` | Walks pages and calls `page.render(context)`. Thin. |
 | `PdfRenderContext.ts` | PDF backend: embeds fonts (fontkit), draws primitives on `PDFPage`, applies Y-flip in `getLayoutBox`. Font/text-width caches. |
 | `RenderContextInterface.ts` | The backend-neutral interface widgets depend on. 3 concerns: theme/debug, measurement, drawing+page lifecycle. |
-| `RenderContext.ts` | Re-exports `RenderContextTypes` + the interface + `PdfRenderContext`. Import hub. |
+| `RenderContext.ts` | Re-exports `RenderContextTypes` + the interface + `PdfRenderContext`. Import hub for public entries — internal modules import from `RenderContextInterface`/`RenderContextTypes` directly (importing the type through this hub creates a circular chunk in the DTS build). |
 | `RenderContextTypes.ts` | Shared arg/option types (`DrawTextArgs`, `RenderColor`, etc.). `RenderImage = PDFImage` (still PDF-typed; v2 will neutralize). |
 | `FontRegistry.ts` | Singleton: registered font bytes, fontkit, browser `FontFace` loading, `isStandardFontName`. |
 | `TextLayoutEngine.ts` | Pure text measure/wrap/truncate (grapheme-aware via `@chenglou/pretext`, with a no-canvas fallback). No widget/theme/context knowledge. |
@@ -62,8 +62,8 @@ Three passes (react-pdf pattern): **layout** (once, on a tall canvas) → **pagi
 
 ## Entry points (public API)
 
-- `src/index.ts` → `src/lib/index.ts` → `PdfDoc`, `PdfRenderer`, `FontRegistry`, `Theme`, `types/*`.
-- `src/widgets.ts` → `src/lib/widgets.ts` → all widgets + `RenderContext` types + text engine/painter.
+- `src/index.ts` → `src/lib/index.ts` → `PdfDoc`, `PdfRenderer`, `RenderContext` (hub: interface + types + `PdfRenderContext`), `FontRegistry`, `Theme`, `types/*`.
+- `src/widgets.ts` → `src/lib/widgets.ts` → all widgets + the `RenderContext` seam (interface, types, `PdfRenderContext`) + text engine/painter.
 - `src/lib/utils/color-utils.ts` → published as `kalem/utils/color-utils`.
 
 Built by **tsup** (ESM only) into `dist/`. **`splitting: true` is required** — with multiple entries and no shared chunks, classes get duplicated per entry and `instanceof` breaks across entry points (this was a real shipped bug).

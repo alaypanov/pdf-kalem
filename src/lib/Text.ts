@@ -1,8 +1,8 @@
 import { MeasureMode } from 'yoga-layout';
 import { resolveThemeColor, resolveThemeFont, resolveThemeTextStyle, type ThemeColorValue } from './Theme';
 import { Widget, WidgetOptions } from './Widget';
-import { RenderContext } from './RenderContext';
-import type { RenderColor } from './RenderContext';
+import type { RenderContext } from './RenderContextInterface';
+import type { RenderColor } from './RenderContextTypes';
 import { resolveBuiltinCanvasFont, resolveBuiltinPdfFont } from './types/doc-fonts';
 import { fromHex } from './utils/color-utils';
 import {
@@ -175,7 +175,7 @@ export class TextWidget extends Widget {
   }
 
   protected getRenderedTextLayout(context: RenderContext): RenderedTextLayout {
-    const box = context.getLayoutBoxInPdfCoords(this);
+    const box = context.getLayoutBox(this);
     const maxWidth = box.width > 0 ? box.width : this.getWidth();
     const heightLineLimit = this.getHeightLineLimit(box.height);
     const layout = this.layoutText(maxWidth, heightLineLimit);

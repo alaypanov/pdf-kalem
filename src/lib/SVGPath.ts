@@ -1,6 +1,6 @@
 import { MeasureMode } from 'yoga-layout';
 import { Widget, WidgetOptions, YogaStyleValue } from './Widget';
-import { RenderContext } from './RenderContext';
+import type { RenderContext } from './RenderContextInterface';
 import { fromHex } from './utils/color-utils';
 import { ImageSizing } from './Image';
 
@@ -150,7 +150,7 @@ export class SVGPathWidget extends Widget {
   }
 
   async render(context: RenderContext): Promise<void> {
-    const { x, y, width, height } = context.getLayoutBoxInPdfCoords(this);
+    const { x, y, width, height } = context.getLayoutBox(this);
 
     const boxW = width > 0 ? width : this.getWidth();
     const boxH = height > 0 ? height : this.getHeight();

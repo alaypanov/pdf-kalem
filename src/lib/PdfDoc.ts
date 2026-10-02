@@ -1,10 +1,11 @@
 import { Widget, WidgetOptions } from './Widget';
-import { RenderContext } from './RenderContext';
+import { PdfRenderContext } from './PdfRenderContext';
 import type { Theme } from './Theme';
 import { PageSize, PDFDocSize } from './types/doc-sizes';
 import { PageWidget } from './Page';
 import { PDFDocument } from 'pdf-lib';
 import { PdfRenderer } from './PdfRenderer';
+import { FontRegistry } from './FontRegistry';
 // Changed PDFDocSize to a constant object
 
 type Awaitable<T> = T | Promise<T>;
@@ -80,13 +81,13 @@ export interface PdfDocMeta {
 }
 
 export interface PdfDocBeforeCreateArgs {
-  context: RenderContext;
+  context: PdfRenderContext;
   root: PdfDoc;
 }
 
 export interface PdfDocAfterSaveArgs {
   doc: PDFDocument;
-  context: RenderContext;
+  context: PdfRenderContext;
   root: PdfDoc;
   bytes: Uint8Array;
 }
@@ -100,82 +101,34 @@ export interface PdfDocAfterSaveArgs {
 export class PdfDoc {
   private static globalBeforeCreate: Array<(args: PdfDocBeforeCreateArgs) => Awaitable<void>> = [];
   private static globalAfterSave: Array<(args: PdfDocAfterSaveArgs) => Awaitable<void>> = [];
-  private static browserFontLoads: Map<string, Promise<void>> = new Map();
 
-  private static async registerBrowserFont(fontName: string, fontData: Uint8Array): Promise<void> {
-    if (typeof FontFace === 'undefined' || typeof document === 'undefined' || !('fonts' in document)) {
-      return;
-    }
-
-    const fontSet = document.fonts as FontFaceSet & {
-      add(font: FontFace): FontFaceSet;
-      ready: Promise<FontFaceSet>;
-    };
-
-    const cachedLoad = PdfDoc.browserFontLoads.get(fontName);
-    if (cachedLoad) {
-      await cachedLoad;
-      return;
-    }
-
-    const loadPromise = (async () => {
-      try {
-        const fontSource = fontData.slice().buffer;
-        const fontFace = new FontFace(fontName, fontSource);
-        const loadedFont = await fontFace.load();
-        fontSet.add(loadedFont);
-        await fontSet.ready;
-      } catch (err) {
-        console.warn(`PdfDoc.registerBrowserFont: failed to load '${fontName}' into browser fonts`, err);
-      }
-    })();
-
-    PdfDoc.browserFontLoads.set(fontName, loadPromise);
-    await loadPromise;
-  }
-
+  /**
+   * Registers a font from `url`, stores its bytes in {@link FontRegistry},
+   * and loads it into the browser font set (for canvas-based measurement via
+   * pretext). Delegates to the shared registry so any future backend
+   * (ImageDoc, EmailDoc) sees the same registered fonts.
+   */
   static async registerFontFromUrl(fontName: string, url: string): Promise<boolean> {
-    const name = fontName?.trim();
-    const fontUrl = url?.trim();
-
-    if (!name || !fontUrl) {
-      console.error('PdfDoc.registerFontFromUrl: fontName and url are required');
-      return false;
-    }
-
-    try {
-      const res = await fetch(fontUrl);
-      if (!res.ok) {
-        console.error(
-          `PdfDoc.registerFontFromUrl: failed to fetch '${fontUrl}' (${res.status} ${res.statusText})`
-        );
-        return false;
-      }
-      const bytes = new Uint8Array(await res.arrayBuffer());
-      PdfDoc.registerFont(name, bytes);
-      await PdfDoc.registerBrowserFont(name, bytes);
-      return true;
-    } catch (err) {
-      console.error(`PdfDoc.registerFontFromUrl: failed to load '${name}' from '${fontUrl}'`, err);
-      return false;
-    }
+    return FontRegistry.instance.registerFontFromUrl(fontName, url);
   }
 
+  /**
+   * Bulk {@link registerFontFromUrl}. `fonts` maps font name → URL.
+   */
   static async registerFonts(fonts: Record<string, string>): Promise<void> {
-    // Example:
-    // await PdfDoc.registerFonts({ Inter: '/fonts/Inter-Regular.ttf' })
-    const entries = Object.entries(fonts ?? {});
-    for (const [fontName, url] of entries) {
-      await PdfDoc.registerFontFromUrl(fontName, url);
-    }
+    await FontRegistry.instance.registerFonts(fonts);
   }
 
+  /**
+   * Registers raw font bytes under `fontName`. Delegates to the shared
+   * {@link FontRegistry}.
+   */
   static registerFont(fontName: string, fontData: Uint8Array | ArrayBuffer): void {
-    RenderContext.registerFont(fontName, fontData);
+    FontRegistry.instance.registerFont(fontName, fontData);
   }
 
   static registerFontkit(fontkit: any): void {
-    RenderContext.registerFontkit(fontkit);
+    FontRegistry.instance.registerFontkit(fontkit);
   }
 
   static beforeCreate(hook: (args: PdfDocBeforeCreateArgs) => Awaitable<void>): void {
@@ -199,9 +152,9 @@ export class PdfDoc {
   protected beforeCreate?: (args: PdfDocBeforeCreateArgs) => Awaitable<void>;
   protected afterSave?: (args: PdfDocAfterSaveArgs) => Awaitable<void>;
   protected readonly children: Widget[];
-  protected readonly context: RenderContext;
+  protected readonly context: PdfRenderContext;
 
-  constructor(options: PdfDocOptions = {}, context: RenderContext = new RenderContext({})) {
+  constructor(options: PdfDocOptions = {}, context: PdfRenderContext = new PdfRenderContext({})) {
     this.context = context;
 
     if (options.debug !== undefined) {
@@ -242,7 +195,7 @@ export class PdfDoc {
     }
   }
 
-  getContext(): RenderContext {
+  getContext(): PdfRenderContext {
     return this.context;
   }
 

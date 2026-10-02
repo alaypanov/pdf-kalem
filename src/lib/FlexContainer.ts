@@ -1,5 +1,5 @@
 import { Widget } from './Widget';
-import { RenderContext } from './RenderContext';
+import type { RenderContext } from './RenderContextInterface';
 import { YogaStyle } from './Widget';
 
 /**

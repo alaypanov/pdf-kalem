@@ -1,6 +1,6 @@
 import { Widget, WidgetOptions } from './Widget';
 // import { RenderContext } from '../context/RenderContext';
-import { RenderContext } from './RenderContext';
+import type { RenderContext } from './RenderContextInterface';
 import { PageSize, PDFDocSize } from './types/doc-sizes';
 import { Align, Direction, Edge, FlexDirection, Justify } from 'yoga-layout';
 

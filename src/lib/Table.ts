@@ -1,5 +1,6 @@
 
-import { RenderContext, type RenderColor } from './RenderContext';
+import type { RenderContext } from './RenderContextInterface';
+import type { RenderColor } from './RenderContextTypes';
 import { resolveThemeColor, type ThemeColorValue } from './Theme';
 import { fromHex } from './utils/color-utils';
 import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
@@ -262,7 +263,7 @@ export class TableCellWidget extends Widget {
   }
 
   async render(context: RenderContext): Promise<void> {
-    const { x, y, width, height } = context.getLayoutBoxInPdfCoords(this);
+    const { x, y, width, height } = context.getLayoutBox(this);
     const bgColor = this.getResolvedBackgroundColor();
     const borderColor = this.getResolvedBorderColor();
     const borderWidth = this.getResolvedBorderWidth();

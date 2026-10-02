@@ -1,5 +1,5 @@
 import type { ThemeColorValue } from './Theme';
-import { RenderContext } from './RenderContext';
+import type { RenderContext } from './RenderContextInterface';
 import { fromHex } from './utils/color-utils';
 import { TextWidget, type TextOptions } from './Text';
 

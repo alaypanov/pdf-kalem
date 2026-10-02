@@ -177,11 +177,6 @@ export class PdfRenderContext implements RenderContext {
     };
   }
 
-  /** @deprecated Use {@link getLayoutBox} instead. */
-  getLayoutBoxInPdfCoords(widget: Widget): { x: number; y: number; width: number; height: number } {
-    return this.getLayoutBox(widget);
-  }
-
   // --- Font embedding / measurement ---
 
   async getFont(fontName: StandardFonts | string = StandardFonts.Helvetica): Promise<PDFFont> {
