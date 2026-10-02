@@ -93,7 +93,15 @@ export class TextLayoutEngine {
   }
 
   private canUsePretext(): boolean {
-    return typeof Intl !== 'undefined' && 'Segmenter' in Intl;
+    if (typeof Intl === 'undefined' || !('Segmenter' in Intl)) {
+      return false;
+    }
+    // Pretext measures through a canvas (OffscreenCanvas or DOM canvas).
+    // Without one (e.g. Node) it throws, so fall back to the built-in wrapper.
+    return (
+      typeof OffscreenCanvas !== 'undefined' ||
+      (typeof document !== 'undefined' && typeof document.createElement === 'function')
+    );
   }
 
   /**
