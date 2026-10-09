@@ -120,6 +120,10 @@ widgets call ~15 of its 26 methods, and page lifecycle (`addPage`/`getCurrentPag
 split so widgets see Measurement + Drawing and the renderer layer sees page lifecycle.
 Also neutralize `RenderImage` (still `PDFImage`-typed today).
 
+**Rejected 2026-10-09** — the PDF-only pivot ([ADR 0001](./docs/adr/0001-pdf-only-focus.md))
+removed the backend pressure that motivated the split. The seam stays as pagination's
+composition point; revisit only if its width actually hurts.
+
 ### I5 — Decide `PdfRenderer`'s fate with #2
 
 `PdfRenderer` is 24 lines: `render()` → `renderPages()` → `for (page of pages)
@@ -134,6 +138,9 @@ ARCHITECTURE.md §2): revisit at implementation.
 No `docs/adr/` exists yet. When a candidate gets rejected for a load-bearing reason (not
 "not now"), record a short ADR so future architecture reviews don't re-suggest it. First
 likely candidate: whatever #2 decides about fragments-vs-placement.
+
+**Started 2026-10-09** — `docs/adr/0001-pdf-only-focus.md` records the PDF-only pivot
+(the multi-backend plan's rejection).
 
 ### I7 — Debug/inspection tooling (PLAN.md P2)
 

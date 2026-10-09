@@ -6,7 +6,7 @@
 
 ## What it is
 
-pdf-kalem is a **widget-tree UI library for document/PDF generation** (TypeScript). You describe a document as a tree of widgets (pages, containers, text, images, tables, links, SVG), lay it out with **Yoga (flexbox)**, and render through a backend. The **PDF backend (pdf-lib) ships today**; the architecture is set up for future image/HTML backends.
+pdf-kalem is a **widget-tree UI library for document/PDF generation** (TypeScript). You describe a document as a tree of widgets (pages, containers, text, images, tables, links, SVG), lay it out with **Yoga (flexbox)**, and render through the **PDF backend (pdf-lib)**. **PDF is the only backend, deliberately** — no image/HTML backends are planned ([ADR 0001](./docs/adr/0001-pdf-only-focus.md)). The `RenderContext` seam stays because pagination composes through it (`PageScope`), not as a backend hook; PDF-only features get PDF-typed modules (e.g. `edit/`), never interface widening.
 
 Mental model is borrowed from **Flutter**: declarative widget trees, theme tokens + per-widget overrides, flexbox layout.
 

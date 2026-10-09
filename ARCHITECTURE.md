@@ -20,6 +20,12 @@
 
 Suggested order: 2 → 4 → 5 → 3 landed; remaining: **6 → 7**.
 
+> **Direction (2026-10-09): PDF-only focus** — [ADR 0001](./docs/adr/0001-pdf-only-focus.md).
+> No image/HTML backends will be built; the RenderContext seam is retained because pagination's
+> `PageScope` composes through it — not as a backend hook. New PDF-specific features get
+> PDF-typed modules (see `src/lib/edit/`), never interface widening. Candidates this unblocks
+> are recorded in [PLAN.md](./PLAN.md).
+
 ---
 
 ## 1 ✅ Finish the RenderContext seam — done (`2638966`)

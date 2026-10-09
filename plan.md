@@ -67,6 +67,24 @@ VitePress (Vue 3) + UnoCSS docs in `docs/`, built with `pnpm docs:build`.
 2. ✅ **Markdown playground (live)** — `/playground/markdown` hosts the real workbench: `docs/.vitepress/components/MarkdownPlayground.vue` mounts a CodeMirror editor (markdown mode) over a debounced `markdownToPdf` preview with the shipped `inter`/`jetbrains-mono` families — page-count badge, download, reset, error strip — mounted via `<ClientOnly>` inside the open layout. The TLA blocker is solved in the config, not worked around: VitePress's esbuild targets (build, source transform, dev dep pre-bundle) are raised to es2022 because yoga-layout's ESM entry loads its WASM with top-level await and VitePress's defaults (chrome87/es2020) reject it; modern browsers support TLA. Landed 2026-10-07.
 3. ✅ **Widget + editing playgrounds (live)** — `/playground/widgets` hosts the widget-tree workbench (`WidgetPlayground.vue`): CodeMirror (javascript mode) over a debounced render, the editor holding the body of a plain-JS function returning `Page[]` with factories/`theme`/`fromHex`/`PageSize` injected as parameters (`sandbox.ts`, `new Function` — no transpiler); starter tree is the invoice example. `/playground/editing` hosts the PDF-editing workbench (`EditPlayground.vue`): the editor holds a function receiving `pages` (the loaded document as Page widgets) — overlays via `pages[i].add([...])`, restructure by array mutation; the sample document is synthesized with pdf-lib (no binary assets) and a file input loads the visitor's own PDF. Landed 2026-10-09.
 
+## Focus: PDF-only — and what it unlocks
+
+Decision 2026-10-09 ([ADR 0001](./docs/adr/0001-pdf-only-focus.md)): no image/HTML backends;
+the widget tree, pagination, theme, and markdown modules stay as they are; PDF-specific
+features get PDF-typed modules (the `pdf-kalem/edit` pattern) instead of widening
+`RenderContext`. Candidates this unblocks, in rough value order:
+
+1. **Form filling** — typed read/write over AcroForm fields (today: the `pdf.PDFDocument`
+   escape hatch), plus data binding so a filled form is a template + data. The editing
+   feature already leans here.
+2. **Annotations** — first-class stamp/free-text/highlight APIs beyond the `Link` widget;
+   pairs naturally with overlays on loaded pages.
+3. **Outlines / bookmarks** — document outline generation from heading levels or explicit
+   trees.
+4. **Text extraction** — read text back with positions; verifies overlays in tests and
+   enables building on existing documents.
+5. **Save options / compression** — object streams, image downsampling, pdf-lib save flags.
+
 ## Priority 1
 
 Pagination and page-breaking. This is the biggest viability feature. You need predictable overflow handling, explicit page breaks, keep-together behavior, repeated headers/footers, and rules for splitting text, tables, and containers across pages.
