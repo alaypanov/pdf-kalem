@@ -10,7 +10,13 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+docs/.vitepress/cache
+docs/.vitepress/dist
 *.local
+.pnpm-store/
+
+# Example output
+examples/**/*.pdf
 
 # Editor directories and files
 .vscode/*

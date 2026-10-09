@@ -1,6 +1,6 @@
 # pdf-kalem
 
-> **For AI assistants:** read [`LLM_CONTEXT.md`](./LLM_CONTEXT.md) for a compact codebase orientation before diving into the source.
+> **For AI assistants:** read [`CONTEXT.md`](./CONTEXT.md) for a compact codebase orientation before diving into the source.
 
 > **Status: early alpha.** The API is not yet stable and may change between versions. Not recommended for production use yet — feedback and bug reports are welcome.
 
@@ -43,13 +43,16 @@ For local development in this repository:
 pnpm install
 ```
 
-## Run
+## Examples
+
+The [`examples/`](./examples) folder holds self-contained, copyable projects — a one-file hello-world, an invoice, a multi-page report, and a markdown-to-PDF CLI. Each is a plain ESM TypeScript folder (no per-example npm setup) with its own theme, components, and data, structured so you can lift one into your own project and adapt it:
 
 ```bash
-pnpm dev
+pnpm build      # examples import the built library
+pnpm examples   # run every example; each writes its PDF next to its code
 ```
 
-`pnpm dev` runs the local Vite invoice demo.
+See [`examples/README.md`](./examples/README.md) for what each one demonstrates and how to copy one.
 
 ## Build
 
@@ -59,13 +62,13 @@ pnpm build
 
 `pnpm build` emits the publishable library into `dist/`.
 
-To build the local demo app instead:
+## Docs
 
 ```bash
-pnpm build:demo
+pnpm docs:dev
 ```
 
-`pnpm build:demo` emits the example site into `dist-examples/`.
+`pnpm docs:dev` runs the VitePress documentation site (Vue 3 + UnoCSS, in `docs/`) with a guide and dedicated playground pages for the widget-tree API and the markdown converter (open-layout placeholders — the live workbenches land there next). `pnpm docs:build` emits the static site into `docs/.vitepress/dist/`.
 
 ## Example
 
@@ -162,41 +165,96 @@ Table.fromRows(
 
 Cells accept either strings (auto-wrapped in `Text`) or arbitrary widgets for custom content. For full control over headers, cell padding, or mixed cell content, use the explicit `Table`/`TableHead`/`TableBody`/`TableRow`/`TableCell` constructors.
 
+### Rich text (runs)
+
+`Text` accepts an array of styled runs instead of a plain string. Each run carries its own style flags, which combine with the text's base font:
+
+```ts
+import { Text, Link } from 'pdf-kalem/widgets';
+
+Text(
+  [
+    { text: 'Revenue grew ' },
+    { text: '12%', bold: true },
+    { text: ' quarter over quarter' },
+    { text: ' (audited)', italic: true, color: '#666666' },
+  ],
+  { size: 12 }
+);
+
+// Runs can carry their own links — each line fragment of the run gets its
+// own clickable annotation, so a run that wraps stays clickable everywhere.
+Text([{ text: 'Read the ' }, { text: 'full report', href: 'https://example.com' }]);
+
+// `mono` switches the run to the builtin monospace family; `font` overrides
+// the family outright (theme token or family name).
+Text([{ text: 'const x = 1', mono: true }]);
+```
+
+Run flags: `bold`, `italic`, `strike`, `href`, `mono`, `font`, `color`. Faces resolve through the run's family with the usual fallback chain, so `{ bold: true }` in an `inter` text uses `inter-bold` when loaded and falls back with a warning otherwise. Words that span run boundaries (`he` + `**llo**`) never break internally; wrapping, `maxLines`, and `ellipsis` all work across runs.
+
 ## Fonts
 
-pdf-kalem ships with a few built-in font aliases that work without registration:
+Built-in aliases work without registration: `sans`, `sans-bold`, `sans-italic`, `sans-bold-italic`, `serif` (+ variants), `mono` (+ variants).
+
+For real typography, load a font set once and pass it to the document. One family ships with the package — `inter` (regular, bold, italic, bold-italic) — so common documents need no font files at all. Code falls back to the builtin `mono` alias (Courier); load a real mono family via `files` when you need one:
 
 ```ts
-import { BuiltinPdfFonts } from 'pdf-kalem';
+import { PdfDoc, useFonts } from 'pdf-kalem';
 
-const theme = createTheme({
-  fonts: {
-    body: 'sans',
-    heading: 'sans-bold',
-    code: 'mono',
+const fonts = await useFonts({
+  body: 'inter',
+});
+
+const doc = new PdfDoc({ fonts, children: [/* ... */] });
+```
+
+A family carries faces: `regular` plus optional `bold`, `italic`, and `boldItalic`. A face is referenced by suffixing the family name — `inter-bold`, `inter-italic`, `inter-bold-italic` — the same convention the builtin aliases use. Missing faces fall back at embed time (bold-italic → bold → italic → regular) with a console warning, so a family can ship incrementally.
+
+Bring your own fonts per face; entries merge over the shipped faces of the same family:
+
+```ts
+const fonts = await useFonts(
+  { body: 'inter' },
+  {
+    files: {
+      inter: { bold: '/fonts/MyInter-Bold.ttf' }, // override one face
+      'my-serif': {
+        regular: '/fonts/MySerif.ttf',
+        italic: '/fonts/MySerif-Italic.ttf',
+      },
+    },
   },
-});
+);
 ```
 
-Available aliases: `sans`, `sans-bold`, `sans-italic`, `sans-bold-italic`, `serif`, `serif-bold`, `serif-italic`, `serif-bold-italic`, `mono`, `mono-bold`, `mono-italic`, `mono-bold-italic`.
+No `registerFontkit` call is needed — fontkit loads lazily on the first custom-font embed. Legacy global registration (`PdfDoc.registerFont` / `registerFonts` / `registerFontFromUrl`) still works as a process-wide fallback; doc-scoped `FontSet`s always resolve first.
 
-You can register fonts at the document level:
+## Markdown
+
+The `pdf-kalem/markdown` subpath converts markdown (GFM, powered by [`marked`](https://github.com/markedjs/marked)) into widgets or a ready-to-save document:
 
 ```ts
-await PdfDoc.registerFonts({
-  Inter: '/fonts/Inter-Regular.ttf',
+import { markdownToPdf, markdownToWidgets } from 'pdf-kalem/markdown';
+
+// Sugar: one paginated Page, markdown theme defaults merged under your theme.
+const doc = await markdownToPdf('# Report\n\nBody text with **emphasis**.', {
+  theme: myTheme,      // optional — user values win over the defaults
+  fonts,               // optional FontSet (see Fonts above)
+  page: { padding: 48 },
 });
+await doc.save();
+
+// Deep seam: bare blocks you embed in your own Page (wrap in a Column with a
+// gap for spacing).
+const blocks = await markdownToWidgets(md, { styles: { spacing: 8 } });
 ```
 
-If you want custom fonts in PDF output, `pdf-lib` requires `@pdf-lib/fontkit`.
+Supported: headings (`h1`..`h6` theme variants, bold), emphasis (`**bold**`, `*italic*`, `~~strikethrough~~`, `` `code` ``), links (clickable per line fragment, underlined, `link` color token), ordered/unordered/nested/task lists (tasks render as `✓`/`□`), fenced code blocks (monospace, `pre-wrap`, background), blockquotes (left rule + italic), GFM tables (per-column alignment, padded cells, header row), horizontal rules, and images (png/jpeg — the format is sniffed from the fetched bytes; other formats are skipped with a warning).
 
-```ts
-import fontkit from '@pdf-lib/fontkit';
+Styling is theme-driven: headings resolve the `h1`..`h6` text variants, links resolve the `link` color token, and `MarkdownStyles` overrides the rest (code font/colors, blockquote rule, list indent, spacing, image width, table options). `markdownThemeDefaults` is exported so custom docs can merge the same baseline.
 
-PdfDoc.registerFontkit(fontkit);
-```
-
-Font registration is handled by a shared `FontRegistry` singleton, so any future backend (image, HTML) sees the same registered fonts.
+A copyable converter project ships in [`examples/markdown/`](./examples/markdown) — a small CLI that turns any markdown file (or an embedded sample) into a paginated PDF.
 
 ## Theme
 
@@ -264,11 +322,10 @@ The v2 plan is to add `ImageDoc` and `EmailDoc` that share the widget tree, them
 
 ## Scripts
 
-- `pnpm dev` starts Vite.
 - `pnpm build` builds the npm package into `dist/`.
-- `pnpm build:demo` builds the local Vite demo.
+- `pnpm examples` builds the package and runs every example (each writes its PDF next to its code).
 - `pnpm typecheck` runs TypeScript without emitting files.
-- `pnpm preview` serves the built app.
+- `pnpm docs:dev` runs the documentation site.
 
 ## Special Thanks
 
