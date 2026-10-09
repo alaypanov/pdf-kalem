@@ -3,6 +3,8 @@ export * from './PdfRenderer';
 export * from './RenderContext';
 export * from './FontRegistry';
 export * from './Theme';
+export { useFonts, type UseFontsOptions, type FontSource, type FamilyFiles } from './fonts/useFonts';
+export type { FontSet, FontVariants, FontStyle } from './fonts/types';
 export * from './types/doc-fonts';
 export * from './types/doc-sizes';
 export * from './types/styles';

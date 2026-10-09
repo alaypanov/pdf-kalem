@@ -48,6 +48,7 @@ export interface RenderContext {
   // --- Measurement (shared signatures, backend-specific impl) ---
 
   measureTextWidth(text: string, size: number, fontName: string): number;
+  measureFontHeight(size: number, fontName: string): number;
   measureFontAscent(size: number, fontName: string): number;
   measureDefaultLineHeight(size: number, fontName: string): number;
   preloadFont(fontName: string): Promise<void>;
@@ -84,7 +85,35 @@ export interface RenderContext {
   /**
    * Returns the layout box of `widget` in the backend's coordinate system.
    * Implementations that need a non-yoga origin (e.g. PDF's bottom-left
-   * origin) apply the transform here.
+   * origin) apply the transform here. During pagination the per-page scope
+   * answers with plan-driven boxes instead; this direct path serves
+   * non-paginated rendering.
    */
   getLayoutBox(widget: Widget): { x: number; y: number; width: number; height: number };
+
+  /**
+   * Maps a top-left-origin, page-relative box into the backend's coordinate
+   * system (PDF: the Y-flip). Extracted from {@link getLayoutBox} so the same
+   * mapping serves plan-driven boxes during pagination.
+   */
+  mapContentBox(box: { x: number; y: number; width: number; height: number }): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+
+  /**
+   * How much of `widget`'s own content lies above the slice being rendered,
+   * in flow points. 0 = the whole widget is on this page (or pagination is
+   * not active). Self-slicing widgets (Text) use it to skip laid-out lines.
+   */
+  getFlowOffset(widget: Widget): number;
+
+  /**
+   * Children of `widget` to render in the current scope. Undefined means
+   * "the widget's real children" — today's behavior. Implemented by the
+   * pagination scope; backends leave it undefined.
+   */
+  getRenderChildren?(widget: Widget): Widget[] | undefined;
 }

@@ -1,26 +1,35 @@
 import { Widget, WidgetOptions } from './Widget';
-// import { RenderContext } from '../context/RenderContext';
 import type { RenderContext } from './RenderContextInterface';
 import { PageSize, PDFDocSize } from './types/doc-sizes';
 import { Align, Direction, Edge, FlexDirection, Justify } from 'yoga-layout';
-
-
+import { Paginator } from './pagination/Paginator';
+import { PageScope } from './pagination/PageScope';
+import type { LayoutBox } from './pagination/types';
+import { debugLog } from './utils/debug';
 
 interface PageOptions extends WidgetOptions {
   padding?: number;
   size?: PageSize;
   dimensions?: [number, number];
   children?: Widget[];
+  /**
+   * When true (default), content taller than one page is split across
+   * additional output pages. Set to false to render a single page and let
+   * overflow be clipped by the viewer.
+   */
+  overflow?: boolean;
 }
 
 export class PageWidget extends Widget {
   private dimensions?: [number, number];
   private size?: PageSize;
+  private readonly paginateContent: boolean;
 
   constructor(options: PageOptions = {}) {
     super(options);
     this.dimensions = options.dimensions;
     this.size = options.size;
+    this.paginateContent = options.overflow ?? true;
 
     // Root page node defaults
     this.node.setFlexDirection(FlexDirection.Column);
@@ -28,33 +37,6 @@ export class PageWidget extends Widget {
     this.node.setAlignItems(Align.Stretch);
     this.node.setPadding(Edge.All, options.padding ?? 0);
   }
-
-  getWidth(): number {
-    if (this.dimensions) return this.dimensions[0];
-    if (this.size) {
-      const size = PDFDocSize[this.size as keyof typeof PDFDocSize];
-      if (size) return size[0];
-    }
-    return 0;
-  }
-
-  getHeight(): number {
-    if (this.dimensions) return this.dimensions[1];
-    if (this.size) {
-      const size = PDFDocSize[this.size as keyof typeof PDFDocSize];
-      if (size) return size[1];
-    }
-    return 0;
-  }
-  // getWidth(): number {
-  //   const [width, height] = this.getDimensions();
-  //   return this.layout === 'portrait' ? width : height;
-  // }
-
-  // getHeight(): number {
-  //   const [width, height] = this.getDimensions();
-  //   return this.layout === 'portrait' ? height : width;
-  // }
 
   getDimensions(context: RenderContext): [number, number] {
     if (this.dimensions) {
@@ -71,21 +53,68 @@ export class PageWidget extends Widget {
     return docDimensions;
   }
 
+  /** @internal — flow layout pass for pagination (used by Paginator). */
+  runFlowLayout(width: number, height: number | undefined): void {
+    this.node.setWidth(width);
+    if (height === undefined) {
+      this.node.setHeightAuto();
+    } else {
+      this.node.setHeight(height);
+    }
+    this.calculateLayout(width, height, Direction.LTR);
+  }
+
+  /** @internal — content box after layout, page-relative top-left origin. */
+  getContentBox(dimensions: [number, number]): LayoutBox {
+    const padTop = this.node.getComputedPadding(Edge.Top);
+    const padBottom = this.node.getComputedPadding(Edge.Bottom);
+    const padLeft = this.node.getComputedPadding(Edge.Left);
+    const padRight = this.node.getComputedPadding(Edge.Right);
+    const borderTop = this.node.getComputedBorder(Edge.Top);
+    const borderBottom = this.node.getComputedBorder(Edge.Bottom);
+    const borderLeft = this.node.getComputedBorder(Edge.Left);
+    const borderRight = this.node.getComputedBorder(Edge.Right);
+
+    return {
+      x: padLeft + borderLeft,
+      y: padTop + borderTop,
+      width: Math.max(0, dimensions[0] - padLeft - padRight - borderLeft - borderRight),
+      height: Math.max(0, dimensions[1] - padTop - padBottom - borderTop - borderBottom),
+    };
+  }
+
   async render(context: RenderContext): Promise<void> {
-    console.log('Drawing Page');
+    debugLog('Drawing Page');
     const dimensions = this.getDimensions(context);
-    console.log(`Page dimensions: ${dimensions[0]} x ${dimensions[1]}`);
-    context.addPage(dimensions);
+    debugLog(`Page dimensions: ${dimensions[0]} x ${dimensions[1]}`);
 
-    // Preload intrinsic sizes (images, etc) before layout
-    await this.prepareLayout(context);
+    if (!this.paginateContent) {
+      // Legacy single-page path — byte-identical to pre-pagination behavior.
+      context.addPage(dimensions);
+      await this.prepareLayout(context);
+      this.node.setWidth(dimensions[0]);
+      this.node.setHeight(dimensions[1]);
+      this.calculateLayout(dimensions[0], dimensions[1], Direction.LTR);
+      await this.renderChildren(context);
+      return;
+    }
 
-    // Run Yoga layout once for the whole page
-    this.node.setWidth(dimensions[0]);
-    this.node.setHeight(dimensions[1]);
-    this.calculateLayout(dimensions[0], dimensions[1], Direction.LTR);
+    const pagination = await new Paginator().paginate(this, context);
 
-    await this.renderChildren(context);
+    if (!pagination.overflow) {
+      // Content fits: render through the legacy path with the pass-1
+      // geometry still on the nodes (byte-identical output).
+      context.addPage(dimensions);
+      await this.renderChildren(context);
+      return;
+    }
+
+    for (const plan of pagination.pages) {
+      context.addPage(plan.pageSize);
+      const scope = new PageScope(context, plan);
+      for (const fragment of plan.fixed) await fragment.widget.render(scope);
+      for (const fragment of plan.roots) await fragment.widget.render(scope);
+    }
   }
 }
 

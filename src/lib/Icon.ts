@@ -1,10 +1,8 @@
-import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
-import type { RenderContext } from './RenderContextInterface';
-import type { RenderColor } from './RenderContextTypes';
-import { resolveThemeColor, type ThemeColorValue } from './Theme';
-import { fromHex } from './utils/color-utils';
-import { ImageSizing } from './Image';
-import { MeasureMode } from 'yoga-layout';
+import type { WidgetOptions, YogaStyleValue } from './Widget';
+import { SVGPathWidget } from './SVGPath';
+import { ImageSizing } from './aspect-fit';
+import type { ThemeColorValue } from './Theme';
+import { fromHex, type ColorValue } from './utils/color-utils';
 
 /**
  * Material Icons use a 24×24 viewBox. Each entry is the raw SVG path data (`d`)
@@ -61,30 +59,17 @@ export interface IconOptions extends WidgetOptions {
 /**
  * A widget that renders a single Material-style icon as an SVG path.
  *
- * The icon is resolved from the {@link materialIcons} registry by `name`, or
- * rendered directly from `path`. Drawing is delegated to the backend's
- * `drawSvgPath` (same path `SVGPathWidget` uses), so this works for any
- * `RenderContext` that supports SVG paths.
+ * A thin {@link SVGPathWidget}: the registry lookup supplies the path and the
+ * square viewBox, `size` becomes an explicit square box, and colors resolve
+ * through the theme. Measure and fit/cover placement math live in the shared
+ * aspect-fit module (ARCHITECTURE.md #4).
  *
  * @example
  *   Icon({ name: 'home', size: 24, color: 'primary' })
  *   Icon({ path: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z', size: 32 })
  */
-export class IconWidget extends Widget {
-  private readonly d: string;
-  private readonly viewBoxWidth: number;
-  private readonly viewBoxHeight: number;
-  private readonly baseScale: number;
-  private readonly sizing: ImageSizing;
-  private readonly colorOverride?: ThemeColorValue;
-  private readonly strokeOverride?: ThemeColorValue;
-  private readonly strokeWidth?: number;
-
-  private measureConfigured = false;
-
+export class IconWidget extends SVGPathWidget {
   constructor(options: IconOptions = {}) {
-    super(options);
-
     const def =
       options.path !== undefined
         ? { d: options.path, viewBox: options.viewBox }
@@ -104,158 +89,29 @@ export class IconWidget extends Widget {
       throw new Error('Icon: viewBox must be a positive number');
     }
 
-    this.d = def.d;
-    this.viewBoxWidth = vb;
-    this.viewBoxHeight = vb;
-    this.baseScale = options.scale ?? 1;
-    this.sizing = options.sizing ?? ImageSizing.Fit;
-    this.colorOverride = options.color;
-    this.strokeOverride = options.stroke;
-    this.strokeWidth = options.strokeWidth;
-
     const size = options.size ?? 24;
     if (!Number.isFinite(size) || size <= 0) {
       throw new Error('Icon: size must be a positive number');
     }
 
-    if (options.width !== undefined) {
-      this.setProperty(this.context as any, 'width', options.width);
-    } else {
-      this.node.setWidth(size);
-    }
-    if (options.height !== undefined) {
-      this.setProperty(this.context as any, 'height', options.height);
-    } else {
-      this.node.setHeight(size);
-    }
-
-    this.configureMeasureFunc();
-  }
-
-  private configureMeasureFunc(): void {
-    if (this.measureConfigured) return;
-
-    this.node.setMeasureFunc((width, widthMode, height, heightMode) => {
-      const widthConstrained =
-        widthMode === MeasureMode.Exactly || widthMode === MeasureMode.AtMost;
-      const heightConstrained =
-        heightMode === MeasureMode.Exactly || heightMode === MeasureMode.AtMost;
-
-      const intrinsicW = this.viewBoxWidth * this.baseScale;
-      const intrinsicH = this.viewBoxHeight * this.baseScale;
-
-      if (this.sizing === ImageSizing.None || (!widthConstrained && !heightConstrained)) {
-        return { width: intrinsicW, height: intrinsicH };
-      }
-
-      const aspect = this.viewBoxWidth / this.viewBoxHeight;
-      let targetW = intrinsicW;
-      let targetH = intrinsicH;
-
-      if (widthConstrained && heightConstrained) {
-        const scale =
-          this.sizing === ImageSizing.Cover
-            ? Math.max(width / intrinsicW, height / intrinsicH)
-            : Math.min(width / intrinsicW, height / intrinsicH);
-        targetW = intrinsicW * scale;
-        targetH = intrinsicH * scale;
-      } else if (widthConstrained) {
-        targetW = width;
-        targetH = width / aspect;
-      } else if (heightConstrained) {
-        targetH = height;
-        targetW = height * aspect;
-      }
-
-      return { width: targetW, height: targetH };
+    super({
+      breakable: options.breakable,
+      d: def.d,
+      viewBoxWidth: vb,
+      viewBoxHeight: vb,
+      width: options.width ?? size,
+      height: options.height ?? size,
+      scale: options.scale,
+      sizing: options.sizing,
+      fill: options.color,
+      stroke: options.stroke,
+      strokeWidth: options.strokeWidth,
     });
-
-    this.measureConfigured = true;
   }
 
-  getWidth(): number {
-    return this.viewBoxWidth * this.baseScale;
-  }
-
-  getHeight(): number {
-    return this.viewBoxHeight * this.baseScale;
-  }
-
-  private getColor(): RenderColor {
-    return (
-      resolveThemeColor(this.context?.getTheme(), this.colorOverride) ??
-      fromHex('#000000')
-    );
-  }
-
-  private getStroke(): RenderColor | undefined {
-    return resolveThemeColor(this.context?.getTheme(), this.strokeOverride);
-  }
-
-  async render(context: RenderContext): Promise<void> {
-    const { x, y, width, height } = context.getLayoutBox(this)
-    this.drawIconAt(context, x, y, width, height);
-  }
-
-  async renderAt(
-    context: RenderContext,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-  ): Promise<void> {
-    this.drawIconAt(context, x, y, width, height);
-  }
-
-  private drawIconAt(
-    context: RenderContext,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-  ): void {
-    const boxW = width > 0 ? width : this.getWidth();
-    const boxH = height > 0 ? height : this.getHeight();
-
-    let scale = this.baseScale;
-    if (this.sizing !== ImageSizing.None) {
-      if (boxW > 0 && boxH > 0) {
-        const fitScale =
-          this.sizing === ImageSizing.Cover
-            ? Math.max(boxW / (this.viewBoxWidth * this.baseScale), boxH / (this.viewBoxHeight * this.baseScale))
-            : Math.min(boxW / (this.viewBoxWidth * this.baseScale), boxH / (this.viewBoxHeight * this.baseScale));
-        scale = this.baseScale * fitScale;
-      } else if (boxW > 0) {
-        scale = this.baseScale * (boxW / (this.viewBoxWidth * this.baseScale));
-      } else if (boxH > 0) {
-        scale = this.baseScale * (boxH / (this.viewBoxHeight * this.baseScale));
-      }
-    }
-
-    const drawnW = this.viewBoxWidth * scale;
-    const drawnH = this.viewBoxHeight * scale;
-    const offsetX = boxW > 0 ? (boxW - drawnW) / 2 : 0;
-    // pdf-lib's drawSvgPath flips Y (scale(s, -s)), so the path's SVG (0,0)
-    // (top-left) lands at the y origin and grows downward in SVG space =
-    // upward in PDF space. To place the icon inside the layout box, we pass
-    // the TOP of the drawn area as the y origin.
-    const offsetY = boxH > 0 ? (boxH - drawnH) / 2 : 0;
-    const originY = y + boxH - offsetY;
-
-    const borderWidth =
-      this.strokeWidth !== undefined && Number.isFinite(this.strokeWidth)
-        ? this.strokeWidth * scale
-        : undefined;
-
-    context.drawSvgPath({
-      d: this.d,
-      x: x + offsetX,
-      y: originY,
-      scale,
-      color: this.getColor(),
-      borderColor: this.getStroke(),
-      borderWidth,
-    });
+  /** Icons draw something even when the color token is missing from the theme. */
+  protected override resolveFillColor(): ColorValue | undefined {
+    return super.resolveFillColor() ?? fromHex('#000000');
   }
 }
 

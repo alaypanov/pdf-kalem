@@ -18,8 +18,6 @@ export class FixedContainerWidget extends Widget {
   private bottom?: number;
   private left?: number;
   private right?: number;
-  private width?: YogaStyleValue;
-  private height?: YogaStyleValue;
   private bgColor?: RenderColor;
 
   constructor(options: FixedContainerOptions) {
@@ -28,28 +26,21 @@ export class FixedContainerWidget extends Widget {
     this.bottom = options.bottom;
     this.left = options.left;
     this.right = options.right;
-    this.width = options.width;
-    this.height = options.height;
     this.bgColor = options.bgColor;
 
     // Yoga absolute positioning. Set directly on the node — the context is
-    // not wired up until setContext() runs (after the whole tree is built),
-    // so we must not route these through setProperty(context, ...).
+    // not wired up until setContext() runs (after the whole tree is built).
     this.node.setPositionType(PositionType.Absolute);
     if (this.top !== undefined) this.node.setPosition(Edge.Top, this.top);
     if (this.right !== undefined) this.node.setPosition(Edge.Right, this.right);
     if (this.bottom !== undefined) this.node.setPosition(Edge.Bottom, this.bottom);
     if (this.left !== undefined) this.node.setPosition(Edge.Left, this.left);
-    if (this.width !== undefined) this.setYogaStyle({ width: this.width });
-    if (this.height !== undefined) this.setYogaStyle({ height: this.height });
+    if (options.width !== undefined) this.setYogaStyle({ width: options.width });
+    if (options.height !== undefined) this.setYogaStyle({ height: options.height });
   }
 
-  getWidth(): number {
-    return typeof this.width === 'number' ? this.width : 0;
-  }
-
-  getHeight(): number {
-    return typeof this.height === 'number' ? this.height : 0;
+  override getPositionEdges(): { top?: number; bottom?: number; left?: number; right?: number } {
+    return { top: this.top, bottom: this.bottom, left: this.left, right: this.right };
   }
 
   async render(context: RenderContext): Promise<void> {

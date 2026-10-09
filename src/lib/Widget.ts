@@ -1,4 +1,5 @@
 import type { RenderContext } from './RenderContextInterface';
+import type { BreakUnit } from './pagination/types';
 import Yoga, {
   Align,
   Direction,
@@ -12,17 +13,26 @@ import Yoga, {
 
 export interface WidgetOptions {
   children?: Widget[];
+  /**
+   * Keep-together opt-out: never split this widget's box across pages; move
+   * it whole to the next page (clip if it is taller than a full page).
+   * Default: undefined — breakability is decided by structure.
+   */
+  breakable?: boolean;
 }
 
 export type YogaStyleValue = number | 'auto' | `${number}%`;
 
+/** Dimension value for min/max constraints — Yoga rejects 'auto' there. */
+export type YogaDimensionValue = number | `${number}%`;
+
 export interface YogaStyle {
   width?: YogaStyleValue;
   height?: YogaStyleValue;
-  minWidth?: number;
-  minHeight?: number;
-  maxWidth?: number;
-  maxHeight?: number;
+  minWidth?: YogaDimensionValue;
+  minHeight?: YogaDimensionValue;
+  maxWidth?: YogaDimensionValue;
+  maxHeight?: YogaDimensionValue;
 
   flexDirection?: 'row' | 'column';
   justifyContent?:
@@ -65,10 +75,12 @@ export abstract class Widget {
   protected node: Node;
   protected context?: RenderContext;
   protected parent?: Widget;
+  protected readonly breakableOption: boolean | undefined;
 
   constructor(options: WidgetOptions = {}) {
     this.children = options.children || [];
     this.node = Yoga.Node.create();
+    this.breakableOption = options.breakable;
 
     // Add child nodes to this node and wire parent pointers
     for (const child of this.children) {
@@ -97,69 +109,64 @@ export abstract class Widget {
 
   /**
    * Runs Yoga layout for this subtree (typically called once at the Page root).
+   * `undefined` dimensions mean auto/intrinsic sizing (the pagination flow pass).
    */
-  calculateLayout(width: number, height: number, direction: Direction = Direction.LTR): void {
+  calculateLayout(width?: number, height?: number, direction: Direction = Direction.LTR): void {
     this.node.calculateLayout(width, height, direction);
   }
 
+  /**
+   * The single styling entry: typed dispatch on `YogaStyle` keys. Unknown
+   * keys are a compile error at typed call sites (no silent no-ops);
+   * undefined/null values are skipped.
+   */
   protected setYogaStyle(style: YogaStyle): void {
-    for (const [key, value] of Object.entries(style)) {
-      this.setProperty(this.context as RenderContext, key, value);
+    for (const key of Object.keys(style) as (keyof YogaStyle)[]) {
+      const value = style[key];
+      if (value === undefined || value === null) continue;
+      this.applyStyle(key, value);
     }
   }
 
-  abstract render(context: RenderContext): Promise<void>;
-
-  protected async renderChildren(context: RenderContext): Promise<void> {
-    for (const child of this.children) {
-      await child.render(context);
-    }
-  }
-
-  abstract getWidth(): number;
-
-  abstract getHeight(): number;
-
-  async drawAt(_context: RenderContext, _x: number, _y: number): Promise<void> {
-  }
-
-  setProperty(_context: RenderContext, key: string, value: any): void {
-    if (value === undefined || value === null) return;
-
-    const setDim = (setter: (v: number) => void, setterPct: (v: number) => void, setterAuto: () => void, v: YogaStyleValue) => {
-      if (v === 'auto') {
-        setterAuto();
-        return;
-      }
-      if (typeof v === 'string' && v.endsWith('%')) {
-        const pct = Number(v.slice(0, -1));
-        if (!Number.isFinite(pct)) return;
-        setterPct(pct);
-        return;
-      }
-      if (typeof v === 'number' && Number.isFinite(v)) {
-        setter(v);
-      }
-    };
-
+  private applyStyle(key: keyof YogaStyle, value: YogaStyle[keyof YogaStyle]): void {
     switch (key) {
       case 'width':
-        setDim(this.node.setWidth.bind(this.node), this.node.setWidthPercent.bind(this.node), this.node.setWidthAuto.bind(this.node), value);
+        this.setDimension(
+          value as YogaStyleValue,
+          (v) => this.node.setWidth(v),
+          (v) => this.node.setWidthPercent(v),
+          () => this.node.setWidthAuto(),
+        );
         return;
       case 'height':
-        setDim(this.node.setHeight.bind(this.node), this.node.setHeightPercent.bind(this.node), this.node.setHeightAuto.bind(this.node), value);
+        this.setDimension(
+          value as YogaStyleValue,
+          (v) => this.node.setHeight(v),
+          (v) => this.node.setHeightPercent(v),
+          () => this.node.setHeightAuto(),
+        );
         return;
+      case 'flexBasis':
+        this.setDimension(
+          value as YogaStyleValue,
+          (v) => this.node.setFlexBasis(v),
+          (v) => this.node.setFlexBasisPercent(v),
+          () => this.node.setFlexBasisAuto(),
+        );
+        return;
+
+      // Yoga's min/max setters accept numbers and percent strings natively.
       case 'minWidth':
-        this.node.setMinWidth(value);
+        this.node.setMinWidth(value as YogaDimensionValue);
         return;
       case 'minHeight':
-        this.node.setMinHeight(value);
+        this.node.setMinHeight(value as YogaDimensionValue);
         return;
       case 'maxWidth':
-        this.node.setMaxWidth(value);
+        this.node.setMaxWidth(value as YogaDimensionValue);
         return;
       case 'maxHeight':
-        this.node.setMaxHeight(value);
+        this.node.setMaxHeight(value as YogaDimensionValue);
         return;
 
       case 'flexDirection':
@@ -174,7 +181,7 @@ export abstract class Widget {
           'space-around': Justify.SpaceAround,
           'space-evenly': Justify.SpaceEvenly,
         };
-        this.node.setJustifyContent(map[value] ?? Justify.FlexStart);
+        this.node.setJustifyContent(map[value as string] ?? Justify.FlexStart);
         return;
       }
       case 'alignItems': {
@@ -184,7 +191,7 @@ export abstract class Widget {
           'flex-end': Align.FlexEnd,
           stretch: Align.Stretch,
         };
-        this.node.setAlignItems(map[value] ?? Align.FlexStart);
+        this.node.setAlignItems(map[value as string] ?? Align.FlexStart);
         return;
       }
       case 'alignSelf': {
@@ -195,81 +202,125 @@ export abstract class Widget {
           'flex-end': Align.FlexEnd,
           stretch: Align.Stretch,
         };
-        this.node.setAlignSelf(map[value] ?? Align.Auto);
+        this.node.setAlignSelf(map[value as string] ?? Align.Auto);
         return;
       }
 
       case 'flexGrow':
-        this.node.setFlexGrow(value);
+        this.node.setFlexGrow(value as number);
         return;
       case 'flexShrink':
-        this.node.setFlexShrink(value);
-        return;
-      case 'flexBasis':
-        setDim(this.node.setFlexBasis.bind(this.node), this.node.setFlexBasisPercent.bind(this.node), this.node.setFlexBasisAuto.bind(this.node), value);
+        this.node.setFlexShrink(value as number);
         return;
 
       case 'gap': {
-        // Yoga supports row/column gaps via Gutter.
         if (typeof value === 'string' && value.endsWith('%')) {
           const pct = Number(value.slice(0, -1));
-          if (!Number.isFinite(pct)) return;
-          (this.node as any).setGapPercent?.(Gutter.All, pct);
+          if (Number.isFinite(pct)) {
+            (this.node as any).setGapPercent?.(Gutter.All, pct);
+          }
           return;
         }
-        if (typeof value === 'number' && Number.isFinite(value)) {
-          (this.node as any).setGap?.(Gutter.All, value);
-        }
+        this.node.setGap(Gutter.All, value as number);
         return;
       }
 
       case 'padding':
-        this.node.setPadding(Edge.All, value);
+        this.node.setPadding(Edge.All, value as number);
         return;
       case 'paddingTop':
-        this.node.setPadding(Edge.Top, value);
+        this.node.setPadding(Edge.Top, value as number);
         return;
       case 'paddingRight':
-        this.node.setPadding(Edge.Right, value);
+        this.node.setPadding(Edge.Right, value as number);
         return;
       case 'paddingBottom':
-        this.node.setPadding(Edge.Bottom, value);
+        this.node.setPadding(Edge.Bottom, value as number);
         return;
       case 'paddingLeft':
-        this.node.setPadding(Edge.Left, value);
+        this.node.setPadding(Edge.Left, value as number);
         return;
 
       case 'margin':
-        this.node.setMargin(Edge.All, value);
+        this.node.setMargin(Edge.All, value as number);
         return;
       case 'marginTop':
-        this.node.setMargin(Edge.Top, value);
+        this.node.setMargin(Edge.Top, value as number);
         return;
       case 'marginRight':
-        this.node.setMargin(Edge.Right, value);
+        this.node.setMargin(Edge.Right, value as number);
         return;
       case 'marginBottom':
-        this.node.setMargin(Edge.Bottom, value);
+        this.node.setMargin(Edge.Bottom, value as number);
         return;
       case 'marginLeft':
-        this.node.setMargin(Edge.Left, value);
+        this.node.setMargin(Edge.Left, value as number);
         return;
 
       case 'position':
         this.node.setPositionType(value === 'absolute' ? PositionType.Absolute : PositionType.Relative);
         return;
       case 'top':
-        this.node.setPosition(Edge.Top, value);
+        this.node.setPosition(Edge.Top, value as number);
         return;
       case 'right':
-        this.node.setPosition(Edge.Right, value);
+        this.node.setPosition(Edge.Right, value as number);
         return;
       case 'bottom':
-        this.node.setPosition(Edge.Bottom, value);
+        this.node.setPosition(Edge.Bottom, value as number);
         return;
       case 'left':
-        this.node.setPosition(Edge.Left, value);
+        this.node.setPosition(Edge.Left, value as number);
         return;
+    }
+  }
+
+  /**
+   * The one shared dimension parser: `number` | `` `${number}%` `` | 'auto'
+   * routed to the matching Yoga setter. Percent/auto only apply where the
+   * caller passed a setter for them.
+   */
+  private setDimension(
+    value: YogaStyleValue,
+    set: (v: number) => void,
+    setPercent?: (v: number) => void,
+    setAuto?: () => void,
+  ): void {
+    if (value === 'auto') {
+      setAuto?.();
+      return;
+    }
+    if (typeof value === 'string' && value.endsWith('%')) {
+      const pct = Number(value.slice(0, -1));
+      if (Number.isFinite(pct) && setPercent) {
+        setPercent(pct);
+      }
+      return;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      set(value);
+    }
+  }
+
+  /**
+   * Post-layout computed size (0 before layout). Widgets with meaningful
+   * intrinsics override — Text (measured lines), Table (row sums), and their
+   * pagination callers rely on that.
+   */
+  getWidth(): number {
+    return this.node.getComputedWidth();
+  }
+
+  getHeight(): number {
+    return this.node.getComputedHeight();
+  }
+
+  abstract render(context: RenderContext): Promise<void>;
+
+  protected async renderChildren(context: RenderContext): Promise<void> {
+    const placed = context.getRenderChildren?.(this);
+    for (const child of placed ?? this.children) {
+      await child.render(context);
     }
   }
 
@@ -291,5 +342,69 @@ export abstract class Widget {
     const height = this.node.getComputedHeight();
 
     return { x, y, width, height };
+  }
+
+  // --- Package-internal accessors (used by the pagination module) ---
+
+  getParent(): Widget | undefined {
+    return this.parent;
+  }
+
+  getChildWidgets(): Widget[] {
+    return this.children;
+  }
+
+  /** Flow geometry from the last Yoga layout (positions are parent-border-box-relative). */
+  getFlowGeometry(): {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+    absolute: boolean;
+  } {
+    return {
+      top: this.node.getComputedTop(),
+      left: this.node.getComputedLeft(),
+      width: this.node.getComputedWidth(),
+      height: this.node.getComputedHeight(),
+      absolute: this.node.getPositionType() === PositionType.Absolute,
+    };
+  }
+
+  /**
+   * Position edges this widget declared for absolute positioning, when it
+   * anchors itself to the page box (e.g. FixedContainer). The pagination
+   * walker uses them to re-anchor page-root fixed widgets against the real
+   * page dimensions — the flow pass resolves `bottom`/`right` against the
+   * auto-height flow canvas, which is not the page box. Default: undefined
+   * (edges unknown — the flow-computed box is used as-is).
+   */
+  getPositionEdges(): { top?: number; bottom?: number; left?: number; right?: number } | undefined {
+    return undefined;
+  }
+
+  /**
+   * Break opportunities inside this widget's box, box-relative and sorted by
+   * offset. null = atomic (move whole; clip if taller than a page).
+   *
+   * Default: a column-direction box breaks between its children (one unit
+   * per child; offsets are Yoga computed tops, which include this box's
+   * padding, so inter-child gaps ride on the offsets). Row-direction,
+   * absolute-positioned, childless, and `breakable: false` widgets are
+   * atomic. Only widgets whose content splits internally (Text, Table) need
+   * to override.
+   */
+  getBreakUnits(): BreakUnit[] | null {
+    if (this.breakableOption === false) return null;
+    if (this.children.length === 0) return null;
+    if (this.node.getFlexDirection() !== FlexDirection.Column) return null;
+
+    const units: BreakUnit[] = [];
+    for (const child of this.children) {
+      const geometry = child.getFlowGeometry();
+      if (geometry.absolute) continue;
+      units.push({ offset: geometry.top, height: geometry.height, widget: child });
+    }
+    return units.length > 0 ? units : null;
   }
 }

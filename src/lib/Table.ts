@@ -4,6 +4,7 @@ import type { RenderColor } from './RenderContextTypes';
 import { resolveThemeColor, type ThemeColorValue } from './Theme';
 import { fromHex } from './utils/color-utils';
 import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
+import type { BreakUnit } from './pagination/types';
 import { Text } from './Text';
 
 export interface TableOptions extends WidgetOptions {
@@ -61,12 +62,13 @@ abstract class TableSectionWidget extends Widget {
     return this.rows.indexOf(row);
   }
 
-  getTable(): TableWidget | undefined {
-    return this.parent instanceof TableWidget ? this.parent : undefined;
+  /** Rows in this section (head or body). */
+  getRows(): TableRowWidget[] {
+    return this.rows;
   }
 
-  getWidth(): number {
-    return this.node.getComputedWidth();
+  getTable(): TableWidget | undefined {
+    return this.parent instanceof TableWidget ? this.parent : undefined;
   }
 
   getHeight(): number {
@@ -155,10 +157,6 @@ export class TableRowWidget extends Widget {
     }
 
     await super.prepareLayout(context);
-  }
-
-  getWidth(): number {
-    return this.node.getComputedWidth();
   }
 
   getHeight(): number {
@@ -252,14 +250,6 @@ export class TableCellWidget extends Widget {
     }
 
     await super.prepareLayout(context);
-  }
-
-  getWidth(): number {
-    return this.node.getComputedWidth();
-  }
-
-  getHeight(): number {
-    return this.node.getComputedHeight();
   }
 
   async render(context: RenderContext): Promise<void> {
@@ -356,13 +346,46 @@ export class TableWidget extends Widget {
     return this.columnWeights?.[index];
   }
 
-  getWidth(): number {
-    const computedWidth = this.node.getComputedWidth();
-    if (computedWidth > 0) {
-      return computedWidth;
+  /**
+   * Row units: the head is marked `repeat` (re-emitted atop every
+   * continuation page) and `keepWithNext` (never orphaned at a page bottom);
+   * rows are atomic because a TableRow is row-direction, so the base-class
+   * default returns null for them and the paginator moves rows whole. The
+   * render side needs no pagination awareness — rows are real widgets the
+   * plan places like any other.
+   */
+  override getBreakUnits(): BreakUnit[] | null {
+    if (this.breakableOption === false) return null;
+
+    const units: BreakUnit[] = [];
+    const tableTop = this.getAbsoluteLayoutBox().y;
+
+    if (this.head) {
+      const headHeight = this.head.getHeight();
+      if (headHeight > 0) {
+        units.push({
+          offset: this.head.getAbsoluteLayoutBox().y - tableTop,
+          height: headHeight,
+          widget: this.head,
+          repeat: true,
+          keepWithNext: true,
+        });
+      }
     }
 
-    return typeof this.width === 'number' ? this.width : 0;
+    if (this.body) {
+      for (const row of this.body.getRows()) {
+        const rowHeight = row.getHeight();
+        if (rowHeight <= 0) continue;
+        units.push({
+          offset: row.getAbsoluteLayoutBox().y - tableTop,
+          height: rowHeight,
+          widget: row,
+        });
+      }
+    }
+
+    return units.length > 0 ? units : null;
   }
 
   getHeight(): number {

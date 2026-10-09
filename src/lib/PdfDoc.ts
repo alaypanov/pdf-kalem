@@ -6,6 +6,8 @@ import { PageWidget } from './Page';
 import { PDFDocument } from 'pdf-lib';
 import { PdfRenderer } from './PdfRenderer';
 import { FontRegistry } from './FontRegistry';
+import { Paginator } from './pagination/Paginator';
+import type { FontSet } from './fonts/types';
 // Changed PDFDocSize to a constant object
 
 type Awaitable<T> = T | Promise<T>;
@@ -60,6 +62,12 @@ export interface PdfDocOptions extends WidgetOptions {
   dimensions?: [number, number]; // Optional custom dimensions
   layout?: 'portrait' | 'landscape';
   theme?: Theme;
+  /**
+   * Font families for this document, from {@link useFonts}. Applied over the
+   * theme's font mapping at construction (doc-level wins; the theme object
+   * is never mutated) and resolved doc-scoped during rendering.
+   */
+  fonts?: FontSet;
   /** Enables drawing colored debug outlines around every widget. */
   debug?: boolean;
   meta?: PdfDocMeta;
@@ -148,11 +156,13 @@ export class PdfDoc {
   protected dimensions?: [number, number];
   protected layout: 'portrait' | 'landscape';
   protected theme?: Theme;
+  protected fonts?: FontSet;
   protected meta?: PdfDocMeta;
   protected beforeCreate?: (args: PdfDocBeforeCreateArgs) => Awaitable<void>;
   protected afterSave?: (args: PdfDocAfterSaveArgs) => Awaitable<void>;
   protected readonly children: Widget[];
   protected readonly context: PdfRenderContext;
+  private cachedPageCount?: number;
 
   constructor(options: PdfDocOptions = {}, context: PdfRenderContext = new PdfRenderContext({})) {
     this.context = context;
@@ -161,15 +171,19 @@ export class PdfDoc {
       context.setDebug(!!options.debug);
     }
 
-    this.theme = options.theme;
+    this.theme = this.deriveTheme(options.theme, options.fonts);
+    this.fonts = options.fonts;
     context.setTheme(this.theme);
+    if (options.fonts) {
+      context.setFonts(options.fonts);
+    }
 
     // Prioritize customSize if provided
     if (options.dimensions) {
       this.dimensions = options.dimensions;
       this.size = undefined; // Ensure size is not set if customSize is used
     } else {
-      this.size = options.size; // Default to A4 if neither is provided
+      this.size = options.size; // Default to LETTER if neither is provided
       this.dimensions = PDFDocSize[options.size || PageSize.LETTER] as [number, number];
     }
     this.layout = options.layout || 'portrait';
@@ -199,6 +213,30 @@ export class PdfDoc {
     return this.context;
   }
 
+  /**
+   * Total number of output pages, computed by running the pagination plan
+   * for every Page widget (a dry run: no drawing, no pages added).
+   * Memoized — plans are pure, so the count is stable for an unchanged tree.
+   *
+   * Text metrics are exact once fonts have been embedded by {@link save};
+   * before that, un-embedded fonts fall back to estimated widths. Trees
+   * containing images need a created document (call after save, e.g. in an
+   * `afterSave` hook) because image embedding requires one.
+   */
+  async getPageCount(): Promise<number> {
+    if (this.cachedPageCount !== undefined) return this.cachedPageCount;
+
+    const paginator = new Paginator();
+    let count = 0;
+    for (const child of this.children) {
+      const pagination = await paginator.paginate(child as PageWidget, this.context);
+      count += pagination.pageCount;
+    }
+
+    this.cachedPageCount = count;
+    return count;
+  }
+
   getChildren(): Widget[] {
     return this.children;
   }
@@ -211,12 +249,29 @@ export class PdfDoc {
     return this.theme;
   }
 
+  getFonts(): FontSet | undefined {
+    return this.fonts;
+  }
+
+  /**
+   * The doc's effective theme: the user's theme with the FontSet's font
+   * tokens applied over it (doc-level wins). Returns a NEW object — the
+   * user's theme value is never mutated, so theme objects can be shared
+   * across documents safely.
+   */
+  private deriveTheme(theme: Theme | undefined, fonts: FontSet | undefined): Theme | undefined {
+    if (!fonts) return theme;
+    const tokens = fonts.tokens;
+    if (Object.keys(tokens).length === 0) return theme;
+    return { ...theme, fonts: { ...theme?.fonts, ...tokens } };
+  }
+
   private getDimensions(): number[] {
     if (this.dimensions) {
       return this.dimensions;
     }
 
-    // Use standard size, default to A4 if size is somehow undefined (shouldn't happen with constructor logic)
+    // Use standard size, default to LETTER if size is somehow undefined (shouldn't happen with constructor logic)
     return PDFDocSize[PageSize.LETTER]
   }
 

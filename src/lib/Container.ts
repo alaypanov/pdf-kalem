@@ -1,5 +1,5 @@
 import { resolveThemeColor, type ThemeColorValue } from './Theme';
-import { Widget, WidgetOptions } from './Widget';
+import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
 import type { RenderContext } from './RenderContextInterface';
 import type { RenderColor } from './RenderContextTypes';
 import { fromHex } from './utils/color-utils';
@@ -18,8 +18,8 @@ const borderDefaults: BorderOptions = {
 
 interface ContainerOptions extends WidgetOptions {
   bgColor?: ThemeColorValue;
-  width?: number | string;
-  height?: number | string;
+  width?: YogaStyleValue;
+  height?: YogaStyleValue;
   padding?: number;
   border?: BorderOptions;
   child?: Widget; // Accept single child for convenience
@@ -27,8 +27,6 @@ interface ContainerOptions extends WidgetOptions {
 
 export class ContainerWidget extends Widget {
   private bgColor?: ThemeColorValue;
-  private width: number | string;
-  private height: number | string;
   private border?: BorderOptions;
   private padding?: number;
 
@@ -41,13 +39,13 @@ export class ContainerWidget extends Widget {
     super({ ...options, children });
     this.border = options.border;
     this.bgColor = options.bgColor;
-    this.width = options.width || 100; // Default width
-    this.height = options.height || 100; // Default height
     this.padding = options.padding;
 
+    // Size to content unless told otherwise — a fixed default box silently
+    // overflows (or pads) whenever content differs from the default.
     this.setYogaStyle({
-      width: this.width as any,
-      height: this.height as any,
+      width: options.width ?? 'auto',
+      height: options.height ?? 'auto',
       flexDirection: 'column',
       justifyContent: 'flex-start',
       alignItems: 'flex-start',
@@ -88,14 +86,6 @@ export class ContainerWidget extends Widget {
     this.node.setPadding(2, resolvedPadding);
     this.node.setPadding(3, resolvedPadding);
     await super.prepareLayout(context);
-  }
-
-  getWidth(): number {
-    return typeof this.width === 'number' ? this.width : 0;
-  }
-
-  getHeight(): number {
-    return typeof this.height === 'number' ? this.height : 0;
   }
 
   async render(context: RenderContext): Promise<void> {

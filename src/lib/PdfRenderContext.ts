@@ -23,7 +23,9 @@ import type {
 import { resolveBuiltinPdfFont } from './types/doc-fonts';
 import { toPdfLibColor } from './utils/color-utils';
 import { FontRegistry } from './FontRegistry';
-import { setDebugEnabled } from './utils/debug';
+import { parseFaceId, resolveFaceBytes } from './fonts/face';
+import type { FontSet, FontVariants } from './fonts/types';
+import { debugLog, setDebugEnabled } from './utils/debug';
 
 /**
  * PDF backend for {@link RenderContext}. Drives a `pdf-lib` `PDFDocument`:
@@ -44,6 +46,8 @@ export class PdfRenderContext implements RenderContext {
   private fontCache: Map<string, PDFFont>;
   private textWidthCache: Map<string, number>;
   private fontkitRegisteredOnDoc = false;
+  private fontkitInstance?: unknown;
+  private fonts?: FontSet;
 
   constructor(options: RenderContextOptions) {
     this.options = options;
@@ -90,7 +94,20 @@ export class PdfRenderContext implements RenderContext {
     return this.options;
   }
 
-  // --- Font registration (back-comat delegates to FontRegistry) ---
+  // --- Font registration (back-compat delegates to FontRegistry) ---
+
+  /**
+   * Doc-scoped font families (from `new PdfDoc({ fonts })`). Looked up
+   * before the global {@link FontRegistry}, so two documents in one process
+   * can use different bytes under the same family name.
+   */
+  setFonts(fonts?: FontSet): void {
+    this.fonts = fonts;
+  }
+
+  getFonts(): FontSet | undefined {
+    return this.fonts;
+  }
 
   /**
    * @deprecated Font registration is now handled by {@link FontRegistry}.
@@ -158,23 +175,39 @@ export class PdfRenderContext implements RenderContext {
   // --- Layout box (PDF coordinate flip) ---
 
   /**
-   * Returns the widget's layout box in PDF coordinates (bottom-left origin,
-   * y grows up). Yoga uses top-left origin with y growing down, so we flip.
-   *
-   * This is used only for non-paginated rendering (e.g. `overflow: false`
-   * legacy path, or widgets rendered outside pagination). During pagination
-   * the page computes each widget's per-page PDF coords explicitly and calls
-   * `renderAt`.
+   * Maps a top-left-origin, page-relative box into PDF coordinates
+   * (bottom-left origin, y grows up). This is the single place the PDF
+   * Y-flip lives; {@link getLayoutBox} and the pagination scope both route
+   * through it.
    */
-  getLayoutBox(widget: Widget): { x: number; y: number; width: number; height: number } {
-    const { x, y, width, height } = widget.getAbsoluteLayoutBox();
+  mapContentBox(box: { x: number; y: number; width: number; height: number }): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } {
     const pageHeight = this.getPageHeight();
     return {
-      x,
-      y: pageHeight - y - height,
-      width,
-      height,
+      x: box.x,
+      y: pageHeight - box.y - box.height,
+      width: box.width,
+      height: box.height,
     };
+  }
+
+  /**
+   * Returns the widget's layout box in PDF coordinates (bottom-left origin,
+   * y grows up). During pagination the per-page `PageScope` answers with
+   * plan-driven boxes routed through {@link mapContentBox}; this direct path
+   * serves non-paginated rendering (`overflow: false`, fitting documents).
+   */
+  getLayoutBox(widget: Widget): { x: number; y: number; width: number; height: number } {
+    return this.mapContentBox(widget.getAbsoluteLayoutBox());
+  }
+
+  /** Pagination is not active on the raw backend; the per-page scope answers. */
+  getFlowOffset(_widget: Widget): number {
+    return 0;
   }
 
   // --- Font embedding / measurement ---
@@ -186,22 +219,67 @@ export class PdfRenderContext implements RenderContext {
 
     const doc = this.getDocument();
     const registry = FontRegistry.instance;
-    const registered = registry.getFontData(requestedName);
-    const fontkit = registry.getFontkit();
 
-    if (registered && !fontkit) {
-      console.error(
-        `RenderContext.getFont: custom font '${requestedName}' is registered, but fontkit is not. ` +
-        `Falling back to '${StandardFonts.Helvetica}'. Install '@pdf-lib/fontkit' and call PdfDoc.registerFontkit(fontkit) to enable custom fonts.`
-      );
-      return this.getFont(StandardFonts.Helvetica);
-    }
-    if (registered && fontkit && !this.fontkitRegisteredOnDoc) {
-      (doc as any).registerFontkit?.(fontkit);
-      this.fontkitRegisteredOnDoc = true;
+    // Doc-scoped resolution first (new PdfDoc({ fonts })), then the global
+    // registry. In both, exact family names win: a family literally named
+    // 'inter-bold' embeds as itself, never as the bold face of 'inter'.
+    // Suffixed ids resolve through the family's faces, falling back (with
+    // a warning) when a face is missing — bold-italic → bold → italic →
+    // regular.
+    let registered = this.fonts?.families.get(requestedName)?.regular;
+    let faceNote: string | undefined;
+
+    if (!registered) {
+      const face = parseFaceId(requestedName);
+      const variants: FontVariants | undefined = face
+        ? this.fonts?.families.get(face.family)
+        : undefined;
+      if (face && variants) {
+        const resolved = resolveFaceBytes(variants, face.style);
+        registered = resolved.bytes;
+        if (resolved.fellBack) {
+          faceNote = `face '${requestedName}' is not available for family '${face.family}'; using its ${resolved.style} face`;
+        }
+      }
     }
 
-    if (!registered && typeof requestedName === 'string' && !FontRegistry.isStandardFontName(requestedName)) {
+    if (!registered) {
+      registered = registry.getFontData(requestedName);
+    }
+    if (!registered) {
+      const face = parseFaceId(requestedName);
+      const familyBytes = face ? registry.getFontData(face.family) : undefined;
+      if (face && familyBytes) {
+        registered = familyBytes;
+        faceNote = `family '${face.family}' is registered with a single face; using it for '${requestedName}'`;
+      }
+    }
+
+    if (registered) {
+      const fontkit = await this.ensureFontkit();
+      if (!fontkit) {
+        console.error(
+          `RenderContext.getFont: custom font '${requestedName}' is registered, but fontkit could not be loaded. ` +
+          `Falling back to '${StandardFonts.Helvetica}'. Ensure '@pdf-lib/fontkit' is installed.`
+        );
+        return this.getFont(StandardFonts.Helvetica);
+      }
+      if (!this.fontkitRegisteredOnDoc) {
+        (doc as any).registerFontkit?.(fontkit);
+        this.fontkitRegisteredOnDoc = true;
+      }
+      const font = await doc.embedFont(registered as any);
+      this.fontCache.set(requestedName, font);
+      if (faceNote) {
+        console.warn(`RenderContext.getFont: ${faceNote}.`);
+      }
+      // Canvas-based measurement (pretext) needs the face registered under
+      // the same name in the browser font set; no-op outside the browser.
+      await registry.loadBrowserFont(requestedName, registered);
+      return font;
+    }
+
+    if (typeof requestedName === 'string' && !FontRegistry.isStandardFontName(requestedName)) {
       console.warn(
         `RenderContext.getFont: font '${requestedName}' is not registered and is not a StandardFonts value. ` +
         `Falling back to '${StandardFonts.Helvetica}'.`
@@ -209,14 +287,45 @@ export class PdfRenderContext implements RenderContext {
       return this.getFont(StandardFonts.Helvetica);
     }
 
-    const font = registered
-      ? await doc.embedFont(registered as any)
-      : await doc.embedFont(requestedName as any);
+    const font = await doc.embedFont(requestedName as any);
     this.fontCache.set(requestedName, font);
     return font;
   }
 
+  /**
+   * The fontkit instance used to embed custom fonts: an explicitly
+   * registered one (via {@link FontRegistry}) first, then a lazy dynamic
+   * import of `@pdf-lib/fontkit` — so documents with custom fonts need no
+   * `registerFontkit` call.
+   */
+  private async ensureFontkit(): Promise<unknown | undefined> {
+    if (this.fontkitInstance) return this.fontkitInstance;
+
+    const fromRegistry = FontRegistry.instance.getFontkit();
+    if (fromRegistry) {
+      this.fontkitInstance = fromRegistry;
+      return fromRegistry;
+    }
+
+    try {
+      const mod = await import('@pdf-lib/fontkit');
+      const instance = (mod as { default?: unknown }).default ?? mod;
+      this.fontkitInstance = instance;
+      return instance;
+    } catch (err) {
+      debugLog('ensureFontkit: dynamic import of @pdf-lib/fontkit failed', err);
+      return undefined;
+    }
+  }
+
   async preloadFont(fontName: StandardFonts | string = StandardFonts.Helvetica): Promise<void> {
+    if (!this.doc) {
+      // Measurement-only passes (e.g. PdfDoc.getPageCount() before save())
+      // have no document to embed into; text measurement falls back to the
+      // width estimate until save() embeds the font.
+      debugLog('preloadFont: no document set; skipping font embedding');
+      return;
+    }
     await this.getFont(fontName);
   }
 
@@ -239,17 +348,59 @@ export class PdfRenderContext implements RenderContext {
     return measuredWidth;
   }
 
+  /**
+   * Typographic (hhea) metrics for embedded custom fonts, via pdf-lib's
+   * fontkit embedder. pdf-lib's `heightAtSize` is bbox-based — its
+   * `descender: false` variant returns the bbox yMax, which sits far below
+   * the real ascender for fonts like Inter and made line boxes bottom-heavy.
+   * Standard fonts have no fontkit font; their AFM metrics are already
+   * typographic, so the bbox path is correct for them.
+   */
+  private customFontMetrics(fontName: StandardFonts | string): {
+    ascent: number;
+    descent: number;
+    unitsPerEm: number;
+  } | undefined {
+    const font = this.fontCache.get(fontName);
+    const fkFont = (
+      font as unknown as {
+        embedder?: { font?: { hhea?: { ascent?: number; descent?: number }; unitsPerEm?: number } };
+      }
+    )?.embedder?.font;
+    const hhea = fkFont?.hhea;
+    const unitsPerEm = fkFont?.unitsPerEm;
+    if (
+      !hhea ||
+      typeof hhea.ascent !== 'number' ||
+      typeof hhea.descent !== 'number' ||
+      typeof unitsPerEm !== 'number' ||
+      unitsPerEm <= 0
+    ) {
+      return undefined;
+    }
+    return { ascent: hhea.ascent, descent: hhea.descent, unitsPerEm };
+  }
+
   measureFontHeight(
     size: number,
     fontName: StandardFonts | string = StandardFonts.Helvetica,
     options?: { descender?: boolean },
   ): number {
     const font = this.fontCache.get(fontName);
-    if (font) {
-      return font.heightAtSize(size, options);
+    if (!font) {
+      return size;
     }
 
-    return size;
+    if (options?.descender === false) {
+      return this.measureFontAscent(size, fontName);
+    }
+
+    const metrics = this.customFontMetrics(fontName);
+    if (metrics) {
+      return ((metrics.ascent - metrics.descent) / metrics.unitsPerEm) * size;
+    }
+
+    return font.heightAtSize(size);
   }
 
   measureDefaultLineHeight(size: number, fontName: StandardFonts | string = StandardFonts.Helvetica): number {
@@ -258,7 +409,17 @@ export class PdfRenderContext implements RenderContext {
   }
 
   measureFontAscent(size: number, fontName: StandardFonts | string = StandardFonts.Helvetica): number {
-    return this.measureFontHeight(size, fontName, { descender: false });
+    const font = this.fontCache.get(fontName);
+    if (!font) {
+      return size;
+    }
+
+    const metrics = this.customFontMetrics(fontName);
+    if (metrics) {
+      return (metrics.ascent / metrics.unitsPerEm) * size;
+    }
+
+    return font.heightAtSize(size, { descender: false });
   }
 
   // --- Image embedding ---

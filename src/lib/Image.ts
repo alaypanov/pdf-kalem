@@ -1,25 +1,31 @@
-import { Widget, WidgetOptions } from './Widget';
+import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
 import type { RenderContext } from './RenderContextInterface';
 import type { RenderImage } from './RenderContextTypes';
-import { MeasureMode } from 'yoga-layout';
+import {
+  ImageSizing,
+  aspectFitMeasure,
+  aspectFitPlacement,
+  type FitSpec,
+} from './aspect-fit';
 
-export enum ImageSizing {
-  Fit = 'fit',
-  Cover = 'cover',
-  None = 'none',
-}
+// Compat re-export: ImageSizing is the shared fit vocabulary (defined in
+// aspect-fit.ts) but was first shipped from this module.
+export { ImageSizing };
 
 interface ImageOptions extends WidgetOptions {
   url: string;
+  /** Pre-fetched image bytes; when set, `loadImage` skips the fetch. */
+  bytes?: ArrayBuffer;
   scale?: number;
-  width?: number | string;
-  height?: number | string;
+  width?: YogaStyleValue;
+  height?: YogaStyleValue;
   sizing?: ImageSizing;
   format: 'png' | 'jpeg';
 }
 
 export class ImageWidget extends Widget {
   private url: string;
+  private bytes?: ArrayBuffer;
   private scale: number;
   private format: 'png' | 'jpeg';
   private pdfImage?: RenderImage;
@@ -33,6 +39,7 @@ export class ImageWidget extends Widget {
   constructor(options: ImageOptions) {
     super(options);
     this.url = options.url;
+    this.bytes = options.bytes;
     this.scale = options.scale || 1;
     this.format = options.format;
 
@@ -41,17 +48,33 @@ export class ImageWidget extends Widget {
     this.sizing = options.sizing ?? ImageSizing.Fit;
 
     if (options.width !== undefined) {
-      this.setProperty(this.context as any, 'width', options.width);
+      this.setYogaStyle({ width: options.width });
     }
     if (options.height !== undefined) {
-      this.setProperty(this.context as any, 'height', options.height);
+      this.setYogaStyle({ height: options.height });
     }
+  }
+
+  /**
+   * The fit spec is only known once the image bytes are embedded — before
+   * that the measure function measures zero (aspect-fit module contract).
+   */
+  private spec(): FitSpec | null {
+    if (this.imageWidth <= 0 || this.imageHeight <= 0) {
+      return null;
+    }
+    return {
+      // imageWidth/Height already include the scale multiplier.
+      intrinsicWidth: this.imageWidth,
+      intrinsicHeight: this.imageHeight,
+      baseScale: 1,
+      sizing: this.sizing,
+    };
   }
 
   async loadImage(context: RenderContext): Promise<void> {
     if (this.pdfImage) return;
-    const response = await fetch(this.url);
-    const bytes = await response.arrayBuffer();
+    const bytes = this.bytes ?? (await (await fetch(this.url)).arrayBuffer());
     this.pdfImage = await context.embedImage(bytes, this.format);
     // Use natural image size initially
     this.imageWidth = this.pdfImage.width * this.scale;
@@ -66,41 +89,7 @@ export class ImageWidget extends Widget {
     }
 
     if (!this.measureConfigured) {
-      this.node.setMeasureFunc((width, widthMode, height, heightMode) => {
-        if (this.imageWidth <= 0 || this.imageHeight <= 0) {
-          return { width: 0, height: 0 };
-        }
-
-        const aspect = this.imageWidth / this.imageHeight;
-        console.log('Measure image', aspect )
-        const widthConstrained =
-          widthMode === MeasureMode.Exactly || widthMode === MeasureMode.AtMost;
-        const heightConstrained =
-          heightMode === MeasureMode.Exactly || heightMode === MeasureMode.AtMost;
-
-        if (this.sizing === ImageSizing.None || (!widthConstrained && !heightConstrained)) {
-          return { width: this.imageWidth, height: this.imageHeight };
-        }
-
-        let targetW = this.imageWidth;
-        let targetH = this.imageHeight;
-
-        if (widthConstrained && heightConstrained) {
-          const scale = this.sizing === ImageSizing.Cover
-            ? Math.max(width / this.imageWidth, height / this.imageHeight)
-            : Math.min(width / this.imageWidth, height / this.imageHeight);
-          targetW = this.imageWidth * scale;
-          targetH = this.imageHeight * scale;
-        } else if (widthConstrained) {
-          targetW = width;
-          targetH = width / aspect;
-        } else if (heightConstrained) {
-          targetH = height;
-          targetW = height * aspect;
-        }
-
-        return { width: targetW, height: targetH };
-      });
+      this.node.setMeasureFunc(aspectFitMeasure(() => this.spec()));
       this.measureConfigured = true;
     }
   }
@@ -110,41 +99,19 @@ export class ImageWidget extends Widget {
     await super.prepareLayout(context);
   }
 
-  getWidth(): number {
-    return this.imageWidth || 0;
-  }
-
-  getHeight(): number {
-    return this.imageHeight || 0;
-  }
-
   async render(context: RenderContext): Promise<void> {
     await this.loadImage(context);
-    if (!this.pdfImage) return;
+    const spec = this.spec();
+    if (!this.pdfImage || !spec) return;
 
-    const { x, y, width, height } = context.getLayoutBox(this);
-
-    const aspect = this.imageWidth > 0 ? this.imageWidth / this.imageHeight : 1;
-    let drawWidth = width || this.imageWidth;
-    let drawHeight = height || this.imageHeight;
-
-    if (this.sizing !== ImageSizing.None && width > 0 && height > 0) {
-      const scale = this.sizing === ImageSizing.Cover
-        ? Math.max(width / this.imageWidth, height / this.imageHeight)
-        : Math.min(width / this.imageWidth, height / this.imageHeight);
-      drawWidth = this.imageWidth * scale;
-      drawHeight = this.imageHeight * scale;
-    } else if (width > 0 && !(height > 0)) {
-      drawHeight = drawWidth / aspect;
-    } else if (height > 0 && !(width > 0)) {
-      drawWidth = drawHeight * aspect;
-    }
+    const box = context.getLayoutBox(this);
+    const placement = aspectFitPlacement(spec, box);
 
     context.drawImage(this.pdfImage, {
-      x,
-      y,
-      width: drawWidth,
-      height: drawHeight,
+      x: placement.left,
+      y: placement.bottom,
+      width: placement.drawnWidth,
+      height: placement.drawnHeight,
     });
   }
 }
@@ -155,5 +122,19 @@ export const Image = {
   },
   jpeg(url: string, options: Omit<ImageOptions, 'url' | 'format'> = {}): ImageWidget {
     return new ImageWidget({ ...options, url, format: 'jpeg' });
-  }
+  },
+  /**
+   * Builds an image from already-fetched bytes (no internal fetch). Copies
+   * typed-array views into an exact ArrayBuffer first.
+   */
+  fromBytes(
+    bytes: ArrayBuffer | Uint8Array,
+    format: 'png' | 'jpeg',
+    options: Omit<ImageOptions, 'url' | 'format' | 'bytes'> = {},
+  ): ImageWidget {
+    const buffer = ArrayBuffer.isView(bytes)
+      ? (bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer)
+      : (bytes as ArrayBuffer);
+    return new ImageWidget({ ...options, url: '', format, bytes: buffer });
+  },
 }

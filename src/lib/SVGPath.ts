@@ -1,8 +1,13 @@
-import { MeasureMode } from 'yoga-layout';
 import { Widget, WidgetOptions, YogaStyleValue } from './Widget';
 import type { RenderContext } from './RenderContextInterface';
-import { fromHex } from './utils/color-utils';
-import { ImageSizing } from './Image';
+import {
+  ImageSizing,
+  aspectFitMeasure,
+  aspectFitPlacement,
+  type FitSpec,
+} from './aspect-fit';
+import { resolveThemeColor, type ThemeColorValue } from './Theme';
+import type { ColorValue } from './utils/color-utils';
 
 export interface SVGPathOptions extends WidgetOptions {
   d: string;
@@ -24,11 +29,11 @@ export interface SVGPathOptions extends WidgetOptions {
   /** How to scale into the layout box when both width/height are constrained. */
   sizing?: ImageSizing;
 
-  /** Fill color (maps to pdf-lib `color`). */
-  fill?: string;
+  /** Fill color — hex string or theme token. */
+  fill?: ThemeColorValue;
 
-  /** Stroke color (maps to pdf-lib `borderColor`). */
-  stroke?: string;
+  /** Stroke color — hex string or theme token. */
+  stroke?: ThemeColorValue;
 
   /**
    * Stroke width in SVG/user units (viewBox units). It will be multiplied by the final scale.
@@ -43,13 +48,12 @@ export class SVGPathWidget extends Widget {
   private viewBoxHeight: number;
   private baseScale: number;
   private sizing: ImageSizing;
-  private fill?: string;
-  private stroke?: string;
+  private fill?: ThemeColorValue;
+  private stroke?: ThemeColorValue;
   private strokeWidth?: number;
 
   private explicitWidth: boolean;
   private explicitHeight: boolean;
-  private measureConfigured = false;
 
   constructor(options: SVGPathOptions) {
     super(options);
@@ -77,121 +81,63 @@ export class SVGPathWidget extends Widget {
     }
 
     if (options.width !== undefined) {
-      this.setProperty(this.context as any, 'width', options.width);
+      this.setYogaStyle({ width: options.width });
     }
     if (options.height !== undefined) {
-      this.setProperty(this.context as any, 'height', options.height);
+      this.setYogaStyle({ height: options.height });
     }
 
     // If consumer didn't explicitly size the widget, set intrinsic size for Yoga.
-    const intrinsicW = this.viewBoxWidth * this.baseScale;
-    const intrinsicH = this.viewBoxHeight * this.baseScale;
-
     if (!this.explicitWidth) {
-      this.node.setWidth(intrinsicW);
+      this.node.setWidth(this.intrinsicWidth);
     }
     if (!this.explicitHeight) {
-      this.node.setHeight(intrinsicH);
+      this.node.setHeight(this.intrinsicHeight);
     }
 
-    this.configureMeasureFunc();
+    this.node.setMeasureFunc(aspectFitMeasure(() => this.spec()));
   }
 
-  private configureMeasureFunc(): void {
-    if (this.measureConfigured) return;
-
-    const vbW = this.viewBoxWidth;
-    const vbH = this.viewBoxHeight;
-
-    this.node.setMeasureFunc((width, widthMode, height, heightMode) => {
-      const widthConstrained =
-        widthMode === MeasureMode.Exactly || widthMode === MeasureMode.AtMost;
-      const heightConstrained =
-        heightMode === MeasureMode.Exactly || heightMode === MeasureMode.AtMost;
-
-      const intrinsicW = vbW * this.baseScale;
-      const intrinsicH = vbH * this.baseScale;
-
-      if (this.sizing === ImageSizing.None || (!widthConstrained && !heightConstrained)) {
-        return { width: intrinsicW, height: intrinsicH };
-      }
-
-      const aspect = vbW / vbH;
-
-      let targetW = intrinsicW;
-      let targetH = intrinsicH;
-
-      if (widthConstrained && heightConstrained) {
-        const scale = this.sizing === ImageSizing.Cover
-          ? Math.max(width / intrinsicW, height / intrinsicH)
-          : Math.min(width / intrinsicW, height / intrinsicH);
-        targetW = intrinsicW * scale;
-        targetH = intrinsicH * scale;
-      } else if (widthConstrained) {
-        targetW = width;
-        targetH = width / aspect;
-      } else if (heightConstrained) {
-        targetH = height;
-        targetW = height * aspect;
-      }
-
-      return { width: targetW, height: targetH };
-    });
-
-    this.measureConfigured = true;
-  }
-
-  getWidth(): number {
+  private get intrinsicWidth(): number {
     return this.viewBoxWidth * this.baseScale;
   }
 
-  getHeight(): number {
+  private get intrinsicHeight(): number {
     return this.viewBoxHeight * this.baseScale;
   }
 
+  private spec(): FitSpec {
+    return {
+      intrinsicWidth: this.viewBoxWidth,
+      intrinsicHeight: this.viewBoxHeight,
+      baseScale: this.baseScale,
+      sizing: this.sizing,
+    };
+  }
+
+  protected resolveFillColor(): ColorValue | undefined {
+    return resolveThemeColor(this.context?.getTheme(), this.fill);
+  }
+
+  protected resolveStrokeColor(): ColorValue | undefined {
+    return resolveThemeColor(this.context?.getTheme(), this.stroke);
+  }
+
   async render(context: RenderContext): Promise<void> {
-    const { x, y, width, height } = context.getLayoutBox(this);
-
-    const boxW = width > 0 ? width : this.getWidth();
-    const boxH = height > 0 ? height : this.getHeight();
-
-    const vbW = this.viewBoxWidth;
-    const vbH = this.viewBoxHeight;
-
-    let scale = this.baseScale;
-
-    if (this.sizing !== ImageSizing.None) {
-      if (boxW > 0 && boxH > 0) {
-        const fitScale = this.sizing === ImageSizing.Cover
-          ? Math.max(boxW / (vbW * this.baseScale), boxH / (vbH * this.baseScale))
-          : Math.min(boxW / (vbW * this.baseScale), boxH / (vbH * this.baseScale));
-        scale = this.baseScale * fitScale;
-      } else if (boxW > 0) {
-        scale = this.baseScale * (boxW / (vbW * this.baseScale));
-      } else if (boxH > 0) {
-        scale = this.baseScale * (boxH / (vbH * this.baseScale));
-      }
-    }
-
-    const drawnW = vbW * scale;
-    const drawnH = vbH * scale;
-
-    const offsetX = boxW > 0 ? (boxW - drawnW) / 2 : 0;
-    const offsetY = boxH > 0 ? (boxH - drawnH) / 2 : 0;
-
-    const borderWidth =
-      this.strokeWidth !== undefined && Number.isFinite(this.strokeWidth)
-        ? this.strokeWidth * scale
-        : undefined;
+    const box = context.getLayoutBox(this);
+    const placement = aspectFitPlacement(this.spec(), box);
 
     context.drawSvgPath({
       d: this.d,
-      x: x + offsetX,
-      y: y + offsetY,
-      scale,
-      color: this.fill ? fromHex(this.fill) : undefined,
-      borderColor: this.stroke ? fromHex(this.stroke) : undefined,
-      borderWidth,
+      x: placement.left,
+      y: placement.top,
+      scale: placement.scale,
+      color: this.resolveFillColor(),
+      borderColor: this.resolveStrokeColor(),
+      borderWidth:
+        this.strokeWidth !== undefined && Number.isFinite(this.strokeWidth)
+          ? this.strokeWidth * placement.scale
+          : undefined,
     });
   }
 }

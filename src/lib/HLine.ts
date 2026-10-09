@@ -13,7 +13,6 @@ export interface HLineOptions extends WidgetOptions {
 export class HLineWidget extends Widget {
   private color?: ThemeColorValue;
   private thickness: number;
-  private width: YogaStyleValue;
 
   constructor(options: HLineOptions = {}) {
     super(options);
@@ -21,22 +20,12 @@ export class HLineWidget extends Widget {
     this.thickness = Number.isFinite(options.thickness) && (options.thickness as number) > 0
       ? options.thickness as number
       : 1;
-    this.width = options.width ?? '100%';
 
     this.setYogaStyle({
-      width: this.width,
+      width: options.width ?? '100%',
       height: this.thickness,
       alignSelf: 'stretch',
     });
-  }
-
-  getWidth(): number {
-    const computedWidth = this.node.getComputedWidth();
-    return computedWidth > 0 ? computedWidth : typeof this.width === 'number' ? this.width : 0;
-  }
-
-  getHeight(): number {
-    return this.thickness;
   }
 
   private getColor(): RenderColor {

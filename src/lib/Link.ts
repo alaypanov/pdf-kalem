@@ -1,7 +1,7 @@
 import type { ThemeColorValue } from './Theme';
 import type { RenderContext } from './RenderContextInterface';
 import { fromHex } from './utils/color-utils';
-import { TextWidget, type TextOptions } from './Text';
+import { TextWidget, type Run, type TextOptions } from './Text';
 
 export interface LinkOptions extends TextOptions {
   href: string;
@@ -13,7 +13,7 @@ class LinkWidget extends TextWidget {
   private readonly href: string;
   private readonly underlineOverride?: boolean;
 
-  constructor(text: string, options: LinkOptions) {
+  constructor(text: string | Run[], options: LinkOptions) {
     super(text, options);
     this.href = options.href;
     this.underlineOverride = options.underline;
@@ -42,21 +42,26 @@ class LinkWidget extends TextWidget {
   async render(context: RenderContext): Promise<void> {
     const renderedLayout = this.getRenderedTextLayout(context);
 
-    // Clickable rect covers the whole layout box.
-    this.addLinkAnnotation(context, [
-      renderedLayout.box.x,
-      renderedLayout.box.y,
-      renderedLayout.box.x + renderedLayout.maxWidth,
-      renderedLayout.box.y + renderedLayout.box.height,
-    ]);
+    // Plain links get one clickable rect over the whole layout box. Run
+    // links annotate per fragment instead (see addRunLinkAnnotations), so a
+    // run wrapping across lines never covers unrelated text.
+    if (!this.hasRuns()) {
+      this.addLinkAnnotation(context, [
+        renderedLayout.box.x,
+        renderedLayout.box.y,
+        renderedLayout.box.x + renderedLayout.maxWidth,
+        renderedLayout.box.y + renderedLayout.box.height,
+      ]);
+    }
 
     await this.drawRenderedTextLayout(context, renderedLayout, {
       underline: this.getUnderline(),
       underlineColor: this.getColor(),
+      linkHref: this.href,
     });
   }
 }
 
-export function Link(text: string, options: LinkOptions): LinkWidget {
+export function Link(text: string | Run[], options: LinkOptions): LinkWidget {
   return new LinkWidget(text, options);
 }
