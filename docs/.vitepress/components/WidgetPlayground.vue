@@ -466,8 +466,9 @@ onMounted(async () => {
   try {
     // Inter loads from the docs site's static assets (docs/public/fonts) and
     // binds to the theme's font tokens at doc construction (doc-level wins
-    // over theme.fonts).
-    const face = (name: string) => fetch(`/fonts/${name}`).then((r) => r.arrayBuffer())
+    // over theme.fonts). BASE_URL keeps this correct under the GitHub Pages
+    // subpath.
+    const face = (name: string) => fetch(`${import.meta.env.BASE_URL}fonts/${name}`).then((r) => r.arrayBuffer())
     fonts = await useFonts(
       { body: 'inter', heading: 'inter', mono: 'inter' },
       {

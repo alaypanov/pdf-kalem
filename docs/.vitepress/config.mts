@@ -6,6 +6,8 @@ export default defineConfig({
   lang: 'en-US',
   title: 'pdf-kalem',
   description: 'A PDF-focused widget-tree UI library for document generation.',
+  // GitHub Pages project site: https://alaypanov.github.io/pdf-kalem/
+  base: '/pdf-kalem/',
   vite: {
     plugins: [
       UnoCSS({ configFile: fileURLToPath(new URL('../uno.config.ts', import.meta.url)) }),

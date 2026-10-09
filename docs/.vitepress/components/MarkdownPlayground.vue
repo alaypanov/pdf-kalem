@@ -242,8 +242,9 @@ onMounted(async () => {
 
   try {
     // Inter loads from the docs site's static assets (docs/public/fonts);
-    // code falls back to the builtin mono alias (Courier).
-    const face = (name: string) => fetch(`/fonts/${name}`).then((r) => r.arrayBuffer())
+    // code falls back to the builtin mono alias (Courier). BASE_URL keeps
+    // this correct under the GitHub Pages subpath.
+    const face = (name: string) => fetch(`${import.meta.env.BASE_URL}fonts/${name}`).then((r) => r.arrayBuffer())
     fonts = await useFonts(
       { body: 'inter' },
       {
