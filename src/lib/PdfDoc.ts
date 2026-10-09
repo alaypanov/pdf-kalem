@@ -335,6 +335,49 @@ export class PdfDoc {
     URL.revokeObjectURL(url);
   }
 
+  /**
+   * Opens the browser's print dialog with the generated PDF: the blob is
+   * loaded into a hidden iframe and the iframe's print is triggered once it
+   * finishes loading. Browser-only.
+   *
+   * Known limitation: Safari's PDF viewer doesn't support programmatic
+   * printing — the dialog may print blank there. Downloading and printing
+   * manually is the reliable fallback.
+   */
+  async print(): Promise<void> {
+    if (typeof document === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+      throw new Error('PdfDoc.print is only available in browser-like runtimes');
+    }
+
+    const blob = await this.getBlob();
+    const url = URL.createObjectURL(blob);
+
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    let cleanedUp = false;
+
+    const cleanup = (): void => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      iframe.remove();
+      URL.revokeObjectURL(url);
+    };
+
+    // afterprint fires when the dialog closes (Chrome/Firefox). Browsers
+    // that never fire it fall back to the timeout below.
+    iframe.addEventListener('load', () => {
+      iframe.contentWindow?.addEventListener('afterprint', cleanup);
+      // A deferred call — some engines aren't ready to print inside the
+      // load event itself.
+      setTimeout(() => iframe.contentWindow?.print(), 0);
+      // Fallback cleanup if afterprint never fires.
+      setTimeout(cleanup, 60_000);
+    });
+
+    iframe.src = url;
+    document.body.appendChild(iframe);
+  }
+
   async getBuffer(): Promise<NodeBufferLike> {
     const bufferFactory = getNodeBufferFactory();
     if (!bufferFactory) {

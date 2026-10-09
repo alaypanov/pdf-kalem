@@ -47,11 +47,12 @@ Widgets are created through plain factory functions (`Page(...)`, `Text(...)`) â
 const bytes = await doc.save();               // Uint8Array
 const blob = await doc.getBlob();             // browser Blob
 await doc.download('invoice.pdf');            // browser download
+await doc.print();                            // browser print dialog
 const buffer = await doc.getBuffer();         // Node Buffer
 await doc.writeToFile('invoice.pdf');         // Node fs
 ```
 
-`getBuffer()` and `writeToFile()` are intended for Node runtimes; `download()` and `getBlob()` for the browser.
+`getBuffer()` and `writeToFile()` are intended for Node runtimes; `download()`, `getBlob()`, and `print()` for the browser. `print()` loads the PDF into a hidden iframe and opens the browser's print dialog â€” Safari's PDF viewer doesn't support programmatic printing, so download-and-print manually there.
 
 ## Metadata
 

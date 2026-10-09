@@ -14,6 +14,7 @@ The design is heavily inspired by [Flutter](https://flutter.dev)'s widget-tree m
 
 - Builds page-based layouts with Yoga (flexbox: `Row`, `Column`, `gap`, `flexGrow`, `%` widths, absolute positioning).
 - **Pagination**: content taller than one page automatically flows onto additional pages. Text blocks split by line, table rows stay whole and headers repeat, and each `Page` re-renders its chrome per output page. Opt out per page with `Page({ overflow: false })` or keep a text block together with `Text(..., { breakable: false })`.
+- **Edits existing PDFs** via `pdf-kalem/edit`: load a PDF as Page widgets, overlay widgets on its pages, restructure/merge, save — original content, annotations, and form fields preserved.
 - Exports PDFs through `pdf-lib` with metadata, custom fonts, link annotations, and SVG paths.
 - Provides a shared text engine (powered by [`@chenglou/pretext`](https://github.com/chenglou/pretext)) with grapheme-aware wrapping, `maxLines`, and `ellipsis` overflow.
 - Supports document-scoped themes (color tokens, font aliases, text variants, table/container defaults) with per-widget overrides.
@@ -25,7 +26,7 @@ The project is split into three layers:
 
 1. **Widget tree** — `PdfDoc`, `Page`, `Container`, `Text`, `Row`, `Column`, `Image`, `Link`, `FixedContainer`, `SVGPath`, `Table`, `HLine`, and related layout primitives. Widgets depend on a backend-neutral `RenderContext` interface, not on any concrete backend.
 2. **Render layer** — `PdfRenderContext` (implements `RenderContext`) drives `pdf-lib`; `PdfRenderer` walks the page tree and drives the context. The PDF coordinate flip (y grows up from the bottom-left) is applied inside `PdfRenderContext`, so widgets deal in layout boxes, not PDF math.
-3. **Shared services** — `FontRegistry` (singleton) owns registered font bytes, the fontkit instance, and browser `FontFace` loading. It's backend-neutral: any future backend reuses the same registered fonts. `TextLayoutEngine` (pure text measurement/wrapping/truncation) and `TextPainter` (draws a laid-out text block via a `RenderContext`) are shared by `Text` and `Link`.
+3. **Shared services** — `FontRegistry` (singleton) owns registered font bytes, the fontkit instance, and browser `FontFace` loading. `TextLayoutEngine` (pure text measurement/wrapping/truncation) and `TextPainter` (draws a laid-out text block via a `RenderContext`) are shared by `Text` and `Link`.
 
 `PdfDoc` is the document model: it owns the page tree, theme, metadata, and lifecycle hooks. It is intentionally **not** a `Widget` — a document is not a layout node. Rendering is delegated to `PdfRenderer`, and runtime helpers (`save`/`getBlob`/`download`/`getBuffer`/`writeToFile`) live on `PdfDoc` as convenience methods.
 
@@ -106,11 +107,12 @@ Additional output helpers are available when you want a runtime-specific result:
 const bytes = await doc.save();
 const blob = await doc.getBlob();
 await doc.download('invoice.pdf');
+await doc.print();                       // browser print dialog
 const buffer = await doc.getBuffer();
 await doc.writeToFile('invoice.pdf');
 ```
 
-`getBuffer()` and `writeToFile()` are intended for Node runtimes. `writeToFile()` uses `node:fs/promises`.
+`getBuffer()` and `writeToFile()` are intended for Node runtimes. `download()`, `getBlob()`, and `print()` are browser-only — `print()` loads the PDF into a hidden iframe and opens the browser's print dialog (Safari's PDF viewer doesn't support programmatic printing; download-and-print manually there).
 
 ### Pagination
 
@@ -315,13 +317,9 @@ The current direction is:
 
 - keep the widget tree focused on document layout
 - keep PDF behavior explicit and first-class via `PdfDoc` / `PdfRenderContext`
-- prepare the abstraction surface for additional backends (image, HTML) without widening it prematurely
+- **PDF-only focus** — no image/HTML backends are planned ([ADR 0001](./docs/adr/0001-pdf-only-focus.md)). PDF-specific features live in PDF-typed modules (e.g. `pdf-kalem/edit`) instead of widening the backend-neutral interface.
 
-The v2 plan is to add `ImageDoc` and `EmailDoc` that share the widget tree, theme, and `FontRegistry` but supply their own `RenderContext` implementation and renderer. The three pieces that were refactored to enable this:
-
-- `FontRegistry` — shared font bytes + browser `FontFace` loading, no longer stuck on PDF-specific classes.
-- `RenderContext` interface — widgets depend on the interface, not on `PdfRenderContext`. A `CanvasRenderContext` or `HtmlRenderContext` can slot in.
-- `getLayoutBox` — widgets call the backend-neutral `getLayoutBox(widget)`; the PDF Y-flip lives inside `PdfRenderContext`.
+The `RenderContext` seam stays because it is load-bearing, not as a backend hook: pagination's per-page `PageScope` composes through it, and the PDF Y-flip lives in one place (`mapContentBox`).
 
 ## Scripts
 
