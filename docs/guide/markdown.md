@@ -51,7 +51,7 @@ const doc = await markdownToPdf(md, {
 `markdownThemeDefaults` is exported so custom tooling can merge the same baseline (heading sizes, `link` color, `table.cellPadding`) under a user theme — user values win per key.
 
 ::: warning WinAnsi
-Task-list markers (`✓`/`□`) need a real font — the builtin aliases throw on them. Load the shipped `inter` family (or any custom font) for documents with task lists.
+Task-list markers (`✓`/`□`) need a real font — the builtin aliases throw on them. Load a font family via `files` for documents with task lists (the [markdown example](https://github.com/alaypanov/pdf-kalem/tree/main/examples/markdown) loads Inter from `examples/fonts/`).
 :::
 
 ## Try it live

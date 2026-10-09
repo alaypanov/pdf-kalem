@@ -17,8 +17,8 @@ import { fromHex } from '../../../src/lib/utils/color-utils'
  *
  * The markdown example's logic as a Vue component: a CodeMirror editor over
  * a debounced `markdownToPdf` preview, with a page-count badge, download,
- * and an error strip. Uses the shipped `inter` family; code renders in the
- * builtin `mono` alias (Courier).
+ * and an error strip. Loads Inter from the docs site's static assets via
+ * `files`; code renders in the builtin `mono` alias (Courier).
  * Mount inside <ClientOnly> — rendering touches browser APIs.
  */
 
@@ -241,8 +241,22 @@ onMounted(async () => {
   })
 
   try {
-    // Shipped families — no font files or network needed.
-    fonts = await useFonts({ body: 'inter' })
+    // Inter loads from the docs site's static assets (docs/public/fonts);
+    // code falls back to the builtin mono alias (Courier).
+    const face = (name: string) => fetch(`/fonts/${name}`).then((r) => r.arrayBuffer())
+    fonts = await useFonts(
+      { body: 'inter' },
+      {
+        files: {
+          inter: {
+            regular: await face('Inter-Regular.ttf'),
+            bold: await face('Inter-Bold.ttf'),
+            italic: await face('Inter-Italic.ttf'),
+            boldItalic: await face('Inter-BoldItalic.ttf'),
+          },
+        },
+      },
+    )
   } catch (err) {
     console.error('markdown playground: font loading failed, falling back to builtins', err)
   }
@@ -289,7 +303,7 @@ onBeforeUnmount(() => {
       <div class="relative flex min-h-0 flex-1">
         <div class="flex w-1/2 min-w-0 flex-col border-r border-ink/10">
           <div class="flex h-9 flex-none items-center gap-2 border-b border-ink/10 px-4">
-            <span class="h-[7px] w-[7px] bg-accent"></span>
+            <span class="h-1.5 w-1.5 bg-accent"></span>
             <span class="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Source</span>
             <span class="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-[#a8a29e]">Markdown</span>
           </div>
@@ -300,7 +314,7 @@ onBeforeUnmount(() => {
         </div>
         <div class="flex w-1/2 bg-paper2 min-w-0 flex-col">
           <div class="flex h-9 flex-none  items-center gap-2 border-b border-ink/10 px-4">
-            <span class="h-[7px] w-[7px] bg-ink"></span>
+            <span class="h-1.5 w-1.5 bg-ink"></span>
             <span class="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Proof</span>
             <span class="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-[#a8a29e]">PDF</span>
           </div>

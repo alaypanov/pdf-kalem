@@ -464,9 +464,23 @@ onMounted(async () => {
   })
 
   try {
-    // One call: loads the shipped Inter family and binds it to the theme's
-    // font tokens at doc construction (doc-level wins over theme.fonts).
-    fonts = await useFonts({ body: 'inter', heading: 'inter', mono: 'inter' })
+    // Inter loads from the docs site's static assets (docs/public/fonts) and
+    // binds to the theme's font tokens at doc construction (doc-level wins
+    // over theme.fonts).
+    const face = (name: string) => fetch(`/fonts/${name}`).then((r) => r.arrayBuffer())
+    fonts = await useFonts(
+      { body: 'inter', heading: 'inter', mono: 'inter' },
+      {
+        files: {
+          inter: {
+            regular: await face('Inter-Regular.ttf'),
+            bold: await face('Inter-Bold.ttf'),
+            italic: await face('Inter-Italic.ttf'),
+            boldItalic: await face('Inter-BoldItalic.ttf'),
+          },
+        },
+      },
+    )
   } catch (err) {
     console.error('widget playground: font loading failed, falling back to builtins', err)
   }
@@ -513,7 +527,7 @@ onBeforeUnmount(() => {
       <div class="relative flex min-h-0 flex-1">
         <div class="flex w-1/2 min-w-0 flex-col border-r border-ink/10">
           <div class="flex h-9 flex-none items-center gap-2 border-b border-ink/10 px-4">
-            <span class="h-[7px] w-[7px] bg-accent"></span>
+            <span class="h-1.5 w-1.5 bg-accent"></span>
             <span class="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Source</span>
             <span class="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-[#a8a29e]">JavaScript</span>
           </div>
@@ -524,7 +538,7 @@ onBeforeUnmount(() => {
         </div>
         <div class="flex w-1/2 bg-paper2 min-w-0 flex-col">
           <div class="flex h-9 flex-none  items-center gap-2 border-b border-ink/10 px-4">
-            <span class="h-[7px] w-[7px] bg-ink"></span>
+            <span class="h-1.5 w-1.5 bg-ink"></span>
             <span class="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Proof</span>
             <span class="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-[#a8a29e]">PDF</span>
           </div>

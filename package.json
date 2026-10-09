@@ -1,6 +1,6 @@
 {
   "name": "pdf-kalem",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "PDF-focused widget-tree UI library for document generation.",
   "type": "module",
   "sideEffects": false,

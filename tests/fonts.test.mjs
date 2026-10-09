@@ -14,7 +14,17 @@ import { PDFDocument, PDFDict, PDFName } from 'pdf-lib';
 import { PdfDoc, useFonts, createTheme } from '../dist/index.js';
 import { Page, Text } from '../dist/widgets.js';
 
-const FONT_URL = new URL('../public/fonts/Inter-Regular.ttf', import.meta.url);
+const FONT_URL = new URL('../examples/fonts/Inter-Regular.ttf', import.meta.url);
+
+// The Inter family, loaded the way consumers now load any family: bytes via
+// `files` (the TTFs live in examples/fonts/).
+const interFiles = {
+  regular: fs.readFileSync(new URL('../examples/fonts/Inter-Regular.ttf', import.meta.url)),
+  bold: fs.readFileSync(new URL('../examples/fonts/Inter-Bold.ttf', import.meta.url)),
+  italic: fs.readFileSync(new URL('../examples/fonts/Inter-Italic.ttf', import.meta.url)),
+  boldItalic: fs.readFileSync(new URL('../examples/fonts/Inter-BoldItalic.ttf', import.meta.url)),
+};
+const interFontSet = () => useFonts({ body: 'inter' }, { files: { inter: interFiles } });
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
@@ -103,8 +113,8 @@ test('explicitly registered fontkit is used when present', async () => {
 
 // --- useFonts / FontSet / doc-scoped resolution ---
 
-test('useFonts loads the shipped Inter family into a FontSet', async () => {
-  const fonts = await useFonts({ body: 'inter' });
+test('useFonts loads a family from files into a FontSet', async () => {
+  const fonts = await interFontSet();
 
   assert.equal(fonts.tokens.body, 'inter');
   const bytes = fonts.families.get('inter')?.regular;
@@ -112,12 +122,12 @@ test('useFonts loads the shipped Inter family into a FontSet', async () => {
   assert.ok(bytes.byteLength > 1000);
 });
 
-test('unknown family throws listing the shipped families', async () => {
-  await assert.rejects(useFonts({ body: 'nope' }), /inter/);
+test('unknown family without files throws with guidance', async () => {
+  await assert.rejects(useFonts({ body: 'nope' }), /nope/);
 });
 
 test('PdfDoc({ fonts }) embeds Inter with no registerFontkit/registerFont calls', async () => {
-  const fonts = await useFonts({ body: 'inter' });
+  const fonts = await interFontSet();
   const doc = new PdfDoc({
     fonts,
     children: [
@@ -139,7 +149,7 @@ test('FontSet tokens override theme.fonts without mutating the theme', async () 
     fonts: { body: 'Inter' },
     text: { body: { font: 'body', size: 14 } },
   });
-  const fonts = await useFonts({ body: 'inter' });
+  const fonts = await interFontSet();
 
   const doc = new PdfDoc({
     theme,
@@ -192,8 +202,8 @@ test('files escape hatch + doc-scoped resolution (second doc unaffected)', async
 
 // --- font family variants (faces) ---
 
-test('useFonts loads the shipped Inter family with all four faces', async () => {
-  const fonts = await useFonts({ body: 'inter' });
+test('useFonts loads a family with all four faces from files', async () => {
+  const fonts = await interFontSet();
   const inter = fonts.families.get('inter');
 
   assert.ok(inter, 'expected the inter family in the FontSet');
@@ -206,7 +216,7 @@ test('useFonts loads the shipped Inter family with all four faces', async () => 
 
 
 test('face ids embed distinct faces per style', async () => {
-  const fonts = await useFonts({ body: 'inter' });
+  const fonts = await interFontSet();
   const doc = new PdfDoc({
     fonts,
     children: [

@@ -1,5 +1,4 @@
 import type { FontSet, FontVariants, FontStyle } from './types';
-import { isShippedFamily, loadShippedFamily, shippedFamilyNames } from './shipped';
 
 /** One font file: fetched when a string, used directly otherwise. */
 export type FontSource = string | Uint8Array | ArrayBuffer;
@@ -14,12 +13,9 @@ export interface FamilyFiles {
 
 export interface UseFontsOptions {
   /**
-   * Explicit font sources per family, for faces that are not shipped. A
-   * family entry is either a single source (its regular face) or an object
-   * of per-face sources; per-face entries override shipped faces of the
-   * same name. A string is fetched (browser/http URL — pass bytes for Node
-   * filesystem loading). Families listed here take precedence over shipped
-   * families of the same name.
+   * Explicit font sources per family. A family entry is either a single
+   * source (its regular face) or an object of per-face sources. A string is
+   * fetched (browser/http URL — pass bytes for Node filesystem loading).
    */
   files?: Record<string, FontSource | FamilyFiles>;
 }
@@ -66,12 +62,12 @@ async function loadFamily(family: string, files: UseFontsOptions['files']): Prom
       : { regular: provided }
     : {};
 
-  if (!isShippedFamily(family) && !providedFaces.regular) {
+  if (!providedFaces.regular) {
     if (provided === undefined) {
       throw new Error(
-        `useFonts: family '${family}' is not shipped with pdf-kalem. ` +
-          `Shipped families: ${shippedFamilyNames().join(', ') || '(none)'}. ` +
-          `Provide your own file via useFonts(families, { files: { '${family}': bytes } }).`,
+        `useFonts: family '${family}' has no font files. Provide at least a regular face via ` +
+          `useFonts(families, { files: { '${family}': bytes } }) — the builtin aliases ` +
+          `('sans', 'serif', 'mono', …) need no files.`,
       );
     }
     throw new Error(
@@ -80,7 +76,7 @@ async function loadFamily(family: string, files: UseFontsOptions['files']): Prom
     );
   }
 
-  const variants: Partial<MutableVariants> = isShippedFamily(family) ? { ...(await loadShippedFamily(family)) } : {};
+  const variants: Partial<MutableVariants> = {};
   for (const face of FACE_KEYS) {
     const source = providedFaces[face];
     if (source !== undefined) {
@@ -88,8 +84,8 @@ async function loadFamily(family: string, files: UseFontsOptions['files']): Prom
     }
   }
 
-  // Validation above guarantees a regular face: shipped families carry one,
-  // and non-shipped families require a `regular` files entry.
+  // Validation above guarantees a regular face: a family requires a
+  // `regular` files entry.
   return Object.freeze(variants as MutableVariants);
 }
 
@@ -97,7 +93,10 @@ async function loadFamily(family: string, files: UseFontsOptions['files']): Prom
  * Loads font families once and returns a reusable {@link FontSet} value.
  *
  * ```ts
- * const fonts = await useFonts({ body: 'inter', heading: 'source-serif' });
+ * const fonts = await useFonts(
+ *   { body: 'inter' },
+ *   { files: { inter: { regular: interBytes, bold: interBoldBytes } } },
+ * );
  * const doc = new PdfDoc({ fonts, theme, children: [...] });
  * ```
  *
@@ -108,10 +107,11 @@ async function loadFamily(family: string, files: UseFontsOptions['files']): Prom
  * ones. Call before creating the doc — never after.
  *
  * A family carries a regular face plus optional bold/italic/bold-italic
- * faces (shipped ones where available, `files` entries otherwise or on
- * top). Missing faces fall back at embed time with a warning, so a family
- * can ship incrementally. Only families referenced by tokens are loaded;
- * extra `files` entries are ignored.
+ * faces from `files`. Missing faces fall back at embed time with a warning,
+ * so a family can ship incrementally. Only families referenced by tokens
+ * are loaded; extra `files` entries are ignored. The builtin aliases
+ * (`sans`, `serif`, `mono`, … — pdf-lib's standard fonts) need no files at
+ * all.
  */
 export async function useFonts(
   families: Record<string, string>,

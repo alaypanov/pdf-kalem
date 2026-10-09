@@ -197,28 +197,31 @@ Run flags: `bold`, `italic`, `strike`, `href`, `mono`, `font`, `color`. Faces re
 
 Built-in aliases work without registration: `sans`, `sans-bold`, `sans-italic`, `sans-bold-italic`, `serif` (+ variants), `mono` (+ variants).
 
-For real typography, load a font set once and pass it to the document. One family ships with the package — `inter` (regular, bold, italic, bold-italic) — so common documents need no font files at all. Code falls back to the builtin `mono` alias (Courier); load a real mono family via `files` when you need one:
+For real typography, load a font set once and pass it to the document. Families come from your own font files — the repo's examples load Inter this way (the OFL-licensed TTFs live in [`examples/fonts/`](./examples/fonts)):
 
 ```ts
 import { PdfDoc, useFonts } from 'pdf-kalem';
 
-const fonts = await useFonts({
-  body: 'inter',
-});
+const fonts = await useFonts(
+  { body: 'inter' },
+  { files: { inter: { regular: interBytes, bold: interBoldBytes } } },
+);
 
 const doc = new PdfDoc({ fonts, children: [/* ... */] });
 ```
 
+A family entry is either a single source (its regular face) or an object of per-face sources; a string is fetched (browser/http URL — pass bytes for Node filesystem loading). Code falls back to the builtin `mono` alias (Courier); load a real mono family via `files` when you need one.
+
 A family carries faces: `regular` plus optional `bold`, `italic`, and `boldItalic`. A face is referenced by suffixing the family name — `inter-bold`, `inter-italic`, `inter-bold-italic` — the same convention the builtin aliases use. Missing faces fall back at embed time (bold-italic → bold → italic → regular) with a console warning, so a family can ship incrementally.
 
-Bring your own fonts per face; entries merge over the shipped faces of the same family:
+Bring your own fonts per face:
 
 ```ts
 const fonts = await useFonts(
   { body: 'inter' },
   {
     files: {
-      inter: { bold: '/fonts/MyInter-Bold.ttf' }, // override one face
+      inter: { bold: '/fonts/MyInter-Bold.ttf' }, // one face as a URL
       'my-serif': {
         regular: '/fonts/MySerif.ttf',
         italic: '/fonts/MySerif-Italic.ttf',

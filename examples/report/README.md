@@ -36,8 +36,8 @@ src/
   re-emitted on every output page the report Page produces (and absent from
   the cover — each Page owns its furniture).
 - **Builtin font aliases** — the theme maps onto `sans`/`mono`, so the
-  example runs with zero font setup (contrast with the invoice example's
-  shipped `inter` family).
+  example runs with zero font setup (contrast with the invoice example,
+  which loads Inter from files).
 - **Generic components** — one `dataTable<T>` renders both tables from
   column descriptions.
 

@@ -4,7 +4,7 @@ const { title } = defineProps<{ title: string }>()
 
 <template>
    <div class="flex gap-2 items-baseline">
-     <a href="/" class="font-mono no-underline text-xs text-ink">pdf-kalem</a>
+     <a href="/" class="font-mono underline underline-offset-2 hover:text-accent text-xs text-ink">pdf-kalem</a>
      <span class="text-[#a8a29e]">/</span>
      <span class="font-mono text-xs text-ink">{{ title }}</span>
    </div>

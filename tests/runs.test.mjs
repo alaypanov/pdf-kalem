@@ -9,6 +9,7 @@
  * mono = 5pt — so run-level measurement is observable in wrapping.
  */
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { PDFDocument, PDFDict, PDFName } from 'pdf-lib';
 
 import { PdfDoc, useFonts } from '../dist/index.js';
@@ -438,7 +439,18 @@ test('rich text embeds one font per used face', async () => {
 });
 
 test('custom-family runs resolve bold faces through the doc FontSet', async () => {
-  const fonts = await useFonts({ body: 'inter' });
+  // Inter loads from files (the TTFs live in examples/fonts/).
+  const fonts = await useFonts(
+    { body: 'inter' },
+    {
+      files: {
+        inter: {
+          regular: fs.readFileSync(new URL('../examples/fonts/Inter-Regular.ttf', import.meta.url)),
+          bold: fs.readFileSync(new URL('../examples/fonts/Inter-Bold.ttf', import.meta.url)),
+        },
+      },
+    },
+  );
   const doc = new PdfDoc({
     fonts,
     children: [

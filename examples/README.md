@@ -8,7 +8,7 @@ not browsed as a demo.
 | Folder | Demonstrates |
 |---|---|
 | [`basic/`](./basic/) | One file, no setup: widgets in, PDF out — the starting point |
-| [`invoice/`](./invoice/) | Single-page business document: theme tokens, component composition, data/layout separation, shipped Inter family |
+| [`invoice/`](./invoice/) | Single-page business document: theme tokens, component composition, data/layout separation, custom fonts via `files` |
 | [`report/`](./report/) | Multi-page pagination: flowing text, repeating table headers, keep-together panels, per-page furniture, builtin font aliases |
 | [`markdown/`](./markdown/) | Markdown → PDF converter with a small CLI |
 

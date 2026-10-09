@@ -33,10 +33,13 @@ src/
   are functions returning widgets, composed in `document.ts`.
 - **Data/layout separation** — content lives in `src/data.ts`; the same
   codebase renders any invoice.
-- **Shipped fonts** — `useFonts({ body: 'inter' })` loads the family that
-  ships with the package; no font files needed.
+- **Custom fonts** — Inter loads from the repo's shared `examples/fonts/`
+  folder through `useFonts(…, { files })` (Node `fs` bytes); the library
+  itself bundles no font files.
 
 ## Copy it
 
 The folder is plain ESM TypeScript — copy it into any project that has
-`pdf-kalem` installed and run `node src/main.ts`.
+`pdf-kalem` installed and run `node src/main.ts`. It reads the Inter TTFs
+from `examples/fonts/` — take that folder along (or swap in any TTFs you
+like and point the `files` entries at them).

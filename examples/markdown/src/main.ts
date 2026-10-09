@@ -10,9 +10,23 @@ import { theme } from './theme.ts';
 const [input, output = 'markdown.pdf'] = process.argv.slice(2);
 const markdown = input ? await readFile(input, 'utf8') : sample;
 
-// Shipped family — no font files or network needed. Code falls back to the
+// Inter loads from the repo's shared examples/fonts/ folder through `files`
+// (all four faces — the sample uses bold/italic runs). Code falls back to the
 // builtin mono alias (Courier).
-const fonts = await useFonts({ body: 'inter' });
+const face = (name: string) => readFile(new URL(`../../fonts/${name}`, import.meta.url));
+const fonts = await useFonts(
+  { body: 'inter' },
+  {
+    files: {
+      inter: {
+        regular: await face('Inter-Regular.ttf'),
+        bold: await face('Inter-Bold.ttf'),
+        italic: await face('Inter-Italic.ttf'),
+        boldItalic: await face('Inter-BoldItalic.ttf'),
+      },
+    },
+  },
+);
 
 const doc = await markdownToPdf(markdown, {
   theme,

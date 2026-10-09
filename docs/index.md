@@ -27,6 +27,6 @@ features:
     details: Convert GFM markdown into widgets or a ready-to-save document through one deep seam — headings, lists, tables, code, quotes, images.
     link: /guide/markdown
   - title: Themes & fonts
-    details: Document-scoped color tokens, text variants, and table/container defaults. Shipped Inter family with per-face fallback, builtin Courier mono — or bring your own.
+    details: Document-scoped color tokens, text variants, and table/container defaults. Builtin standard fonts out of the box, per-face fallback for custom families — bring your own TTFs.
     link: /guide/theming
 ---

@@ -28,10 +28,13 @@ src/
   markdown defaults; unset tokens keep the baseline.
 - **`MarkdownStyles`** — converter-level overrides the theme's text variants
   don't cover (code font, blockquote rule, list indent, spacing).
-- **Shipped fonts** — `useFonts({ body: 'inter' })`; code falls back to the
-  builtin mono alias (Courier).
+- **Custom fonts** — Inter loads from the repo's shared `examples/fonts/`
+  folder through `useFonts(…, { files })` (all four faces — the sample uses
+  bold/italic runs); code falls back to the builtin mono alias (Courier).
 
 ## Copy it
 
 The folder is plain ESM TypeScript — copy it into any project that has
-`pdf-kalem` installed and run `node src/main.ts`.
+`pdf-kalem` installed and run `node src/main.ts`. It reads the Inter TTFs
+from `examples/fonts/` — take that folder along (or swap in any TTFs you
+like and point the `files` entries at them).
