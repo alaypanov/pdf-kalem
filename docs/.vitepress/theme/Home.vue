@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useData } from 'vitepress'
+import { useData, withBase } from 'vitepress'
 
 /**
  * Editorial home layout in the repo's paper/ink style: wordmark, serif
@@ -63,7 +63,7 @@ const features = computed<Feature[]>(() => (frontmatter.value as { features?: Fe
         <a
           v-for="action in actions"
           :key="action.text"
-          :href="action.link"
+          :href="withBase(action.link)"
           class="rounded-md border border-solid px-2.5 py-1.5 text-xs uppercase tracking-[0.2em] no-underline transition-colors duration-150"
           :class="action.theme === 'brand'
             ? 'border-ink bg-ink text-paper hover:border-accent hover:bg-accent hover:text-white dark:border-bone dark:bg-bone dark:text-night dark:hover:border-[#f59e0b] dark:hover:bg-[#f59e0b] dark:hover:text-night'
@@ -76,7 +76,7 @@ const features = computed<Feature[]>(() => (frontmatter.value as { features?: Fe
           :is="feature.link ? 'a' : 'div'"
           v-for="(feature, i) in features"
           :key="feature.title"
-          :href="feature.link"
+          :href="feature.link ? withBase(feature.link) : undefined"
           class="border-b border-r border-hairline px-6 pb-[30px] pt-[26px] no-underline transition-colors duration-150 hover:bg-paper2 dark:border-nightline dark:hover:bg-night2"
         >
           <div class="mb-[18px] flex items-center gap-[9px] text-[10px] uppercase tracking-[0.14em] text-muted dark:text-faint">
