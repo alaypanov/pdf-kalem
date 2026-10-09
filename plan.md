@@ -7,6 +7,8 @@
 - Build online design editor.
 - Add template helpers and styling system.
 - Page breaks
+- MD files to pdf converter
+- Form widgets and data binding
 - Printing and PDF export
 - Add reusable document helpers.
 - Add tests and richer examples.
@@ -14,6 +16,29 @@
 - Design Theme system
 - Export MD and HTML
 - Package into npm module
+
+## Feature: Markdown → PDF
+
+Convert markdown to a widget tree (and PDF) via a `pdf-kalem/markdown` subpath. Four increments, in dependency order:
+
+1. ✅ **Font family variants** — `FontSet.families` maps family → faces (`regular` + `bold`/`italic`/`boldItalic`); face ids (`inter-bold`) resolve through the family with fallback (bold-italic → bold → italic → regular, warn on fallback); shipped `inter` (4 faces) + `jetbrains-mono` (2 faces). Landed 2026-10-05.
+2. ✅ **Rich runs in `Text`** — `Text(string | Run[])`, `Run = { text, bold?, italic?, strike?, href?, mono?, font?, color? }`; engine wraps across run boundaries (incl. mid-word, grapheme-aware); painter draws per-run faces/colors, strikethrough, per-fragment link annotations (a run wrapping across lines gets one rect per line fragment). Runs measure through `measureRunWidth` (the same embedded font that draws) rather than pretext. Landed 2026-10-05.
+3. ✅ **Markdown module** — `markdownToWidgets(md, opts?)` (deep seam: marked GFM tokens → widget blocks) + `markdownToPdf(md, opts?)` (sugar: paginated Page + theme defaults merged under the user's theme, returns a `PdfDoc`); `pdf-kalem/markdown` subpath. Supports headings (h1..h6 variants, bold), emphasis runs (bold/italic/strikethrough/inline code), links (per-fragment annotations + underline), ordered/unordered/nested/task lists, fenced code blocks (mono, pre-wrap, bg), blockquotes (left rule + italic), GFM tables (per-column alignment), horizontal rules, and images (fetched once, format sniffed from magic bytes, png/jpeg only). Landed 2026-10-05.
+4. ✅ **Example + docs** — `examples/markdown/`: live two-pane converter (editable markdown → debounced PDF preview, download, page-count badge) on the shipped `inter`/`jetbrains-mono` families, with a "Load CONTEXT.md" button that converts this repo's own context doc (inlined via a `?raw` import, so it works in dev and build). Wired into `vite.config.ts` inputs + the examples index. Landed 2026-10-05.
+
+## Feature: Live examples
+
+Every example page is a live two-pane workbench: editable source on the left, debounced PDF preview on the right, page-count badge, download link, error surfacing in a strip under the editor. The look is a light proof-sheet workbench — warm paper, ink text, amber accent, mono UI type with a serif wordmark, hairline dividers instead of cards, and a custom light CodeMirror syntax theme.
+
+1. ✅ **Shared live shell** — `examples/shared/live.ts` owns the two-pane DOM/CSS/wiring (debounce, object-URL lifecycle, error badge with the failure message, Cmd/Ctrl+Enter to render now); hosts supply a `render(source)` callback and call `renderNow()` after async setup (fonts). The editor is a minimal hand-picked CodeMirror 6 setup (line numbers, history, auto-indent, syntax highlighting, line wrapping — no autocompletion/search/folding) with `javascript` mode for widget-code examples and `markdown` mode for the converter. `examples/shared/sandbox.ts` evaluates widget-code editors: the code is the body of a plain-JS function returning `Page[]`, with the widget factories, `theme`, `fromHex`, and `PageSize` injected as function parameters — no in-browser transpiler, works in dev and build:demo. Landed 2026-10-06.
+2. ✅ **Invoice / report / playground converted** — each prefilled with its widget tree (types stripped); fonts, theme, and document setup stay fixed scaffolding so the editor owns just the Page tree. The markdown example was refactored onto the same shell (same look, one implementation). Landed 2026-10-06.
+
+## Feature: Documentation site
+
+VitePress (Vue 3) + UnoCSS docs in `docs/`, built with `pnpm docs:build`.
+
+1. ✅ **Scaffold** — VitePress 1.6 + UnoCSS 66 (presetWind3) over the default theme with amber brand accents; guide pages ported from the README (getting started, widgets, theming, fonts, pagination, markdown). Docs build target bumped to es2022 — yoga-layout's ESM build loads its WASM with top-level await. Landed 2026-10-07.
+2. ✅ **Markdown playground (live)** — `/playground/markdown` hosts the real workbench: `docs/.vitepress/components/MarkdownPlayground.vue` mounts a CodeMirror editor (markdown mode) over a debounced `markdownToPdf` preview with the shipped `inter`/`jetbrains-mono` families — page-count badge, download, reset, error strip — mounted via `<ClientOnly>` inside the open layout. The TLA blocker is solved in the config, not worked around: VitePress's esbuild targets (build, source transform, dev dep pre-bundle) are raised to es2022 because yoga-layout's ESM entry loads its WASM with top-level await and VitePress's defaults (chrome87/es2020) reject it; modern browsers support TLA. `/playground/widgets` stays a placeholder until the widget workbench lands. Landed 2026-10-07.
 
 ## Priority 1
 
