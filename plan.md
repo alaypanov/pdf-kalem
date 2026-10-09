@@ -33,6 +33,11 @@ Every example page is a live two-pane workbench: editable source on the left, de
 1. ✅ **Shared live shell** — `examples/shared/live.ts` owns the two-pane DOM/CSS/wiring (debounce, object-URL lifecycle, error badge with the failure message, Cmd/Ctrl+Enter to render now); hosts supply a `render(source)` callback and call `renderNow()` after async setup (fonts). The editor is a minimal hand-picked CodeMirror 6 setup (line numbers, history, auto-indent, syntax highlighting, line wrapping — no autocompletion/search/folding) with `javascript` mode for widget-code examples and `markdown` mode for the converter. `examples/shared/sandbox.ts` evaluates widget-code editors: the code is the body of a plain-JS function returning `Page[]`, with the widget factories, `theme`, `fromHex`, and `PageSize` injected as function parameters — no in-browser transpiler, works in dev and build:demo. Landed 2026-10-06.
 2. ✅ **Invoice / report / playground converted** — each prefilled with its widget tree (types stripped); fonts, theme, and document setup stay fixed scaffolding so the editor owns just the Page tree. The markdown example was refactored onto the same shell (same look, one implementation). Landed 2026-10-06.
 
+> 2026-10-08: the live-edit examples were replaced by copyable plain-ESM projects under
+> `examples/` (basic, invoice, report, markdown — run with `node`, no per-example npm setup;
+> see `examples/README.md`). The live-edit experience now lives in the docs playgrounds
+> (`docs/.vitepress/components/`); `examples/shared/` and the Vite demo build are gone.
+
 ## Feature: Documentation site
 
 VitePress (Vue 3) + UnoCSS docs in `docs/`, built with `pnpm docs:build`.

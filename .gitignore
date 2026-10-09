@@ -18,6 +18,8 @@ docs/.vitepress/dist
 # Example output
 examples/**/*.pdf
 
+lab
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
