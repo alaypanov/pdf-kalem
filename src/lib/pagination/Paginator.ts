@@ -79,6 +79,14 @@ export class Paginator {
   }
 
   async paginate(page: PageWidget, context: RenderContext): Promise<Pagination> {
+    // Non-paginating pages (overflow: false) render as exactly one page —
+    // overflowing content is clipped by the viewer, never split. The dry
+    // run (getPageCount) must agree with that.
+    if (!page.paginates) {
+      await page.prepareLayout(context);
+      return { pages: [], pageCount: 1, overflow: false };
+    }
+
     this.unitsCache = new WeakMap();
     this.pagesAcc = [];
     await page.prepareLayout(context);

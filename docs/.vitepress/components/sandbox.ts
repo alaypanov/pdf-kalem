@@ -67,3 +67,14 @@ export function evalPages(code: string, sandbox: Record<string, unknown>): Widge
   }
   return pages as Widget[];
 }
+
+/**
+ * Evaluate editor code (a function body) that edits `pages` in place — the
+ * edit playground's contract: overlay with `pages[i].add([...])`, restructure
+ * by mutating the array. No return value; the (mutated) array is the result.
+ */
+export function applyEdits(code: string, sandbox: Record<string, unknown>, pages: Widget[]): void {
+  const names = Object.keys(sandbox);
+  const factory = new Function('pages', ...names, `"use strict";\n${code}`);
+  factory(pages, ...names.map((name) => sandbox[name]));
+}

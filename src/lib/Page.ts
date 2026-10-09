@@ -53,6 +53,11 @@ export class PageWidget extends Widget {
     return docDimensions;
   }
 
+  /** Whether content overflowing this page splits across continuation pages. */
+  get paginates(): boolean {
+    return this.paginateContent;
+  }
+
   /** @internal — flow layout pass for pagination (used by Paginator). */
   runFlowLayout(width: number, height: number | undefined): void {
     this.node.setWidth(width);
@@ -83,6 +88,15 @@ export class PageWidget extends Widget {
     };
   }
 
+  /**
+   * Opens the backend surface this page paints onto. LoadedPage overrides
+   * this to a no-op — its surface is an adopted existing page, opened in
+   * render() before the layout pass.
+   */
+  protected async openPage(context: RenderContext, dimensions: [number, number]): Promise<void> {
+    context.addPage(dimensions);
+  }
+
   async render(context: RenderContext): Promise<void> {
     debugLog('Drawing Page');
     const dimensions = this.getDimensions(context);
@@ -90,7 +104,7 @@ export class PageWidget extends Widget {
 
     if (!this.paginateContent) {
       // Legacy single-page path — byte-identical to pre-pagination behavior.
-      context.addPage(dimensions);
+      await this.openPage(context, dimensions);
       await this.prepareLayout(context);
       this.node.setWidth(dimensions[0]);
       this.node.setHeight(dimensions[1]);
@@ -104,7 +118,7 @@ export class PageWidget extends Widget {
     if (!pagination.overflow) {
       // Content fits: render through the legacy path with the pass-1
       // geometry still on the nodes (byte-identical output).
-      context.addPage(dimensions);
+      await this.openPage(context, dimensions);
       await this.renderChildren(context);
       return;
     }

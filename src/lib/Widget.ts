@@ -354,6 +354,13 @@ export abstract class Widget {
     return this.children;
   }
 
+  /** @internal — package-internal: append a child after construction (edit module overlays). */
+  appendWidgetChild(widget: Widget): void {
+    widget.parent = this;
+    this.children.push(widget);
+    this.node.insertChild(widget.node, this.node.getChildCount());
+  }
+
   /** Flow geometry from the last Yoga layout (positions are parent-border-box-relative). */
   getFlowGeometry(): {
     top: number;

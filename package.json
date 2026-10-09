@@ -38,6 +38,10 @@
       "types": "./dist/markdown.d.ts",
       "import": "./dist/markdown.js"
     },
+    "./edit": {
+      "types": "./dist/edit.d.ts",
+      "import": "./dist/edit.js"
+    },
     "./utils/color-utils": {
       "types": "./dist/utils/color-utils.d.ts",
       "import": "./dist/utils/color-utils.js"
@@ -47,8 +51,8 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm build && node tests/pagination.test.mjs && node tests/fonts.test.mjs && node tests/layout.test.mjs && node tests/runs.test.mjs && node tests/markdown.test.mjs && node tests/aspect-fit.test.mjs",
-    "examples": "pnpm build && cd examples/basic && node main.ts && cd ../invoice && node src/main.ts && cd ../report && node src/main.ts && cd ../markdown && node src/main.ts",
+    "test": "pnpm build && node tests/pagination.test.mjs && node tests/fonts.test.mjs && node tests/layout.test.mjs && node tests/runs.test.mjs && node tests/markdown.test.mjs && node tests/aspect-fit.test.mjs && node tests/edit.test.mjs",
+    "examples": "pnpm build && cd examples/basic && node main.ts && cd ../invoice && node src/main.ts && cd ../report && node src/main.ts && cd ../markdown && node src/main.ts && cd ../edit && node src/main.ts",
     "dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",

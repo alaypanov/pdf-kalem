@@ -78,6 +78,16 @@ export interface RenderContext {
   /** Sets the current page handle. Implementations should accept their own page type. */
   setCurrentPage(page: unknown): void;
 
+  /**
+   * Adopts a page from a foreign document of the backend's native type
+   * (typed `unknown`, like the page handles) as the current drawing surface.
+   * The PDF backend copies the page object into the output document —
+   * content streams, annotations, links, and form fields come along — and
+   * points the current page at the copy, so subsequent drawing lands on top
+   * of the original content. Used by the edit module (`pdf-kalem/edit`).
+   */
+  adoptPage(source: unknown, pageIndex: number): Promise<void>;
+
   getPageHeight(): number;
   getPageWidth(): number;
   getDimensions(): [number, number];

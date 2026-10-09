@@ -38,12 +38,34 @@ Every example page is a live two-pane workbench: editable source on the left, de
 > see `examples/README.md`). The live-edit experience now lives in the docs playgrounds
 > (`docs/.vitepress/components/`); `examples/shared/` and the Vite demo build are gone.
 
+## Feature: PDF editing (`pdf-kalem/edit`)
+
+Load an existing PDF, restructure its pages, and edit pages by adding widgets on top — all in code, both runtimes, bytes in / bytes out. The design (settled 2026-10-09):
+
+**Unified model.** `loadPdf(bytes, { fonts, theme })` → `LoadedPdf` whose `pages` is a plain mutable array of `LoadedPage` widgets (`LoadedPage extends PageWidget`, dimensions preset from the original file). Editing and generation share one document model — there is no separate editor universe:
+
+- overlay widgets → `page.add([/* widgets */])` — declarative, painted at save time
+- remove / reorder pages → native array ops on `pdf.pages` (`splice`, `sort`)
+- blank / generated pages → `pdf.pages.push(new Page({ ... }))`
+- merge two PDFs → compose both `pages` arrays in one `PdfDoc`
+- quick edit → `await pdf.save()` (sugar: builds a `PdfDoc` from `pdf.pages` with the load-time `fonts`/`theme` wired)
+- escape hatch → `pdf.PDFDocument` (the raw pdf-lib document; read-write, documented as "you're on your own here" — this also gives day-one form-field access)
+
+**Fidelity — adopt the real page.** At render time each `LoadedPage` is adopted into the output document via pdf-lib `copyPages`, and overlay widgets draw directly on the adopted page. Content streams, annotations, links, and form fields are preserved (this rules out the `embedPage`-as-background approach, which silently drops them). The seam is `RenderContext.adoptPage(source, pageIndex)` — page-lifecycle concern, like `addPage`.
+
+**Overlay semantics.** `add` appends to a page-filling flow root (column, top-down): position with padding/alignment/spacers, `FixedContainer` for absolute placement. Repeated calls append in call order. Overlay content is never paginated across pages — overflow is clipped with a warning (consistent with atomic-overflow behavior).
+
+**Limitations (documented, honest failures).** Rotated pages (`/Rotate ≠ 0`) throw a clear error at `loadPdf` — handling is postponed. Encrypted PDFs propagate pdf-lib's load error — no decryption support.
+
+**Pieces:** `src/lib/edit/` (`loadPdf`, `LoadedPdf`, `LoadedPage`), `pdf-kalem/edit` subpath, `tests/edit.test.mjs` (synthesized pdf-lib fixtures + `public/pdf-sample.pdf`), `examples/edit/` (load sample → add text/drawing → save; plus restructure/merge on a synthesized multi-page doc).
+
 ## Feature: Documentation site
 
 VitePress (Vue 3) + UnoCSS docs in `docs/`, built with `pnpm docs:build`.
 
 1. ✅ **Scaffold** — VitePress 1.6 + UnoCSS 66 (presetWind3) over the default theme with amber brand accents; guide pages ported from the README (getting started, widgets, theming, fonts, pagination, markdown). Docs build target bumped to es2022 — yoga-layout's ESM build loads its WASM with top-level await. Landed 2026-10-07.
-2. ✅ **Markdown playground (live)** — `/playground/markdown` hosts the real workbench: `docs/.vitepress/components/MarkdownPlayground.vue` mounts a CodeMirror editor (markdown mode) over a debounced `markdownToPdf` preview with the shipped `inter`/`jetbrains-mono` families — page-count badge, download, reset, error strip — mounted via `<ClientOnly>` inside the open layout. The TLA blocker is solved in the config, not worked around: VitePress's esbuild targets (build, source transform, dev dep pre-bundle) are raised to es2022 because yoga-layout's ESM entry loads its WASM with top-level await and VitePress's defaults (chrome87/es2020) reject it; modern browsers support TLA. `/playground/widgets` stays a placeholder until the widget workbench lands. Landed 2026-10-07.
+2. ✅ **Markdown playground (live)** — `/playground/markdown` hosts the real workbench: `docs/.vitepress/components/MarkdownPlayground.vue` mounts a CodeMirror editor (markdown mode) over a debounced `markdownToPdf` preview with the shipped `inter`/`jetbrains-mono` families — page-count badge, download, reset, error strip — mounted via `<ClientOnly>` inside the open layout. The TLA blocker is solved in the config, not worked around: VitePress's esbuild targets (build, source transform, dev dep pre-bundle) are raised to es2022 because yoga-layout's ESM entry loads its WASM with top-level await and VitePress's defaults (chrome87/es2020) reject it; modern browsers support TLA. Landed 2026-10-07.
+3. ✅ **Widget + editing playgrounds (live)** — `/playground/widgets` hosts the widget-tree workbench (`WidgetPlayground.vue`): CodeMirror (javascript mode) over a debounced render, the editor holding the body of a plain-JS function returning `Page[]` with factories/`theme`/`fromHex`/`PageSize` injected as parameters (`sandbox.ts`, `new Function` — no transpiler); starter tree is the invoice example. `/playground/editing` hosts the PDF-editing workbench (`EditPlayground.vue`): the editor holds a function receiving `pages` (the loaded document as Page widgets) — overlays via `pages[i].add([...])`, restructure by array mutation; the sample document is synthesized with pdf-lib (no binary assets) and a file input loads the visitor's own PDF. Landed 2026-10-09.
 
 ## Priority 1
 

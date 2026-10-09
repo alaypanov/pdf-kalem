@@ -5,6 +5,7 @@ export default defineConfig({
     index: 'src/index.ts',
     widgets: 'src/widgets.ts',
     markdown: 'src/markdown.ts',
+    edit: 'src/edit.ts',
     // Test-only surface (Paginator/PageScope/plans). Shipped in dist/ but not
     // in package.json exports, so it is not importable by package consumers.
     internals: 'src/internals.ts',

@@ -85,6 +85,7 @@ widgets, no `renderAt`, no mutable render state.
 | `Image.ts` / `SVGPath.ts` / `Icon.ts` / `HLine.ts` / `FixedContainer.ts` | Leaf widgets. `Image`/`SVGPath`/`Icon` share aspect-fit measure logic. `Icon` has a `materialIcons` registry + `Icon.register`. |
 | `types/doc-fonts.ts` | `BuiltinPdfFonts` aliases (`sans`, `serif`, `mono`, +bold/italic) → pdf-lib StandardFonts + canvas font stacks. Reverse lookup (`builtinPdfNameFace`) decomposes a pdf name back into family + style. |
 | `markdown/` | Markdown → widgets (`pdf-kalem/markdown` subpath). `convert.ts` holds the entry points (`markdownToWidgets` deep seam, `markdownToPdf` sugar); `render.ts` walks marked's block tokens; `inline.ts` folds inline tokens into `Run`s (images hoisted out); `styles.ts` resolves `MarkdownStyles` defaults; `types.ts` styles + `markdownThemeDefaults` fragment; `format.ts` sniffs png/jpeg magic bytes. |
+| `edit/` | Existing-PDF editing (`pdf-kalem/edit` subpath). `loadPdf` opens bytes into a `LoadedPdf` whose `pages` are `LoadedPage` widgets (`PageWidget` subclass, dimensions preset from the file) — editing is array manipulation + `page.add([...])` overlays; `save()` sugar builds a `PdfDoc`. Loaded pages are **adopted** into the output at render time via `RenderContext.adoptPage` (pdf-lib `copyPages`), preserving annotations/links/form fields. |
 | `types/doc-sizes.ts` | `PageSize` enum + `PDFDocSize` point dimensions (A4/A3/A5/LETTER). |
 | `types/styles.ts` | Flex/alignment string constants (`justifyBetween`, `alignCenter`, …) + `Row.justifyBetween` statics source. |
 | `utils/color-utils.ts` | `ColorValue` (rgb), `fromHex`, `fromRGB`, `toPdfLibColor`. |
@@ -95,6 +96,7 @@ widgets, no `renderAt`, no mutable render state.
 - `src/index.ts` → `src/lib/index.ts` → `PdfDoc`, `PdfRenderer`, `RenderContext` (hub: interface + types + `PdfRenderContext`), `FontRegistry`, `Theme`, `types/*`.
 - `src/widgets.ts` → `src/lib/widgets.ts` → all widgets + the `RenderContext` seam (interface, types, `PdfRenderContext`) + text engine/painter.
 - `src/markdown.ts` → `src/lib/markdown/` → `markdownToWidgets`, `markdownToPdf`, `MarkdownStyles`, `markdownThemeDefaults`, `sniffImageFormat`.
+- `src/edit.ts` → `src/lib/edit/` → `loadPdf`, `LoadedPdf`, `LoadedPage`.
 - `src/lib/utils/color-utils.ts` → published as `pdf-kalem/utils/color-utils`.
 
 Built by **tsup** (ESM only) into `dist/`. **`splitting: true` is required** — with multiple entries and no shared chunks, classes get duplicated per entry and `instanceof` breaks across entry points (this was a real shipped bug).

@@ -165,6 +165,10 @@ export class PageScope implements RenderContext {
     this.backend.setCurrentPage(page);
   }
 
+  adoptPage(source: unknown, pageIndex: number): Promise<void> {
+    return this.backend.adoptPage(source, pageIndex);
+  }
+
   getPageHeight(): number {
     return this.backend.getPageHeight();
   }

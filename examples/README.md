@@ -11,6 +11,7 @@ not browsed as a demo.
 | [`invoice/`](./invoice/) | Single-page business document: theme tokens, component composition, data/layout separation, custom fonts via `files` |
 | [`report/`](./report/) | Multi-page pagination: flowing text, repeating table headers, keep-together panels, per-page furniture, builtin font aliases |
 | [`markdown/`](./markdown/) | Markdown → PDF converter with a small CLI |
+| [`edit/`](./edit/) | Editing an existing PDF: load, overlay widgets, restructure/merge pages |
 
 ## Run (inside this repo)
 

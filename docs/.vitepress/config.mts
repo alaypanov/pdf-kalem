@@ -26,6 +26,7 @@ export default defineConfig({
         items: [
           { text: 'Widget tree', link: '/playground/widgets' },
           { text: 'Markdown converter', link: '/playground/markdown' },
+          { text: 'PDF editing', link: '/playground/editing' },
         ],
       },
     ],
@@ -40,6 +41,7 @@ export default defineConfig({
             { text: 'Fonts', link: '/guide/fonts' },
             { text: 'Pagination', link: '/guide/pagination' },
             { text: 'Markdown', link: '/guide/markdown' },
+            { text: 'Editing existing PDFs', link: '/guide/editing' },
           ],
         },
       ],

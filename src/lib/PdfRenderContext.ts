@@ -153,6 +153,18 @@ export class PdfRenderContext implements RenderContext {
     this.dimensions = [currentPage.getWidth(), currentPage.getHeight()];
   }
 
+  /**
+   * Adopts a page from a foreign `PDFDocument` (e.g. one loaded by the edit
+   * module): the page object is copied into this document — content streams,
+   * annotations, links, and form fields come along — and becomes the current
+   * page, so subsequent drawing lands on top of the original content.
+   */
+  async adoptPage(source: unknown, pageIndex: number): Promise<void> {
+    const doc = this.getDocument();
+    const [copied] = await doc.copyPages(source as PDFDocument, [pageIndex]);
+    this.setCurrentPage(doc.addPage(copied));
+  }
+
   getPageHeight(): number {
     return this.getCurrentPage()?.getSize().height || this.options.height || 0;
   }
