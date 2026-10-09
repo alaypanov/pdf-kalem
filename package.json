@@ -52,8 +52,8 @@
     "dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "pub": "publish --access public",
-    "dry": "publish --dry-run",
+    "pub": "pnpm publish --access public",
+    "dry": "pnpm publish --dry-run",
     "prepublishOnly": "pnpm build"
   },
   "devDependencies": {

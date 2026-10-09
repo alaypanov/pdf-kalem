@@ -68,7 +68,7 @@ pnpm build
 pnpm docs:dev
 ```
 
-`pnpm docs:dev` runs the VitePress documentation site (Vue 3 + UnoCSS, in `docs/`) with a guide and dedicated playground pages for the widget-tree API and the markdown converter (open-layout placeholders — the live workbenches land there next). `pnpm docs:build` emits the static site into `docs/.vitepress/dist/`.
+`pnpm docs:dev` runs the VitePress documentation site (Vue 3 + UnoCSS, in `docs/`) with a guide and dedicated playground pages for the widget-tree API and the markdown converter (both playgrounds are live workbenches). `pnpm docs:build` emits the static site into `docs/.vitepress/dist/`.
 
 ## Example
 

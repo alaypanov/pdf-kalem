@@ -12,13 +12,13 @@
 |---|---|---|---|
 | 1 | Finish the RenderContext seam | Strong | ✅ Done — `2638966` |
 | 2 | Give pagination one home | Strong | ✅ Done — `src/lib/pagination/` landed; template layer pending |
-| 3 | Stand up the verification seam | Strong | Open — deferred until after v1 |
+| 3 | Stand up the verification seam | Strong | ✅ Done — `tests/` suite runs in `pnpm test`; FontRegistry test-isolation hook still open (I3) |
 | 4 | Collapse the aspect-fit triplication | Strong | ✅ Done — `src/lib/aspect-fit.ts`; B1 fixed, Image measure no longer logs |
 | 5 | Retire the string-keyed `setProperty` interpreter | Strong | ✅ Done — `setYogaStyle` is the only styling entry; dead accessors dropped |
 | 6 | Extract the theme-resolution policy | Worth exploring | Open |
 | 7 | Un-glue `PdfDoc` | Worth exploring | Open — shrunk by #1 |
 
-Suggested order: **2 → 4 → 5 → 6 → 7** (3 lands after v1).
+Suggested order: 2 → 4 → 5 → 3 landed; remaining: **6 → 7**.
 
 ---
 
@@ -333,25 +333,25 @@ template layer (`PageTemplate`) is the next increment, not part of #2's core.
 
 ---
 
-## 3 — Stand up the verification seam `Strong` · deferred until after v1
+## 3 ✅ Stand up the verification seam — landed (the `tests/` suite)
 
-**Files:** `package.json` (test script) · `examples/playground/main.ts` · `tsup.config.ts` ·
-`src/lib/TextLayoutEngine.ts` · `src/lib/TextPainter.ts`
+**Files:** `package.json` (test script) · `tsup.config.ts` · `tests/*.test.mjs`
 
-**Problem.** Nothing exercises the built output: `pnpm test` points at a `tests/` directory
-that doesn't exist, the playground calls a nonexistent method, and until `2638966` the build
-had silently reverted `splitting: true` (the setting that once shipped a real `instanceof`
-bug). Several interfaces make the first tests harder than necessary: style resolvers are
-private, `FontRegistry` is a singleton with no reset, `PdfDoc` hooks are global statics.
+**Problem (historical).** Nothing exercised the built output: `pnpm test` pointed at a
+`tests/` directory that didn't exist, the playground called a nonexistent method, and until
+`2638966` the build had silently reverted `splitting: true` (the setting that once shipped
+a real `instanceof` bug). Several interfaces made the first tests harder than necessary:
+style resolvers were private, `FontRegistry` is a singleton with no reset, `PdfDoc` hooks
+are global statics.
 
-**Direction.** Stand up the two test files `package.json` already promises plus
-`TextLayoutEngine` unit tests through its pure interface (injectable `measureTextWidth` —
-zero mocks). See IDEAS.md I3 for the sequencing.
+**Landed.** Six suites run against `dist/` in `pnpm test`: pagination golden plans + e2e
+page-count invariant, custom-font embedding, container-containment invariants, rich-run
+wrapping/painting, markdown conversion, and the shared aspect-fit measure/placement math
+(pins B1).
 
-**Wins.**
-- the interface is the test surface — finally used
-- locality: text-engine regressions caught in one place
-- ghost references stop proving nothing runs
+**Still open (from I3).** The pure-interface `TextLayoutEngine` unit tests (injectable
+`measureTextWidth`, zero mocks), a `FontRegistry` reset/`forTests` hook for test isolation,
+and snapshot-style PDF assertions (a P3 item).
 
 ---
 

@@ -12,7 +12,7 @@ pdf-kalem — a PDF-focused widget-tree UI library for document generation. Type
 - `pnpm build` — tsup build to `dist/`
 - `pnpm test` — build + run `tests/pagination.test.mjs` + `tests/fonts.test.mjs` + `tests/layout.test.mjs` + `tests/runs.test.mjs` + `tests/markdown.test.mjs` + `tests/aspect-fit.test.mjs` (golden plan tests, e2e page-count invariant, custom-font embedding, container-containment invariants, rich-run wrapping/painting, markdown conversion, shared aspect-fit measure/placement math)
 - `pnpm examples` — build + run every example (each writes its PDF next to its code)
-- `pnpm docs:dev` — VitePress docs site (`docs/`; playground pages are open-layout placeholders for now)
+- `pnpm docs:dev` — VitePress docs site (`docs/`; the playground pages are live workbenches)
 - `pnpm docs:build` — build the docs site into `docs/.vitepress/dist`
 
 ## Doc map
