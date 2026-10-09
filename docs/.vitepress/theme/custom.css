@@ -1,0 +1,136 @@
+/* pdf-kalem docs — the paper/ink editorial theme (the repo's brand palette,
+   originally set by the examples index), mapped onto VitePress's
+   default-theme variables.
+   Utility classes (bg-paper, text-ink, …) come from docs/uno.config.ts and are
+   used by the custom layouts (theme/Home.vue, the playground pages); this file
+   re-skins the stock docs chrome — nav, sidebar, prose, code, blocks.
+   The palette vars (--paper, --ink, …) flip in .dark, so every VitePress
+   mapping below follows automatically. */
+
+:root {
+  color-scheme: light;
+
+  /* Palette — the docs brand (paper/ink). */
+  --paper: #faf9f7;
+  --paper-2: #f3f1ec;
+  --ink: #1c1917;
+  --text: #292524;
+  --muted: #78716c;
+  --faint: #a8a29e;
+  --accent: #b45309;
+  --accent-2: #c26a1c;
+  --accent-3: #7c3a06;
+  --accent-soft: rgba(180, 83, 9, 0.14);
+  --hairline: rgba(28, 25, 23, 0.12);
+
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+
+  /* VitePress surfaces. */
+  --vp-c-bg: var(--paper);
+  --vp-c-bg-alt: var(--paper-2);
+  --vp-c-bg-elv: var(--paper);
+  --vp-c-bg-soft: var(--paper-2);
+
+  --vp-c-border: rgba(28, 25, 23, 0.25);
+  --vp-c-divider: var(--hairline);
+  --vp-c-gutter: var(--hairline);
+
+  --vp-c-text-1: var(--text);
+  --vp-c-text-2: var(--muted);
+  --vp-c-text-3: var(--faint);
+
+  /* Brand: burnt amber — links, accents, active states. */
+  --vp-c-brand-1: var(--accent);
+  --vp-c-brand-2: var(--accent-2);
+  --vp-c-brand-3: var(--accent-3);
+  --vp-c-brand-soft: var(--accent-soft);
+  --vp-c-brand: var(--vp-c-brand-1);
+
+  /* Neutral grays → warm stone. */
+  --vp-c-gray-1: #e7e5e4;
+  --vp-c-gray-2: #d6d3d1;
+  --vp-c-gray-3: #c4c0bb;
+  --vp-c-gray-soft: rgba(120, 113, 108, 0.14);
+
+  /* Mono body, serif display (headings re-set below). */
+  --vp-font-family-base: var(--mono);
+  --vp-font-family-mono: var(--mono);
+
+  /* Code: amber inline code; blocks follow --vp-c-bg-alt (paper-2). */
+  --vp-code-color: var(--accent);
+
+  /* Buttons: ink solids and hairline outlines (matches the playground chrome). */
+  --vp-button-brand-border: var(--ink);
+  --vp-button-brand-text: var(--paper);
+  --vp-button-brand-bg: var(--ink);
+  --vp-button-brand-hover-border: var(--accent);
+  --vp-button-brand-hover-text: var(--paper);
+  --vp-button-brand-hover-bg: var(--accent);
+  --vp-button-brand-active-border: var(--accent-3);
+  --vp-button-brand-active-text: var(--paper);
+  --vp-button-brand-active-bg: var(--accent-3);
+
+  --vp-button-alt-border: var(--hairline);
+  --vp-button-alt-text: var(--ink);
+  --vp-button-alt-bg: transparent;
+  --vp-button-alt-hover-border: var(--ink);
+  --vp-button-alt-hover-text: var(--paper);
+  --vp-button-alt-hover-bg: var(--ink);
+  --vp-button-alt-active-border: var(--ink);
+  --vp-button-alt-active-text: var(--paper);
+  --vp-button-alt-active-bg: var(--ink);
+
+  /* Warm shadows. */
+  --vp-shadow-1: 0 1px 2px rgba(28, 25, 23, 0.04), 0 1px 2px rgba(28, 25, 23, 0.06);
+  --vp-shadow-2: 0 3px 12px rgba(28, 25, 23, 0.07), 0 1px 4px rgba(28, 25, 23, 0.07);
+  --vp-shadow-3: 0 12px 32px rgba(28, 25, 23, 0.1), 0 2px 6px rgba(28, 25, 23, 0.08);
+  --vp-shadow-4: 0 14px 44px rgba(28, 25, 23, 0.12), 0 3px 9px rgba(28, 25, 23, 0.12);
+  --vp-shadow-5: 0 18px 56px rgba(28, 25, 23, 0.16), 0 4px 12px rgba(28, 25, 23, 0.16);
+}
+
+/* Night paper — the same palette flipped; the VitePress mappings above are
+   var-indirected, so they follow automatically. */
+.dark {
+  color-scheme: dark;
+
+  --paper: #1c1917;
+  --paper-2: #211d1b;
+  --ink: #e7e5e4;
+  --text: #d6d3d1;
+  --muted: #a8a29e;
+  --faint: #78716c;
+  --accent: #f59e0b;
+  --accent-2: #d97706;
+  --accent-3: #b45309;
+  --accent-soft: rgba(245, 158, 11, 0.16);
+  --hairline: rgba(231, 229, 228, 0.12);
+
+  --vp-c-bg-elv: #292524;
+  --vp-c-bg-soft: #292524;
+  --vp-c-border: rgba(231, 229, 228, 0.25);
+  --vp-c-gray-1: #44403c;
+  --vp-c-gray-2: #3a3633;
+  --vp-c-gray-3: #2e2a27;
+  --vp-c-gray-soft: rgba(168, 162, 158, 0.16);
+}
+
+/* Serif display headings — the examples page's editorial voice. */
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3,
+.vp-doc h4,
+.vp-doc h5,
+.vp-doc h6 {
+  font-family: var(--serif);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+::selection {
+  background: rgba(180, 83, 9, 0.22);
+}
+
+.dark ::selection {
+  background: rgba(245, 158, 11, 0.3);
+}
