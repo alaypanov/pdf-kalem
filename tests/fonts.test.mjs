@@ -245,6 +245,136 @@ test('face ids embed distinct faces per style', async () => {
   );
 });
 
+// --- block/variant/run typography (fontWeight / fontStyle) ---
+
+test('block fontWeight/fontStyle pick the family face', async () => {
+  const fonts = await interFontSet();
+  const doc = new PdfDoc({
+    fonts,
+    children: [
+      Page({
+        dimensions: [300, 200],
+        children: [
+          Text('B', { font: 'inter', fontWeight: 700, size: 14 }),
+          Text('I', { font: 'inter', fontStyle: 'italic', size: 14 }),
+          Text('BI', { font: 'inter', fontWeight: 700, fontStyle: 'italic', size: 14 }),
+        ],
+      }),
+    ],
+  });
+  const out = await doc.save();
+
+  const embedded = await embeddedBaseFonts(out);
+  const interFaces = [...embedded.filter((name) => name.includes('Inter'))];
+  assert.ok(interFaces.some((name) => name.includes('Bold') && !name.includes('BoldItalic')), `no bold face: ${interFaces}`);
+  assert.ok(interFaces.some((name) => name.includes('Italic') && !name.includes('BoldItalic')), `no italic face: ${interFaces}`);
+  assert.ok(interFaces.some((name) => name.includes('BoldItalic')), `no bold-italic face: ${interFaces}`);
+});
+
+test('numeric weights snap to the two-weight family model', async () => {
+  const fonts = await interFontSet();
+  // 600–900 → bold; 100–500 → regular (CSS matching for a family offering
+  // only 400 and 700). Separate docs so embeddings don't bleed across cases.
+  const boldDoc = new PdfDoc({
+    fonts,
+    children: [Page({ dimensions: [300, 200], children: [Text('6', { font: 'inter', fontWeight: 600, size: 14 })] })],
+  });
+  const regularDoc = new PdfDoc({
+    fonts,
+    children: [Page({ dimensions: [300, 200], children: [Text('4', { font: 'inter', fontWeight: 400, size: 14 })] })],
+  });
+
+  const boldEmbedded = await embeddedBaseFonts(await boldDoc.save());
+  assert.ok(
+    boldEmbedded.some((name) => name.includes('Inter-Bold')),
+    `expected Inter-Bold for weight 600, got: ${boldEmbedded.join(', ')}`,
+  );
+
+  const regularEmbedded = await embeddedBaseFonts(await regularDoc.save());
+  assert.ok(
+    regularEmbedded.some((name) => /Inter/.test(name)) && !regularEmbedded.some((name) => name.includes('Bold')),
+    `weight 400 should embed only a regular face, got: ${regularEmbedded.join(', ')}`,
+  );
+});
+
+test('theme variant fontWeight styles the variant; block value overrides it', async () => {
+  const theme = createTheme({
+    fonts: { body: 'inter' },
+    text: { heading: { font: 'body', fontWeight: 700 } },
+  });
+  const fonts = await interFontSet();
+
+  const variantDoc = new PdfDoc({
+    theme,
+    fonts,
+    children: [Page({ dimensions: [300, 200], children: [Text('H', { variant: 'heading', size: 14 })] })],
+  });
+  const overrideDoc = new PdfDoc({
+    theme,
+    fonts,
+    children: [Page({ dimensions: [300, 200], children: [Text('R', { variant: 'heading', fontWeight: 400, size: 14 })] })],
+  });
+
+  const variantEmbedded = await embeddedBaseFonts(await variantDoc.save());
+  assert.ok(
+    variantEmbedded.some((name) => name.includes('Inter-Bold')),
+    `expected the variant's bold face, got: ${variantEmbedded.join(', ')}`,
+  );
+
+  // The block's explicit 400 replaces the variant's 700 (per-axis replace).
+  const overrideEmbedded = await embeddedBaseFonts(await overrideDoc.save());
+  assert.ok(
+    overrideEmbedded.some((name) => /Inter/.test(name)) && !overrideEmbedded.some((name) => name.includes('Bold')),
+    `block weight 400 should un-bold the variant, got: ${overrideEmbedded.join(', ')}`,
+  );
+});
+
+test('run typography replaces its axis over the block style', async () => {
+  const fonts = await interFontSet();
+  const doc = new PdfDoc({
+    fonts,
+    children: [
+      Page({
+        dimensions: [300, 200],
+        children: [
+          // Block bold + run italic → bold-italic.
+          Text([{ text: 'BI', fontStyle: 'italic' }], { font: 'inter', fontWeight: 700, size: 14 }),
+          // Run weight 400 un-bolds the block's 700 (per-axis replace).
+          Text([{ text: 'R', fontWeight: 400 }], { font: 'inter', fontWeight: 700, size: 14 }),
+        ],
+      }),
+    ],
+  });
+  const out = await doc.save();
+
+  const embedded = await embeddedBaseFonts(out);
+  // Inter's italic faces carry 'InterItalic' PostScript names — match on the
+  // style suffix, not the family prefix.
+  assert.ok(
+    embedded.some((name) => name.includes('BoldItalic')),
+    `expected bold-italic from block bold + run italic, got: ${embedded.join(', ')}`,
+  );
+  assert.ok(
+    embedded.some((name) => name.includes('Inter-Regular')),
+    `expected the un-bolded run to embed a regular face, got: ${embedded.join(', ')}`,
+  );
+});
+
+test('builtin fonts honor fontWeight (sans-bold → Helvetica-Bold)', async () => {
+  const doc = new PdfDoc({
+    children: [
+      Page({ dimensions: [300, 200], children: [Text('B', { fontWeight: 700, size: 14 })] }),
+    ],
+  });
+  const out = await doc.save();
+
+  const embedded = await embeddedBaseFonts(out);
+  assert.ok(
+    embedded.some((name) => name.includes('Helvetica-Bold')),
+    `expected Helvetica-Bold, got: ${embedded.join(', ')}`,
+  );
+});
+
 test('missing face falls back to the regular face with a warning', async () => {
   const bytes = fs.readFileSync(FONT_URL);
   const fonts = await useFonts({ body: 'Partial' }, { files: { Partial: bytes } });

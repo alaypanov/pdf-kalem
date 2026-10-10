@@ -21,7 +21,7 @@ const theme = createTheme({
   },
   text: {
     body: { font: 'body', size: 12, color: 'text' },
-    h1: { font: 'heading', size: 20, color: 'text' },
+    h1: { font: 'heading', size: 20, fontWeight: 700, color: 'text' },
     link: { font: 'body', size: 12, color: 'primary', underline: true },
   },
   table: {
@@ -50,7 +50,7 @@ const doc = new PdfDoc({
 
 - **`colors`** — named tokens. Widgets reference them by string (`bgColor: 'panel'`, `color: 'brand'`); hex values via `fromHex('#…')` also work anywhere a color is accepted.
 - **`fonts`** — font tokens. Text variants reference fonts by token (`font: 'body'`), so swapping a family is a one-line change.
-- **`text`** — text variants (`body`, `h1`..`h6`, `label`, `caption`, `link`, …). A variant sets font, size, line height, color, and underline; widgets pick one with `Text(..., { variant: 'h2' })`.
+- **`text`** — text variants (`body`, `h1`..`h6`, `label`, `caption`, `link`, …). A variant sets font, size, line height, color, underline, and typography (`fontWeight`, `fontStyle`); widgets pick one with `Text(..., { variant: 'h2' })`.
 - **`table`** — table defaults: `borderColor`, `borderWidth`, `cellPadding`, `headBgColor`, `rowBgColor`, `alternateRowBgColor`.
 - **`container`** — container defaults: `bgColor`, `padding`, border fields.
 

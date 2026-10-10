@@ -29,7 +29,7 @@ import { fromHex } from 'pdf-kalem/utils/color-utils';
 
 pdf.pages[0].add([
   // Flow placement: a stamp block at the top of the page.
-  Text([{ text: 'REVIEWED', bold: true, color: fromHex('#B45309') }], { size: 28 }),
+  Text([{ text: 'REVIEWED', fontWeight: 700, color: fromHex('#B45309') }], { size: 28 }),
   HLine({ thickness: 2 }),
 
   // Absolute placement: pinned to the page's bottom-right corner.

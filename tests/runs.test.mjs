@@ -33,6 +33,10 @@ const measure = (text, fontName) => text.length * SIZE * charWidth(fontName);
 
 // --- Engine-level tests (pure TextLayoutEngine) ---
 
+// Mirrors the library's CSS weight snap: 100–500 → regular, 600–900 → bold.
+const runIsBold = (run) =>
+  run.fontWeight === 'bold' || (typeof run.fontWeight === 'number' && run.fontWeight >= 600);
+
 function richEngine(runs, overrides = {}) {
   return new TextLayoutEngine({
     text: runs.map((run) => run.text).join(''),
@@ -46,7 +50,7 @@ function richEngine(runs, overrides = {}) {
     measureTextWidth: (text) => measure(text, 'Helvetica'),
     runs: runs.map((run) => ({
       text: run.text,
-      fontName: run.mono ? 'Courier' : run.bold ? 'Helvetica-Bold' : 'Helvetica',
+      fontName: run.mono ? 'Courier' : runIsBold(run) ? 'Helvetica-Bold' : 'Helvetica',
     })),
     measureRunWidth: (text, fontName) => measure(text, fontName),
     ...overrides,
@@ -54,7 +58,7 @@ function richEngine(runs, overrides = {}) {
 }
 
 test('runs wrap across run boundaries and emit per-run fragments', () => {
-  const engine = richEngine([{ text: 'aaa ' }, { text: 'bbb', bold: true }]);
+  const engine = richEngine([{ text: 'aaa ' }, { text: 'bbb', fontWeight: 700 }]);
   const { lines } = engine.layoutText(30);
 
   assert.equal(lines.length, 2);
@@ -71,7 +75,7 @@ test('runs wrap across run boundaries and emit per-run fragments', () => {
 });
 
 test('a word spanning runs stays unbroken while it fits', () => {
-  const engine = richEngine([{ text: 'he' }, { text: 'llo', bold: true }]);
+  const engine = richEngine([{ text: 'he' }, { text: 'llo', fontWeight: 700 }]);
   const { lines } = engine.layoutText(40);
 
   assert.equal(lines.length, 1);
@@ -83,7 +87,7 @@ test('a word spanning runs stays unbroken while it fits', () => {
 });
 
 test('narrow boxes break mid-word across run boundaries', () => {
-  const engine = richEngine([{ text: 'he' }, { text: 'llo', bold: true }]);
+  const engine = richEngine([{ text: 'he' }, { text: 'llo', fontWeight: 700 }]);
   const { lines } = engine.layoutText(20);
 
   assert.equal(lines.length, 2);
@@ -116,7 +120,7 @@ test('pre-wrap preserves whitespace inside runs', () => {
 });
 
 test('newlines inside runs force hard breaks', () => {
-  const engine = richEngine([{ text: 'aa' }, { text: '\nbb', bold: true }]);
+  const engine = richEngine([{ text: 'aa' }, { text: '\nbb', fontWeight: 700 }]);
   const { lines } = engine.layoutText(100);
 
   assert.equal(lines.length, 2);
@@ -126,13 +130,13 @@ test('newlines inside runs force hard breaks', () => {
 });
 
 test('natural width sums per-run measurements', () => {
-  const engine = richEngine([{ text: 'aaa' }, { text: 'bb', bold: true }]);
+  const engine = richEngine([{ text: 'aaa' }, { text: 'bb', fontWeight: 700 }]);
   assert.equal(engine.getNaturalWidth(''), 18 + 14);
 });
 
 test('ellipsis truncates in the truncated fragment\'s font', () => {
   const engine = richEngine(
-    [{ text: 'aa' }, { text: 'bbb', bold: true }],
+    [{ text: 'aa' }, { text: 'bbb', fontWeight: 700 }],
     { maxLines: 1, overflow: 'ellipsis' }
   );
   const { lines } = engine.layoutText(30);
@@ -255,7 +259,7 @@ async function renderPage(widget, dimensions = [200, 100]) {
 
 test('paints each fragment with its own font and color', async () => {
   const context = await renderPage(
-    Text([{ text: 'ab', color: '#ff0000' }, { text: 'cd', bold: true }], { size: SIZE })
+    Text([{ text: 'ab', color: '#ff0000' }, { text: 'cd', fontWeight: 700 }], { size: SIZE })
   );
 
   assert.equal(context.drawTexts.length, 2);
@@ -273,7 +277,7 @@ test('paints each fragment with its own font and color', async () => {
 
 test('preloads every distinct run font', async () => {
   const context = await renderPage(
-    Text([{ text: 'a' }, { text: 'b', bold: true }, { text: 'c', bold: true }, { text: 'd', mono: true }], {
+    Text([{ text: 'a' }, { text: 'b', fontWeight: 700 }, { text: 'c', fontWeight: 700 }, { text: 'd', mono: true }], {
       size: SIZE,
     })
   );
@@ -315,7 +319,7 @@ test('annotates href runs per line fragment', async () => {
 
 test('Link with runs annotates per fragment with the link href', async () => {
   const context = await renderPage(
-    Link([{ text: 'ab' }, { text: 'cd', bold: true }], { href: 'https://link.example', size: SIZE })
+    Link([{ text: 'ab' }, { text: 'cd', fontWeight: 700 }], { href: 'https://link.example', size: SIZE })
   );
 
   // Per-fragment annotations only — no whole-box rect.
@@ -391,7 +395,7 @@ test('mixed-style run text paginates with per-run measurement', async () => {
   // Bold chars are 7pt: each 'word ' run is 35pt and its collapsed space
   // measures bold too (7pt), so 4 words + 3 gaps = 161pt; a 5th word
   // (203pt) wraps. 10 words -> 3 lines -> 30pt, fits one page.
-  const runs = Array.from({ length: 10 }, () => [{ text: 'word ', bold: true }]);
+  const runs = Array.from({ length: 10 }, () => [{ text: 'word ', fontWeight: 700 }]);
   const text = Text(runs.flat(), { size: SIZE, lineHeight: SIZE });
   const page = Page({ dimensions: [200, 100], children: [text] });
 
@@ -423,7 +427,7 @@ test('rich text embeds one font per used face', async () => {
       Page({
         dimensions: [300, 200],
         children: [
-          Text([{ text: 'Regular ' }, { text: 'bold', bold: true }, { text: ' mono', mono: true }], {
+          Text([{ text: 'Regular ' }, { text: 'bold', fontWeight: 700 }, { text: ' mono', mono: true }], {
             size: 12,
           }),
         ],
@@ -457,7 +461,7 @@ test('custom-family runs resolve bold faces through the doc FontSet', async () =
       Page({
         dimensions: [300, 200],
         children: [
-          Text([{ text: 'Regular ' }, { text: 'bold', bold: true }], { font: 'body', size: 12 }),
+          Text([{ text: 'Regular ' }, { text: 'bold', fontWeight: 700 }], { font: 'body', size: 12 }),
         ],
       }),
     ],

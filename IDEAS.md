@@ -70,6 +70,21 @@ matters: a finer `pointScale` on the Yoga config (per-doc), or rounding the meas
 func's returned widths consistently. Not fixed — do not let the containment audit assert
 horizontal containment tighter than ~1.5pt until then.
 
+### B7 — `Container` border `radius` is a silent no-op (verified by code reading + visually)
+
+`Container.getResolvedBorder` (`src/lib/Container.ts`) resolves `border.radius` from the
+option or theme — then `render` never uses it: it draws the fill and border via
+`drawRectangle`, and `DrawRectangleArgs` (`src/lib/RenderContextTypes.ts`) has no radius
+field at all. So `Container({ border: { radius: 8 } })` typechecks, resolves, and renders
+square corners with no warning. Found visually in the `lab/invoice` session (rounded card
+corners and a circular badge both rendered square).
+
+Fix is not a one-liner: pdf-lib's `drawRectangle` has no rounded-rect support, so this
+needs a path-based rounded rectangle (e.g. via `drawSvgPath` or manual bezier corners) in
+the render context. Until then, either drop `radius` from `BorderOptions` (honest
+interface) or warn when it's set. The lab invoice works around it with square corners and
+an `SVGPath` circle.
+
 ### Fixed (for the record)
 
 - **`canUsePretext` Node fallback** — checked only `Intl.Segmenter`, so on modern Node the
@@ -154,3 +169,142 @@ Untracked `lab/` holds old copies of `PdfDoc.ts` / `PdfRenderContext.ts` with br
 relative imports (`./Widget` doesn't resolve there). Not built, not typechecked. Delete it
 or move it under `examples/` if anything in it is still wanted — it will confuse future
 explorers (and AI assistants) otherwise.
+
+Update 2026-10-10: `lab/invoice/` now holds a working self-contained example (freight
+invoice replica, own fonts) — the "delete lab/" suggestion no longer holds as written.
+
+---
+
+The following were surfaced by the 2026-10-10 session that built `lab/invoice/` — the
+first use of the library as a regular user would (replicate a screenshot of a real
+document). Ordered roughly by pain.
+
+### I9 — No fast visual feedback loop
+
+The dominant cost of the session was the gap between "code changed" and "I saw the
+result": run `node main.ts`, then rasterize the PDF with external tools (`sips` failed
+on the output, `qlmanage` can't run sandboxed, poppler/magick not installed). There is no
+render-to-image API, no dev preview, no way to snapshot-test a user's own document
+(golden-plan tests exist internally but assert geometry, not pixels). Adjacent to I7
+(debug tooling) but distinct: I7 inspects layout, this wants a `doc.toPNG(pageIndex)`-style
+API or a watch-mode previewer. Without it, every visual tweak is a full run + external
+toolchain.
+
+**Design direction (2026-10-10):** put the seam at the *bytes* level, not the
+`RenderContext` level — a `renderToPng(pdfBytes, { page, dpi })`-style module that
+rasterizes the produced PDF (WYSIWYG by construction, no second drawing path that can
+drift, and no violation of ADR 0001's PDF-only pivot). A canvas `RenderContext` adapter
+was considered and rejected for now: it resurrects the multi-backend pressure ADR 0001
+rejected, and canvas-vs-PDF text drift would make the preview lie. Revisit only if
+rasterization latency measurably hurts or I7 needs in-process overlays.
+
+**Rasterizer candidates evaluated 2026-10-10:**
+
+- **`pdf-raster`** (MIT, joshxfi) — Rust napi-rs addon embedding PDFium;
+  `convert(bytes, { pages, dpi, outputFormat })` maps almost 1:1 onto the proposed
+  interface; ~10 ms/page claimed (12.7–17.6× pdfjs-dist + `@napi-rs/canvas` at 300 DPI);
+  prebuilt binaries for macOS/Linux/Windows x64+arm64 incl. musl; provenance-attested
+  publishes. Concerns: requires **Node ≥ 24** (pdf-kalem declares `>=18` — must ship as
+  an optional peer dep, never a required one); Node/Bun only, no browser/WASM (the docs
+  playground would still need a pdfjs adapter); young (v0.2.0, single maintainer, first
+  release 2026-03) — acceptable for a dev-loop tool, pin the version if it becomes
+  load-bearing for CI golden tests.
+- **`pdfjs-dist` + canvas provider** — the common, battle-tested path; one engine covers
+  Node and browser; slower (~177 ms/page claimed by pdf-raster's benchmark) but plenty
+  for a dev loop.
+- Disqualified: **mupdf wasm** (AGPL/commercial — incompatible with an MIT library);
+  `pdf2pic`-style wrappers (external Ghostscript/GraphicsMagick binaries).
+
+**Decision:** ship Stage 1 on pdfjs-dist (the common path) behind the small
+bytes-in/PNG-out interface; record `pdf-raster` as the fast Node-only adapter to add
+once the preview seam gets its second adapter (browser/playground), at which point the
+seam is real rather than hypothetical. `lab/invoice/preview.mjs` is the working spike.
+
+### I10 — Bold is runs-only; theme variants carry no weight
+
+The most common styling need requires the runs API: `Text([{ text: 'Total', bold: true }],
+opts)` — `Text('Total', { bold: true })` doesn't exist, and theme text variants have no
+bold/weight field (`Theme.ts`). The lab session needed a local `bold()` helper within the
+first 30 lines; every user will write the same one.
+
+**Decided and implemented 2026-10-10** — CSS-like typography at every level, one
+vocabulary, no boolean sugar:
+
+- `ThemeTextStyle` and `TextOptions` gain `fontWeight` (100–900, 'normal', 'bold') and
+  `fontStyle` ('normal', 'italic'). Named `fontWeight`/`fontStyle`, not `weight`/`style`
+  — `style` already means the Yoga style object on Row/Column options.
+- Numeric weights snap per CSS matching for a two-weight family: 100–500 → regular,
+  600–900 → bold (`snapFontWeight` in `fonts/face.ts`). Spec behavior, not silent
+  failure — and when the font model grows real per-weight faces, the same call sites
+  hit them unchanged.
+- `Run.bold`/`Run.italic` were **removed** (breaking, v0.1.x) in favor of
+  `Run.fontWeight`/`Run.fontStyle` — one typographic vocabulary at every level;
+  `strike`/`underline`/`href`/`mono` stay flags (decorations/links, not typography).
+- Per-axis replace semantics (CSS inheritance): an explicit weight of 400 un-bolds a
+  bold base; block typography carries into run `font`/`mono` family overrides.
+  Precedence: run value → block option → theme variant → the base name's own style
+  (so `font: 'inter-bold'` keeps working, now as a documented consequence).
+- Implementation routes through the existing face machinery (`resolveFaceStyle` →
+  `faceId` → the embed path's face-id decomposition); `combineFaceStyle` (OR-semantics,
+  couldn't un-bold) was replaced by `resolveFaceStyle`.
+- Pinned by five new tests in `tests/fonts.test.mjs` (faces, snap table, variant +
+  block override, run axis-replacement, builtin Helvetica-Bold); runs/markdown tests
+  and examples migrated. Note: Inter's italic faces carry `InterItalic-*`
+  PostScript names — assert on style suffixes, not family prefixes.
+
+### I11 — Inconsistent option surfaces across widgets
+
+- `Row`/`Column` (FlexContainer) accept a `style` override; `Container` does not — its
+  yoga style is hardcoded in the constructor. The lab invoice's vertical divider needed
+  `alignSelf: 'stretch'` on a Container and couldn't get it; workaround was a
+  fixed-height row + percentage-height child (fragile).
+- `Container` hardcodes `alignSelf: 'flex-start'`, silently defeating a parent's
+  `alignItems: 'stretch'` — children that should stretch don't, with no error.
+- `Container.padding` is a single number; no per-side padding. No `margin` on any widget,
+  so all external spacing must be expressed as parent `gap` — which forces structural
+  contortions when two siblings need different outer spacing.
+- Type drift: `FixedContainer.bgColor` takes `RenderColor`, `Container.bgColor` takes
+  `ThemeColorValue`.
+
+### I12 — Silent layout and token failures
+
+Two classes of silent failure, both hit in the lab session:
+
+- **Layout collapse.** Percentage heights against an auto-height parent resolve to
+  nothing (Yoga treats them as auto → 0), and the `alignSelf` hardcode above defeats
+  stretch. The widget renders with zero height and nothing tells the user why.
+- **Token typos.** `bgColor: 'brnad'` doesn't error: `resolveThemeColor` returns
+  undefined and call sites fall back silently (Container → white, Table borderColor →
+  black). A misspelled theme token produces wrong colors with no warning.
+
+Candidate: throw (or `console.warn` once) on unknown theme tokens; a debug mode that
+draws zero-height/overflowing boxes (extends I7).
+
+### I13 — Local image files require manual loading
+
+`Image.png('./logo.png')` calls `fetch()` on the URL, which fails for file paths in Node.
+A regular user's first attempt breaks; the working path is `readFile` +
+`Image.fromBytes(bytes, 'png')` with `format` specified explicitly even though it's
+sniffable from magic bytes. Candidate: in Node, treat non-URL paths as files (the output
+side already sniffs runtime for `writeToFile`); sniff format from the byte signature.
+
+### I14 — Missing everyday widgets
+
+Every document author reaches for these; none exist (see `src/lib/widgets.ts` exports):
+
+- **PageBreak** — pagination is automatic and opaque; no way to say "start a new page
+  here" (invoices/reports need this constantly).
+- **Spacer / SizedBox** — faked today with empty `Container({ height: 12 })`.
+- **VLine** — `HLine` exists but not its vertical sibling; the lab invoice faked one with
+  a 1pt Container (see I11 for why that was painful).
+- **Stack / z-ordering** — `FixedContainer` is absolute-only; no overlay composition.
+
+### I15 — Icon registry too small to be useful
+
+`materialIcons` in `Icon.ts` ships ~30 curated icons; the map pin the invoice needed
+(`place`) wasn't there, so the session pasted raw SVG path data into source. Regular
+users don't have path data memorized. Note: `@mdi/js` is already a devDependency —
+either generate a larger registry from it at build time or document the
+`Icon.register`/inline-`path` escape hatch prominently in the docs.
+
+## I16 - Barcodes and QR code genertors

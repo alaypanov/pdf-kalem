@@ -8,6 +8,10 @@ export interface ThemeTextStyle {
   color?: ThemeColorValue;
   align?: 'left' | 'center' | 'right';
   font?: string;
+  /** CSS-like weight: 100–900, 'normal', or 'bold'. Snaps to the family's two-weight model (100–500 → regular, 600–900 → bold). */
+  fontWeight?: number | 'normal' | 'bold';
+  /** CSS-like style. 'oblique' is intentionally absent — no synthetic slant yet. */
+  fontStyle?: 'normal' | 'italic';
   lineHeight?: number;
   underline?: boolean;
 }

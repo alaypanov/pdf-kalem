@@ -69,6 +69,8 @@
     "@codemirror/view": "^6.43.13",
     "@lezer/highlight": "^1.2.5",
     "@mdi/js": "^7.4.47",
+    "@napi-rs/canvas": "^1.0.10",
+    "pdfjs-dist": "^6.4.299",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
     "unocss": "^66.10.5",

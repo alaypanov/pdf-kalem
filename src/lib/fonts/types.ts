@@ -11,6 +11,12 @@
 /** The faces a family can provide. */
 export type FontStyle = 'regular' | 'bold' | 'italic' | 'boldItalic';
 
+/** CSS-like font weight: 100–900 numeric or the 'normal'/'bold' keywords. */
+export type FontWeightValue = number | 'normal' | 'bold';
+
+/** CSS-like font style. 'oblique' is intentionally absent — no synthetic slant yet. */
+export type FontStyleValue = 'normal' | 'italic';
+
 /**
  * The byte content of one family: a required regular face plus optional
  * style faces. Missing faces fall back at embed time (bold → regular,

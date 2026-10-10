@@ -30,7 +30,7 @@ src/
   don't cover (code font, blockquote rule, list indent, spacing).
 - **Custom fonts** — Inter loads from the repo's shared `examples/fonts/`
   folder through `useFonts(…, { files })` (all four faces — the sample uses
-  bold/italic runs); code falls back to the builtin mono alias (Courier).
+  weight/style runs); code falls back to the builtin mono alias (Courier).
 
 ## Copy it
 

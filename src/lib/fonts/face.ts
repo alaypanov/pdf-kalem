@@ -7,7 +7,7 @@
  * names always win — a family literally named `inter-bold` embeds as itself,
  * never as the bold face of `inter`.
  */
-import type { FontVariants, FontStyle } from './types';
+import type { FontVariants, FontStyle, FontStyleValue, FontWeightValue } from './types';
 
 /** Longest suffix first, so `inter-bold-italic` parses as boldItalic. */
 const STYLE_SUFFIXES: ReadonlyArray<readonly [FontStyle, string]> = [
@@ -22,15 +22,41 @@ export function faceId(family: string, style: FontStyle): string {
   return suffix ? `${family}${suffix}` : family;
 }
 
+/** The face style for weight/italic bits (regular=0, bold=1, italic=2). */
+export function faceStyleFromBits(bold: boolean, italic: boolean): FontStyle {
+  return bold && italic ? 'boldItalic' : bold ? 'bold' : italic ? 'italic' : 'regular';
+}
+
 /**
- * Combines a base face style with run-level bold/italic flags (bitwise:
- * regular=0, bold=1, italic=2). E.g. base `bold` + run italic → `boldItalic`.
+ * CSS weight matching against the two-weight family model: 100–500 (and
+ * 'normal') render regular, 600–900 (and 'bold') render bold. This is the
+ * standard snap a browser applies to a family with only 400 and 700 — when
+ * the font model grows real per-weight faces, matching weights hit them
+ * with no call-site change.
  */
-export function combineFaceStyle(base: FontStyle, bold?: boolean, italic?: boolean): FontStyle {
-  const bits = (base === 'bold' || base === 'boldItalic' ? 1 : 0) |
-    (base === 'italic' || base === 'boldItalic' ? 2 : 0) |
-    (bold ? 1 : 0) | (italic ? 2 : 0);
-  return bits === 0 ? 'regular' : bits === 1 ? 'bold' : bits === 2 ? 'italic' : 'boldItalic';
+export function snapFontWeight(weight: FontWeightValue): 'regular' | 'bold' {
+  if (weight === 'normal') return 'regular';
+  if (weight === 'bold') return 'bold';
+  return weight >= 600 ? 'bold' : 'regular';
+}
+
+/**
+ * Resolves the face style for a base style plus CSS-like weight/style
+ * values. Each axis is replaced when set (CSS semantics: an explicit weight
+ * of 400 un-bolds a bold base); unset axes inherit the base.
+ */
+export function resolveFaceStyle(
+  base: FontStyle,
+  weight?: FontWeightValue,
+  style?: FontStyleValue,
+): FontStyle {
+  const bold = weight !== undefined
+    ? snapFontWeight(weight) === 'bold'
+    : base === 'bold' || base === 'boldItalic';
+  const italic = style !== undefined
+    ? style === 'italic'
+    : base === 'italic' || base === 'boldItalic';
+  return faceStyleFromBits(bold, italic);
 }
 
 /** Parses a suffixed face id; `undefined` when `id` is a plain family name. */

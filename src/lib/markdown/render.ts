@@ -95,7 +95,7 @@ async function renderParagraphish(
   context: RenderContext,
 ): Promise<Widget[]> {
   const { runs, images } = inlineToRuns(inlineTokensOf(token), styles, {
-    italic: context.italic || undefined,
+    fontStyle: context.italic ? 'italic' : undefined,
   });
 
   const widgets: Widget[] = [];
@@ -171,7 +171,7 @@ async function renderListItem(
     if (token.type === 'paragraph' || token.type === 'text') {
       // The item's own inline content; task checkboxes render in the marker.
       const { runs } = inlineToRuns(inlineTokensOf(token as Tokens.Paragraph), styles, {
-        italic: context.italic || undefined,
+        fontStyle: context.italic ? 'italic' : undefined,
       });
       if (runs.length > 0) {
         content.push(Text(coalesceRuns(runs)));
@@ -262,7 +262,7 @@ function withBold(runs: Run[], bold = true): Run[] {
   if (!bold) {
     return runs;
   }
-  return runs.map((run) => ({ ...run, bold: true }));
+  return runs.map((run) => ({ ...run, fontWeight: 700 }));
 }
 
 /**

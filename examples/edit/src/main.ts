@@ -21,7 +21,7 @@ console.log(`Loaded ${pdf.pages.length} page(s); first page is ${pdf.PDFDocument
 
 first.add([
   // Flow placement: a stamp block at the top of the page.
-  Text([{ text: 'REVIEWED', bold: true, color: fromHex('#B45309') }], { size: 28 }),
+  Text([{ text: 'REVIEWED', fontWeight: 700, color: fromHex('#B45309') }], { size: 28 }),
   HLine({ thickness: 2, color: fromHex('#B45309') }),
   // Absolute placement: pinned to the page's bottom-right corner.
   FixedContainer({

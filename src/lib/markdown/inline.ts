@@ -8,10 +8,10 @@ import type { Run } from '../Text';
 import type { Token, Tokens } from 'marked';
 import type { ResolvedMarkdownStyles } from './styles';
 
-/** Style flags inherited while descending the inline token tree. */
+/** Style inherited while descending the inline token tree. */
 interface InlineContext {
-  bold?: boolean;
-  italic?: boolean;
+  fontWeight?: Run['fontWeight'];
+  fontStyle?: Run['fontStyle'];
   strike?: boolean;
   href?: string;
   color?: Run['color'];
@@ -58,13 +58,13 @@ export function inlineToRuns(
 
       case 'strong':
         for (const child of (token as Tokens.Strong).tokens ?? []) {
-          visit(child, { ...ctx, bold: true });
+          visit(child, { ...ctx, fontWeight: 700 });
         }
         return;
 
       case 'em':
         for (const child of (token as Tokens.Em).tokens ?? []) {
-          visit(child, { ...ctx, italic: true });
+          visit(child, { ...ctx, fontStyle: 'italic' });
         }
         return;
 
@@ -141,8 +141,8 @@ export function coalesceRuns(runs: Run[]): Run[] {
 
 function sameStyle(a: Run, b: Run): boolean {
   return (
-    (a.bold ?? false) === (b.bold ?? false) &&
-    (a.italic ?? false) === (b.italic ?? false) &&
+    a.fontWeight === b.fontWeight &&
+    a.fontStyle === b.fontStyle &&
     (a.strike ?? false) === (b.strike ?? false) &&
     (a.underline ?? false) === (b.underline ?? false) &&
     (a.mono ?? false) === (b.mono ?? false) &&

@@ -11,7 +11,7 @@ const [input, output = 'markdown.pdf'] = process.argv.slice(2);
 const markdown = input ? await readFile(input, 'utf8') : sample;
 
 // Inter loads from the repo's shared examples/fonts/ folder through `files`
-// (all four faces — the sample uses bold/italic runs). Code falls back to the
+// (all four faces — the sample uses weight/style runs). Code falls back to the
 // builtin mono alias (Courier).
 const face = (name: string) => readFile(new URL(`../../fonts/${name}`, import.meta.url));
 const fonts = await useFonts(

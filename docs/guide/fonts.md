@@ -35,7 +35,17 @@ The repo's examples load Inter exactly this way — the OFL-licensed TTFs live i
 
 ## Faces and fallback
 
-A family carries faces: `regular` plus optional `bold`, `italic`, and `boldItalic`. A face is referenced by suffixing the family name — `inter-bold`, `inter-italic`, `inter-bold-italic` — the same convention the builtin aliases use.
+A family carries faces: `regular` plus optional `bold`, `italic`, and `boldItalic`. You reach them through CSS-like typography on text, runs, and theme variants:
+
+```ts
+Text('Total', { fontWeight: 700 });                    // block-level
+Text([{ text: 'Total', fontStyle: 'italic' }]);        // run-level
+createTheme({ text: { h1: { fontWeight: 700 } } });    // theme variant
+```
+
+Weights follow CSS matching against the family's faces: 100–500 (and `'normal'`) render regular, 600–900 (and `'bold'`) render bold. Each axis replaces the base style — an explicit `fontWeight: 400` un-bolds a bold base — and block typography carries into run `font`/`mono` overrides.
+
+Faces are also referenced directly by suffixing the family name — `inter-bold`, `inter-italic`, `inter-bold-italic` — the same convention the builtin aliases use. A `font` value with a style suffix keeps working, and block `fontWeight`/`fontStyle` layer onto it per axis.
 
 Missing faces fall back at embed time (bold-italic → bold → italic → regular) with a console warning, so a family can ship incrementally.
 

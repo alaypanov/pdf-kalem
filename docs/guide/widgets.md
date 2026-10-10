@@ -37,7 +37,7 @@ Children of a `Container` shrink-wrap horizontally (`alignItems: 'flex-start'`).
 
 ## Text and rich runs
 
-`Text` takes a string or an array of styled **runs**. Each run carries its own style flags, which combine with the text's base font:
+`Text` takes a string or an array of styled **runs**. Each run carries its own typography, which layers onto the text's base font (and the block's `fontWeight`/`fontStyle`):
 
 ```ts
 import { Text, Link } from 'pdf-kalem/widgets';
@@ -45,9 +45,9 @@ import { Text, Link } from 'pdf-kalem/widgets';
 Text(
   [
     { text: 'Revenue grew ' },
-    { text: '12%', bold: true },
+    { text: '12%', fontWeight: 700 },
     { text: ' quarter over quarter' },
-    { text: ' (audited)', italic: true, color: '#666666' },
+    { text: ' (audited)', fontStyle: 'italic', color: '#666666' },
   ],
   { size: 12 },
 );
@@ -61,9 +61,9 @@ Text([{ text: 'Read the ' }, { text: 'full report', href: 'https://example.com' 
 Text([{ text: 'const x = 1', mono: true }]);
 ```
 
-Run flags: `bold`, `italic`, `strike`, `href`, `mono`, `font`, `color`. Faces resolve through the run's family with the usual fallback chain. Words that span run boundaries never break internally; wrapping, `maxLines`, and `ellipsis` all work across runs.
+Run fields: `fontWeight`, `fontStyle`, `strike`, `href`, `mono`, `font`, `color`. Weight follows CSS matching — 100–500 renders regular, 600–900 renders bold — and each axis replaces the base style (an explicit `fontWeight: 400` un-bolds a bold base). Faces resolve through the run's family with the usual fallback chain. Words that span run boundaries never break internally; wrapping, `maxLines`, and `ellipsis` all work across runs.
 
-Text options include `variant` (theme text variant), `size`, `color`, `align`, `lineHeight`, `maxLines`, and `overflow: 'ellipsis'`.
+Text options include `variant` (theme text variant), `size`, `color`, `align`, `fontWeight`, `fontStyle`, `lineHeight`, `maxLines`, and `overflow: 'ellipsis'`. Theme text variants accept the same `fontWeight`/`fontStyle`, so a variant can set its weight once: `heading: { fontWeight: 700 }`.
 
 ## Tables
 

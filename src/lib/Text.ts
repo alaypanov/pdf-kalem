@@ -8,8 +8,8 @@ import {
   resolveBuiltinCanvasFont,
   resolveBuiltinPdfFont,
 } from './types/doc-fonts';
-import { combineFaceStyle, faceId, parseFaceId } from './fonts/face';
-import type { FontStyle } from './fonts/types';
+import { faceId, parseFaceId, resolveFaceStyle } from './fonts/face';
+import type { FontStyle, FontStyleValue, FontWeightValue } from './fonts/types';
 import { fromHex } from './utils/color-utils';
 import {
   TextLayoutEngine,
@@ -25,16 +25,17 @@ import type { PrepareOptions } from '@chenglou/pretext';
 export type { TextOverflow } from './TextLayoutEngine';
 
 /**
- * A styled inline run inside a `Text`. Style flags combine with the text's
- * base font: `bold`/`italic` pick the matching face of the run's family
- * (falling back down the face chain when missing), `mono` switches to the
- * builtin `mono` family, and `font` overrides the family outright (theme
- * token or family name).
+ * A styled inline run inside a `Text`. Typography is CSS-like: `fontWeight`
+ * (100–900, 'normal', 'bold') and `fontStyle` ('normal', 'italic') pick the
+ * matching face of the run's family, replacing the base style per axis and
+ * falling back down the face chain when a face is missing. `mono` switches
+ * to the builtin `mono` family, and `font` overrides the family outright
+ * (theme token or family name) while inheriting the block's typography.
  */
 export interface Run {
   text: string;
-  bold?: boolean;
-  italic?: boolean;
+  fontWeight?: FontWeightValue;
+  fontStyle?: FontStyleValue;
   strike?: boolean;
   href?: string;
   mono?: boolean;
@@ -48,6 +49,10 @@ export interface TextOptions extends WidgetOptions {
   color?: ThemeColorValue;
   align?: 'left' | 'center' | 'right';
   font?: string;
+  /** Block-level weight, overriding the theme variant's. Runs replace it per axis. */
+  fontWeight?: FontWeightValue;
+  /** Block-level style, overriding the theme variant's. Runs replace it per axis. */
+  fontStyle?: FontStyleValue;
   lineHeight?: number;
   maxLines?: number;
   overflow?: TextOverflow;
@@ -82,6 +87,8 @@ export class TextWidget extends Widget {
   private readonly colorOverride?: ThemeColorValue;
   private readonly alignOverride?: 'left' | 'center' | 'right';
   private readonly fontNameOverride?: string;
+  private readonly fontWeightOverride?: FontWeightValue;
+  private readonly fontStyleOverride?: FontStyleValue;
   private readonly lineHeightOverride?: number;
   private readonly maxLines?: number;
   private readonly overflow: TextOverflow;
@@ -101,6 +108,8 @@ export class TextWidget extends Widget {
     this.colorOverride = options.color;
     this.alignOverride = options.align;
     this.fontNameOverride = options.font;
+    this.fontWeightOverride = options.fontWeight;
+    this.fontStyleOverride = options.fontStyle;
     this.lineHeightOverride = options.lineHeight;
     this.maxLines = options.maxLines;
     this.overflow = options.overflow ?? 'visible';
@@ -155,16 +164,50 @@ export class TextWidget extends Widget {
   }
 
   protected getFontName(): string {
-    return resolveBuiltinPdfFont(
+    const base = resolveBuiltinPdfFont(
       resolveThemeFont(this.context?.getTheme(), this.fontNameOverride ?? this.getThemeTextStyle()?.font)
     ) ?? 'Helvetica';
+    return this.applyBlockTypography(base);
+  }
+
+  /** The face style implied by block/variant typography alone (no family name). */
+  private blockFaceStyle(): FontStyle {
+    const variant = this.getThemeTextStyle();
+    return resolveFaceStyle(
+      'regular',
+      this.fontWeightOverride ?? variant?.fontWeight,
+      this.fontStyleOverride ?? variant?.fontStyle,
+    );
+  }
+
+  /**
+   * Applies block/variant typography onto a resolved font name. Each axis is
+   * replaced when set (block wins over variant); unset axes keep the base
+   * name's own style — so `font: 'inter-bold'` keeps working, and a block
+   * `fontStyle: 'italic'` on it yields `inter-bold-italic`.
+   */
+  private applyBlockTypography(base: string): string {
+    const variant = this.getThemeTextStyle();
+    const weight = this.fontWeightOverride ?? variant?.fontWeight;
+    const style = this.fontStyleOverride ?? variant?.fontStyle;
+    if (weight === undefined && style === undefined) {
+      return base;
+    }
+
+    const builtin = builtinPdfNameFace(base);
+    const parsed = builtin ?? parseFaceId(base);
+    const family = parsed?.family ?? base;
+    const baseStyle = parsed?.style ?? 'regular';
+    return faceId(family, resolveFaceStyle(baseStyle, weight, style));
   }
 
   /**
    * Resolves a run to the pdf font name + canvas font that measure and draw
-   * it. `font`/`mono` overrides start fresh from `regular`; otherwise the
-   * base font is decomposed into family + style (builtin pdf names first,
-   * then custom face ids) and the run's flags combine with that style.
+   * it. `font`/`mono` overrides swap the family but inherit the block's
+   * typography (CSS inheritance); otherwise the base font — already styled
+   * by the block — is decomposed into family + style and the run's
+   * weight/style replace their axis (an explicit weight of 400 un-bolds a
+   * bold base), falling back down the face chain when a face is missing.
    */
   private resolveRunFont(run: Run): { fontName: string; canvasFont: string } {
     let family: string;
@@ -174,7 +217,7 @@ export class TextWidget extends Widget {
       family = run.font
         ? resolveThemeFont(this.context?.getTheme(), run.font) ?? run.font
         : 'mono';
-      baseStyle = 'regular';
+      baseStyle = this.blockFaceStyle();
     } else {
       const basePdfName = this.getFontName();
       const builtin = builtinPdfNameFace(basePdfName);
@@ -188,7 +231,7 @@ export class TextWidget extends Widget {
       }
     }
 
-    const face = faceId(family, combineFaceStyle(baseStyle, run.bold, run.italic));
+    const face = faceId(family, resolveFaceStyle(baseStyle, run.fontWeight, run.fontStyle));
     const pdfFamily = resolveBuiltinPdfFont(face) ?? face;
     // Browser FontFaces register under the family name, not the face id.
     const canvasFamily = resolveBuiltinCanvasFont(family) ?? family;
