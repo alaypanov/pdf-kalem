@@ -1,6 +1,8 @@
 import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
 import type { RenderContext } from './RenderContextInterface';
-import type { RenderColor } from './RenderContextTypes';
+import { type ThemeColorValue } from './Theme';
+import { resolveColor } from './theme-resolve';
+import { fromHex } from './utils/color-utils';
 import { Edge, PositionType } from 'yoga-layout';
 
 interface FixedContainerOptions extends WidgetOptions {
@@ -10,7 +12,8 @@ interface FixedContainerOptions extends WidgetOptions {
   right?: number;
   width?: YogaStyleValue;
   height?: YogaStyleValue;
-  bgColor?: RenderColor;
+  /** Theme token or literal — same vocabulary as Container (I11). */
+  bgColor?: ThemeColorValue;
 }
 
 export class FixedContainerWidget extends Widget {
@@ -18,7 +21,7 @@ export class FixedContainerWidget extends Widget {
   private bottom?: number;
   private left?: number;
   private right?: number;
-  private bgColor?: RenderColor;
+  private bgColor?: ThemeColorValue;
 
   constructor(options: FixedContainerOptions) {
     super(options);
@@ -52,7 +55,7 @@ export class FixedContainerWidget extends Widget {
         y,
         width,
         height,
-        color: this.bgColor,
+        color: resolveColor(context.getTheme(), this.bgColor) ?? fromHex('#FFFFFF'),
       });
     }
 

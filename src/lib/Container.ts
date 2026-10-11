@@ -1,9 +1,11 @@
 import { type ThemeColorValue } from './Theme';
 import { resolveColor } from './theme-resolve';
-import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
+import { resolveSpacingEdges, type Spacing } from './utils/spacing';
+import { Widget, WidgetOptions, type YogaStyle } from './Widget';
 import type { RenderContext } from './RenderContextInterface';
 import type { RenderColor } from './RenderContextTypes';
 import { fromHex } from './utils/color-utils';
+import { Edge } from 'yoga-layout';
 
 interface BorderOptions {
   width?: number;
@@ -19,20 +21,26 @@ const borderDefaults: BorderOptions = {
 
 interface ContainerOptions extends WidgetOptions {
   bgColor?: ThemeColorValue;
-  width?: YogaStyleValue;
-  height?: YogaStyleValue;
-  padding?: number;
+  width?: YogaStyle['width'];
+  height?: YogaStyle['height'];
+  /** Inner spacing. A number for all sides, or per-side (I11). */
+  padding?: Spacing;
   border?: BorderOptions;
   child?: Widget; // Accept single child for convenience
+  /**
+   * Per-key override of the Container's built-in Yoga style — the same
+   * escape hatch FlexContainer has (I11). Applied after the defaults.
+   */
+  style?: YogaStyle;
 }
 
 export class ContainerWidget extends Widget {
   private bgColor?: ThemeColorValue;
   private border?: BorderOptions;
-  private padding?: number;
+  private padding?: Spacing;
 
   constructor(options: ContainerOptions) {
-    // If a single child is provided, add it to children array
+    // If a single child is provided, add it to the children array
     const children = options.children || [];
     if (options.child) {
       children.push(options.child);
@@ -44,14 +52,16 @@ export class ContainerWidget extends Widget {
 
     // Size to content unless told otherwise — a fixed default box silently
     // overflows (or pads) whenever content differs from the default.
+    // No alignSelf hardcode (I11): the container respects its parent's
+    // alignItems like any other box; shrink-wrap explicitly via style.
+    // Padding is applied in prepareLayout (per-side + theme fallback).
     this.setYogaStyle({
       width: options.width ?? 'auto',
       height: options.height ?? 'auto',
       flexDirection: 'column',
       justifyContent: 'flex-start',
       alignItems: 'flex-start',
-      alignSelf: 'flex-start',
-      padding: options.padding ?? 0,
+      ...options.style,
     });
   }
 
@@ -59,8 +69,8 @@ export class ContainerWidget extends Widget {
     return this.context?.getTheme()?.container;
   }
 
-  private getResolvedPadding(): number {
-    return this.padding ?? this.getThemeContainerStyle()?.padding ?? 0;
+  private getResolvedPaddingEdges(): { top: number; right: number; bottom: number; left: number } {
+    return resolveSpacingEdges(this.padding, this.getThemeContainerStyle()?.padding ?? 0);
   }
 
   private getResolvedBackgroundColor(): RenderColor {
@@ -81,11 +91,11 @@ export class ContainerWidget extends Widget {
   }
 
   override async prepareLayout(context: RenderContext): Promise<void> {
-    const resolvedPadding = this.getResolvedPadding();
-    this.node.setPadding(0, resolvedPadding);
-    this.node.setPadding(1, resolvedPadding);
-    this.node.setPadding(2, resolvedPadding);
-    this.node.setPadding(3, resolvedPadding);
+    const padding = this.getResolvedPaddingEdges();
+    this.node.setPadding(Edge.Top, padding.top);
+    this.node.setPadding(Edge.Right, padding.right);
+    this.node.setPadding(Edge.Bottom, padding.bottom);
+    this.node.setPadding(Edge.Left, padding.left);
     await super.prepareLayout(context);
   }
 

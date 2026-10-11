@@ -43,8 +43,12 @@ Page({
 });
 ```
 
-::: tip Shrink-wrap
-Children of a `Container` shrink-wrap horizontally (`alignItems: 'flex-start'`). Give a `Row` or `Column` `width: '100%'` when you want it to fill the panel or let `justifyBetween` spread its children. Direct children of `Page` stretch by default.
+::: tip Sizing and shrink-wrap
+A `Container` respects its parent's cross-axis alignment like any other box: under a stretching parent (`Page`, `Flex` with `alignItems: 'stretch'`) it fills the available width unless given `width`; `Row` and `Column` default to `flex-start`, so their children shrink-wrap. To shrink-wrap explicitly under any parent: `Container({ style: { alignSelf: 'flex-start' } })`. `Container` also accepts a `style` object for per-key overrides of its built-in flex defaults, and `padding` takes either a number or per-side `{ top, right, bottom, left }`.
+:::
+
+::: tip Margins on everything
+Every widget accepts `margin` — a number (all sides) or per-side `{ top, right, bottom, left }` — for outer spacing, without structural contortions. Margins do not collapse (Yoga resolves them as plain box geometry).
 :::
 
 ::: warning Stack needs something to size to

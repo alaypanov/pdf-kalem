@@ -1,6 +1,7 @@
 import type { RenderContext } from './RenderContextInterface';
 import type { BreakUnit } from './pagination/types';
 import { applyYogaStyle, type YogaStyle } from './yoga-style';
+import { resolveSpacingEdges, type Spacing } from './utils/spacing';
 import Yoga, {
   Direction,
   FlexDirection,
@@ -9,6 +10,7 @@ import Yoga, {
 } from 'yoga-layout';
 
 export type { YogaStyle, YogaStyleValue, YogaDimensionValue } from './yoga-style';
+export type { Spacing } from './utils/spacing';
 
 export interface WidgetOptions {
   children?: Widget[];
@@ -18,11 +20,12 @@ export interface WidgetOptions {
    * Default: undefined — breakability is decided by structure.
    */
   breakable?: boolean;
-position?: 'relative' | 'absolute';
-  top?: number;
-  right?: number;
-  bottom?: number;
-  left?: number;
+  /**
+   * Outer spacing around the widget's box (I11). CSS-like per-side object
+   * or a number for all sides. No margin collapsing — Yoga resolves it as
+   * plain box geometry, and pagination break offsets already carry it.
+   */
+  margin?: Spacing;
 }
 
 export abstract class Widget {
@@ -41,6 +44,18 @@ export abstract class Widget {
     for (const child of this.children) {
       child.parent = this;
       this.node.insertChild(child.node, this.node.getChildCount());
+    }
+
+    // Margins are a box feature, not a per-widget decision — every widget
+    // gets the same vocabulary from the base (I11).
+    if (options.margin !== undefined) {
+      const margin = resolveSpacingEdges(options.margin, 0);
+      this.setYogaStyle({
+        marginTop: margin.top,
+        marginRight: margin.right,
+        marginBottom: margin.bottom,
+        marginLeft: margin.left,
+      });
     }
   }
 

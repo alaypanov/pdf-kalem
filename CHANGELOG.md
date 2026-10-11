@@ -20,6 +20,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Breaking:** removed the process-global `PdfDoc.beforeCreate`/`afterSave`/`clearHooks` statics — two documents in one process shared hook state, and the constructor's `beforeCreate`/`afterSave` options are the supported channel. No in-repo callers; the statics were undocumented.
 - Runtime output mechanics (blob/download/print/buffer/file) moved from `PdfDoc` to `src/lib/doc-output.ts`; the `PdfDoc` methods remain as delegates — the public interface is otherwise unchanged.
 - **Breaking (internal surface):** the `PdfRenderer` class is removed — its render walk is inline in `PdfDoc.savePdf` (I5: one caller, zero alternatives). It was exported from the package root but undocumented.
+- **Breaking:** `Container` no longer hardcodes `alignSelf: 'flex-start'` (I11). Under a stretching parent (`Page`, `Flex` with `alignItems: 'stretch'`) an unsized Container now fills the available width; `Row`/`Column` children still shrink-wrap (they default to `flex-start`). Restore the old behavior explicitly with `style: { alignSelf: 'flex-start' }`.
+- `Container` gains `style?: YogaStyle` (per-key override of its built-in flex defaults) and per-side `padding` (`number | { top, right, bottom, left }`; the number form and the theme default are unchanged) (I11).
+- Every widget gains `margin` (`number | { top, right, bottom, left }`) on the base options — outer spacing without structural contortions. No margin collapsing (I11).
+- `FixedContainer.bgColor` now accepts theme tokens (`ThemeColorValue`), matching `Container` (I11).
 - I14 resolved: `PageBreak` rejected by design (pagination stays automatic and opaque); `SizedBox` rejected as sugar for `Container({ height })`.
 - Playground sandboxes expose the new widgets.
 

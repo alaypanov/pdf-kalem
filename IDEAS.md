@@ -264,7 +264,7 @@ vocabulary, no boolean sugar:
   and examples migrated. Note: Inter's italic faces carry `InterItalic-*`
   PostScript names — assert on style suffixes, not family prefixes.
 
-### I11 — Inconsistent option surfaces across widgets
+### I11 — Inconsistent option surfaces across widgets — RESOLVED (2026-10-11)
 
 - `Row`/`Column` (FlexContainer) accept a `style` override; `Container` does not — its
   yoga style is hardcoded in the constructor. The lab invoice's vertical divider needed
@@ -277,6 +277,28 @@ vocabulary, no boolean sugar:
   contortions when two siblings need different outer spacing.
 - Type drift: `FixedContainer.bgColor` takes `RenderColor`, `Container.bgColor` takes
   `ThemeColorValue`.
+
+**Resolved 2026-10-11** (proposal approved in-session; four decisions):
+
+1. **`Container.style?: YogaStyle`** — the same escape hatch FlexContainer has; caller
+   keys spread after the built-in defaults (per-key override).
+2. **`alignSelf` hardcode removed (breaking, option a)** — Containers respect their
+   parent's `alignItems` like any other box. Fill behavior appears under stretching
+   parents (`Page`, `Flex`); `Row`/`Column` default their own `crossAxisAlignment` to
+   `flex-start`, so they never stretched their children and still don't. Shrink-wrap is
+   explicit: `style: { alignSelf: 'flex-start' }` (or any non-stretching parent).
+   Root-cause fix for I12's "layout collapse" — the hardcode was the defeat mechanism.
+3. **`Spacing` vocabulary** (`utils/spacing.ts`) — `number | { top?, right?, bottom?,
+   left? }`, unset sides falling back to the caller's default. `Container.padding`
+   accepts it (number stays valid; theme default fills unset sides); `margin` added to
+   **`WidgetOptions`** — margins are a box feature, so every widget gets the same
+   vocabulary from the base. No margin collapsing (Yoga resolves plain geometry;
+   pagination break offsets already carry margins). No `horizontal`/`vertical` sugar.
+4. **`FixedContainer.bgColor: ThemeColorValue`** — routed through `resolveColor` (#6
+   seam); theme tokens work there like everywhere else.
+
+Pinned by `tests/spacing.test.mjs` (10 tests: style override, fill/shrink-wrap matrix,
+per-side padding + theme fallback, base margins, token resolution).
 
 ### I12 — Silent layout and token failures
 
