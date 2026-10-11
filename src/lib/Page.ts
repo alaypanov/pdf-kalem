@@ -1,5 +1,6 @@
 import { Widget, WidgetOptions } from './Widget';
 import type { RenderContext } from './RenderContextInterface';
+import { canAddPages } from './PdfPageSurface';
 import { PageSize, PDFDocSize } from './types/doc-sizes';
 import { Align, Direction, Edge, FlexDirection, Justify } from 'yoga-layout';
 import { Paginator } from './pagination/Paginator';
@@ -92,8 +93,14 @@ export class PageWidget extends Widget {
    * Opens the backend surface this page paints onto. LoadedPage overrides
    * this to a no-op — its surface is an adopted existing page, opened in
    * render() before the layout pass.
+   *
+   * Page lifecycle is PDF mechanics (PdfPageSurface), not part of the
+   * neutral RenderContext — pages are where drawing surfaces are created.
    */
   protected async openPage(context: RenderContext, dimensions: [number, number]): Promise<void> {
+    if (!canAddPages(context)) {
+      throw new Error('Page rendering requires a context that can open pages (the PDF backend).');
+    }
     context.addPage(dimensions);
   }
 
@@ -124,6 +131,9 @@ export class PageWidget extends Widget {
     }
 
     for (const plan of pagination.pages) {
+      if (!canAddPages(context)) {
+        throw new Error('Page rendering requires a context that can open pages (the PDF backend).');
+      }
       context.addPage(plan.pageSize);
       const scope = new PageScope(context, plan);
       for (const fragment of plan.fixed) await fragment.widget.render(scope);

@@ -26,4 +26,5 @@ export { resolveColor, resolveFont } from './lib/theme-resolve';
 export { resetThemeWarningsForTests } from './lib/Theme';
 export { applyYogaStyle } from './lib/yoga-style';
 export { sniffImageFormat } from './lib/utils/image-format';
+export { isPdfPageSurface } from './lib/PdfPageSurface';
 export { toBlob, toBuffer, writeBytesToFile, downloadBytes, printBytes } from './lib/doc-output';

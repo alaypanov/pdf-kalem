@@ -10,6 +10,7 @@ import {
 import type { Widget } from './Widget';
 import type { Theme } from './Theme';
 import type { RenderContext } from './RenderContextInterface';
+import type { PdfPageSurface } from './PdfPageSurface';
 import type {
   RenderImage,
   RenderContextOptions,
@@ -37,7 +38,7 @@ import { debugLog, setDebugEnabled } from './utils/debug';
  * backend-specific nature explicit and frees the `RenderContext` name for
  * the backend-neutral interface that widgets depend on.
  */
-export class PdfRenderContext implements RenderContext {
+export class PdfRenderContext implements RenderContext, PdfPageSurface {
   private options: RenderContextOptions;
   private theme?: Theme;
   private doc?: PDFDocument;

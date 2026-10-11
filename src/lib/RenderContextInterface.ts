@@ -15,9 +15,10 @@ import type {
  * Backend-neutral render context.
  *
  * Widgets depend on this interface, not on any concrete backend. The PDF
- * backend supplies a {@link PdfRenderContext}; future backends (image, HTML)
- * supply their own implementations. This is the polymorphism point that lets
- * the same widget tree render to different output formats.
+ * backend supplies a {@link PdfRenderContext}; this is the polymorphism
+ * point that lets the same widget tree render to different output formats —
+ * and, load-bearing today, the seam pagination's `PageScope` composes
+ * through (ADR 0001).
  *
  * The interface is split into three concerns:
  *
@@ -25,9 +26,13 @@ import type {
  * 2. **Measurement** — font metrics. The signatures are shared, but each
  *    backend implements them against its own font system (pdf-lib's
  *    `PDFFont`, canvas `measureText`, etc.).
- * 3. **Drawing + page lifecycle** — backend-specific. `addPage` returns
- *    `unknown` because the page handle type differs per backend (`PDFPage`
- *    for PDF, `CanvasRenderingContext2D` for image, etc.).
+ * 3. **Drawing + geometry** — backend-specific drawing primitives and the
+ *    layout-box mapping.
+ *
+ * Page lifecycle (addPage/current-page/adopt) is deliberately NOT here —
+ * it is backend mechanics, not something a scope-like adapter must answer.
+ * The PDF-typed surface lives in {@link PdfPageSurface} (ADR 0001: PDF
+ * features get PDF-typed modules, never interface widening).
  *
  * Note: {@link getLayoutBox} returns a box in yoga coordinates (top-left
  * origin, y grows down). Backends that need a different origin (e.g. PDF,
@@ -68,25 +73,6 @@ export interface RenderContext {
    * it's typed as `RenderImage` for now but will become backend-neutral in v2.
    */
   embedImage(bytes: ArrayBuffer, format: 'png' | 'jpeg'): Promise<RenderImage>;
-
-  // --- Page lifecycle (backend-specific) ---
-
-  /** Adds a new page/canvas/surface of the given dimensions. Returns the backend's page handle. */
-  addPage(dimensions: [number, number]): unknown;
-  /** Returns the current page handle (typed as `unknown` since it's backend-specific). */
-  getCurrentPage(): unknown;
-  /** Sets the current page handle. Implementations should accept their own page type. */
-  setCurrentPage(page: unknown): void;
-
-  /**
-   * Adopts a page from a foreign document of the backend's native type
-   * (typed `unknown`, like the page handles) as the current drawing surface.
-   * The PDF backend copies the page object into the output document —
-   * content streams, annotations, links, and form fields come along — and
-   * points the current page at the copy, so subsequent drawing lands on top
-   * of the original content. Used by the edit module (`pdf-kalem/edit`).
-   */
-  adoptPage(source: unknown, pageIndex: number): Promise<void>;
 
   getPageHeight(): number;
   getPageWidth(): number;

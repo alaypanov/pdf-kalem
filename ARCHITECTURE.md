@@ -19,7 +19,7 @@
 | 7 | Un-glue `PdfDoc` | Worth exploring | ✅ Done — hooks removed (instance options are the channel); IO → `src/lib/doc-output.ts` |
 | 8 | Extract the Yoga style interpreter from `Widget` | Worth exploring | ✅ Done — `src/lib/yoga-style.ts`; `Widget.ts` 424 → 201 lines |
 | 9 | Deduplicate the test `FakeContext` | Strong | ✅ Done — `tests/fake-context.mjs`; −167 lines across two suites |
-| 10 | Move `adoptPage` off the neutral `RenderContext` interface | Worth exploring | Open |
+| 10 | Move `adoptPage` off the neutral `RenderContext` interface | Worth exploring | ✅ Done — `PdfPageSurface` + runtime narrowing; neutral interface no longer declares page lifecycle |
 
 All candidates 1–9 landed. Remaining: **10**.
 
@@ -530,23 +530,20 @@ test files import it. Deliberately *not* under `src/` — it exists only for the
 
 ---
 
-## 10 — Move `adoptPage` off the neutral `RenderContext` interface `Worth exploring`
+## 10 ✅ Move `adoptPage` off the neutral `RenderContext` interface — done (`PdfPageSurface.ts`)
 
-**Files:** `src/lib/RenderContextInterface.ts` · `src/lib/PdfRenderContext.ts` ·
-`src/lib/edit/LoadedPage.ts` · `src/lib/pagination/PageScope.ts`
+**Landed 2026-10-11.** `src/lib/PdfPageSurface.ts` defines the PDF-typed page-lifecycle
+surface (`addPage`/`getCurrentPage`/`setCurrentPage`/`adoptPage`, all `PDFPage`-typed —
+no more `unknown`) plus two structural guards: `canAddPages` (what `Page` needs) and
+`isPdfPageSurface` (what `LoadedPage` needs, adoption included). `PdfRenderContext`
+implements both interfaces — zero behavior change. The neutral `RenderContext` no longer
+declares any page lifecycle; `PageScope` drops its four delegation stubs.
 
-**Problem.** `adoptPage(source, pageIndex)` — a pdf-lib `copyPages` concept used only by
-the edit module's `LoadedPage` — sits on the "backend-neutral" interface, violating ADR
-0001's "never interface widening" rule. The page-handle members (`addPage`,
-`getCurrentPage`/`setCurrentPage`) are typed `unknown` for the same reason: the neutral
-interface doesn't tell the truth about what a page-scope-like adapter must answer versus
-what the PDF backend happens to do.
-
-**Direction.** A narrow PDF-specific context interface (e.g. `PdfPageSurface`) carrying
-the page-handle members and `adoptPage`; `PdfRenderContext` implements both. `LoadedPage`
-types its needs against the PDF-specific surface. Care needed at `LoadedPage.render`'s
-override signature (the base `render(context: RenderContext)` is the contract the
-paginator calls).
+**Design note.** `Page.render`/`LoadedPage.render` keep the paginator's
+`render(context: RenderContext)` contract and narrow at runtime via the guards — the
+guards can only fail for a non-PDF backend, which ADR 0001 rules out. Splitting the
+guard in two mattered: demanding the full surface in `Page` would have over-constrained
+test fakes (they implement `addPage` but never `adoptPage`).
 
 **Wins.**
 - the neutral interface describes only what scope-like adapters must answer

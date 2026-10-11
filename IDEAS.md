@@ -372,3 +372,7 @@ either generate a larger registry from it at build time or document the
 ## I16 - Barcodes and QR code genertors
 
 ## I17 -  include charts
+
+## I18 - SEO for docs, LLM.txt  file, agentic (mcp) methods
+
+## I19 - Watermarks

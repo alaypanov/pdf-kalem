@@ -2,6 +2,7 @@ import { Edge } from 'yoga-layout';
 import type { PDFDocument } from 'pdf-lib';
 import { PageWidget } from '../Page';
 import type { RenderContext } from '../RenderContextInterface';
+import { isPdfPageSurface, type PdfPageSurface } from '../PdfPageSurface';
 import type { Widget } from '../Widget';
 import { debugLog } from '../utils/debug';
 
@@ -46,9 +47,20 @@ export class LoadedPage extends PageWidget {
     }
   }
 
+  /**
+   * Adopts the source page, then paints overlays on top. The override
+   * signature stays the paginator's contract (`RenderContext`); the PDF
+   * page surface is narrowed at runtime — the edit module only ever runs
+   * against the PDF backend, so the guard cannot fail in practice.
+   */
   async render(context: RenderContext): Promise<void> {
+    if (!isPdfPageSurface(context)) {
+      throw new Error('LoadedPage requires the PDF render context (pdf-kalem/edit renders through pdf-lib).');
+    }
+    const surface: PdfPageSurface = context;
+
     debugLog(`LoadedPage: adopting source page ${this.sourceIndex}`);
-    await context.adoptPage(this.source, this.sourceIndex);
+    await surface.adoptPage(this.source, this.sourceIndex);
 
     // The legacy single-page path (overflow: false): openPage is a no-op —
     // the surface already exists — then layout + paint children on top.
