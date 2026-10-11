@@ -1,15 +1,14 @@
 import type { RenderContext } from './RenderContextInterface';
 import type { BreakUnit } from './pagination/types';
+import { applyYogaStyle, type YogaStyle } from './yoga-style';
 import Yoga, {
-  Align,
   Direction,
-  Edge,
   FlexDirection,
-  Gutter,
-  Justify,
   Node,
   PositionType,
 } from 'yoga-layout';
+
+export type { YogaStyle, YogaStyleValue, YogaDimensionValue } from './yoga-style';
 
 export interface WidgetOptions {
   children?: Widget[];
@@ -19,51 +18,7 @@ export interface WidgetOptions {
    * Default: undefined — breakability is decided by structure.
    */
   breakable?: boolean;
-}
-
-export type YogaStyleValue = number | 'auto' | `${number}%`;
-
-/** Dimension value for min/max constraints — Yoga rejects 'auto' there. */
-export type YogaDimensionValue = number | `${number}%`;
-
-export interface YogaStyle {
-  width?: YogaStyleValue;
-  height?: YogaStyleValue;
-  minWidth?: YogaDimensionValue;
-  minHeight?: YogaDimensionValue;
-  maxWidth?: YogaDimensionValue;
-  maxHeight?: YogaDimensionValue;
-
-  flexDirection?: 'row' | 'column';
-  justifyContent?:
-    | 'flex-start'
-    | 'center'
-    | 'flex-end'
-    | 'space-between'
-    | 'space-around'
-    | 'space-evenly';
-  alignItems?: 'flex-start' | 'center' | 'flex-end' | 'stretch';
-  alignSelf?: 'auto' | 'flex-start' | 'center' | 'flex-end' | 'stretch';
-
-  flexGrow?: number;
-  flexShrink?: number;
-  flexBasis?: YogaStyleValue;
-
-  gap?: number | `${number}%`;
-
-  padding?: number;
-  paddingTop?: number;
-  paddingRight?: number;
-  paddingBottom?: number;
-  paddingLeft?: number;
-
-  margin?: number;
-  marginTop?: number;
-  marginRight?: number;
-  marginBottom?: number;
-  marginLeft?: number;
-
-  position?: 'relative' | 'absolute';
+position?: 'relative' | 'absolute';
   top?: number;
   right?: number;
   bottom?: number;
@@ -116,190 +71,12 @@ export abstract class Widget {
   }
 
   /**
-   * The single styling entry: typed dispatch on `YogaStyle` keys. Unknown
-   * keys are a compile error at typed call sites (no silent no-ops);
-   * undefined/null values are skipped.
+   * The single styling entry — a thin delegation to the Yoga style
+   * interpreter (src/lib/yoga-style.ts), which owns the dispatch and the
+   * dimension parsing. Subclasses keep this ergonomic protected form.
    */
   protected setYogaStyle(style: YogaStyle): void {
-    for (const key of Object.keys(style) as (keyof YogaStyle)[]) {
-      const value = style[key];
-      if (value === undefined || value === null) continue;
-      this.applyStyle(key, value);
-    }
-  }
-
-  private applyStyle(key: keyof YogaStyle, value: YogaStyle[keyof YogaStyle]): void {
-    switch (key) {
-      case 'width':
-        this.setDimension(
-          value as YogaStyleValue,
-          (v) => this.node.setWidth(v),
-          (v) => this.node.setWidthPercent(v),
-          () => this.node.setWidthAuto(),
-        );
-        return;
-      case 'height':
-        this.setDimension(
-          value as YogaStyleValue,
-          (v) => this.node.setHeight(v),
-          (v) => this.node.setHeightPercent(v),
-          () => this.node.setHeightAuto(),
-        );
-        return;
-      case 'flexBasis':
-        this.setDimension(
-          value as YogaStyleValue,
-          (v) => this.node.setFlexBasis(v),
-          (v) => this.node.setFlexBasisPercent(v),
-          () => this.node.setFlexBasisAuto(),
-        );
-        return;
-
-      // Yoga's min/max setters accept numbers and percent strings natively.
-      case 'minWidth':
-        this.node.setMinWidth(value as YogaDimensionValue);
-        return;
-      case 'minHeight':
-        this.node.setMinHeight(value as YogaDimensionValue);
-        return;
-      case 'maxWidth':
-        this.node.setMaxWidth(value as YogaDimensionValue);
-        return;
-      case 'maxHeight':
-        this.node.setMaxHeight(value as YogaDimensionValue);
-        return;
-
-      case 'flexDirection':
-        this.node.setFlexDirection(value === 'row' ? FlexDirection.Row : FlexDirection.Column);
-        return;
-      case 'justifyContent': {
-        const map: Record<string, Justify> = {
-          'flex-start': Justify.FlexStart,
-          center: Justify.Center,
-          'flex-end': Justify.FlexEnd,
-          'space-between': Justify.SpaceBetween,
-          'space-around': Justify.SpaceAround,
-          'space-evenly': Justify.SpaceEvenly,
-        };
-        this.node.setJustifyContent(map[value as string] ?? Justify.FlexStart);
-        return;
-      }
-      case 'alignItems': {
-        const map: Record<string, Align> = {
-          'flex-start': Align.FlexStart,
-          center: Align.Center,
-          'flex-end': Align.FlexEnd,
-          stretch: Align.Stretch,
-        };
-        this.node.setAlignItems(map[value as string] ?? Align.FlexStart);
-        return;
-      }
-      case 'alignSelf': {
-        const map: Record<string, Align> = {
-          auto: Align.Auto,
-          'flex-start': Align.FlexStart,
-          center: Align.Center,
-          'flex-end': Align.FlexEnd,
-          stretch: Align.Stretch,
-        };
-        this.node.setAlignSelf(map[value as string] ?? Align.Auto);
-        return;
-      }
-
-      case 'flexGrow':
-        this.node.setFlexGrow(value as number);
-        return;
-      case 'flexShrink':
-        this.node.setFlexShrink(value as number);
-        return;
-
-      case 'gap': {
-        if (typeof value === 'string' && value.endsWith('%')) {
-          const pct = Number(value.slice(0, -1));
-          if (Number.isFinite(pct)) {
-            (this.node as any).setGapPercent?.(Gutter.All, pct);
-          }
-          return;
-        }
-        this.node.setGap(Gutter.All, value as number);
-        return;
-      }
-
-      case 'padding':
-        this.node.setPadding(Edge.All, value as number);
-        return;
-      case 'paddingTop':
-        this.node.setPadding(Edge.Top, value as number);
-        return;
-      case 'paddingRight':
-        this.node.setPadding(Edge.Right, value as number);
-        return;
-      case 'paddingBottom':
-        this.node.setPadding(Edge.Bottom, value as number);
-        return;
-      case 'paddingLeft':
-        this.node.setPadding(Edge.Left, value as number);
-        return;
-
-      case 'margin':
-        this.node.setMargin(Edge.All, value as number);
-        return;
-      case 'marginTop':
-        this.node.setMargin(Edge.Top, value as number);
-        return;
-      case 'marginRight':
-        this.node.setMargin(Edge.Right, value as number);
-        return;
-      case 'marginBottom':
-        this.node.setMargin(Edge.Bottom, value as number);
-        return;
-      case 'marginLeft':
-        this.node.setMargin(Edge.Left, value as number);
-        return;
-
-      case 'position':
-        this.node.setPositionType(value === 'absolute' ? PositionType.Absolute : PositionType.Relative);
-        return;
-      case 'top':
-        this.node.setPosition(Edge.Top, value as number);
-        return;
-      case 'right':
-        this.node.setPosition(Edge.Right, value as number);
-        return;
-      case 'bottom':
-        this.node.setPosition(Edge.Bottom, value as number);
-        return;
-      case 'left':
-        this.node.setPosition(Edge.Left, value as number);
-        return;
-    }
-  }
-
-  /**
-   * The one shared dimension parser: `number` | `` `${number}%` `` | 'auto'
-   * routed to the matching Yoga setter. Percent/auto only apply where the
-   * caller passed a setter for them.
-   */
-  private setDimension(
-    value: YogaStyleValue,
-    set: (v: number) => void,
-    setPercent?: (v: number) => void,
-    setAuto?: () => void,
-  ): void {
-    if (value === 'auto') {
-      setAuto?.();
-      return;
-    }
-    if (typeof value === 'string' && value.endsWith('%')) {
-      const pct = Number(value.slice(0, -1));
-      if (Number.isFinite(pct) && setPercent) {
-        setPercent(pct);
-      }
-      return;
-    }
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      set(value);
-    }
+    applyYogaStyle(this.node, style);
   }
 
   /**

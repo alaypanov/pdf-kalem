@@ -23,3 +23,4 @@ export {
   type FitPlacement,
 } from './lib/aspect-fit';
 export { resolveColor, resolveFont } from './lib/theme-resolve';
+export { applyYogaStyle } from './lib/yoga-style';

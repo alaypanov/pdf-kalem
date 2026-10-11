@@ -17,7 +17,7 @@
 | 5 | Retire the string-keyed `setProperty` interpreter | Strong | ✅ Done — `setYogaStyle` is the only styling entry; dead accessors dropped |
 | 6 | Extract the theme-resolution policy | Strong | ✅ Done — `src/lib/theme-resolve.ts`; 18 call sites collapsed |
 | 7 | Un-glue `PdfDoc` | Worth exploring | Open — shrunk by #1 |
-| 8 | Extract the Yoga style interpreter from `Widget` | Worth exploring | Open |
+| 8 | Extract the Yoga style interpreter from `Widget` | Worth exploring | ✅ Done — `src/lib/yoga-style.ts`; `Widget.ts` 424 → 201 lines |
 | 9 | Deduplicate the test `FakeContext` | Strong | ✅ Done — `tests/fake-context.mjs`; −167 lines across two suites |
 
 Suggested order: 2 → 4 → 5 → 3 landed; remaining: **6 → 9 → 8 → 7**.
@@ -452,7 +452,7 @@ standalone output module.
 
 ---
 
-## 8 — Extract the Yoga style interpreter from `Widget` `Worth exploring`
+## 8 ✅ Extract the Yoga style interpreter from `Widget` — done (`yoga-style.ts`)
 
 **Files:** `src/lib/Widget.ts` (`setYogaStyle`/`applyStyle`/`setDimension`, ~150 lines of
 the 424)
