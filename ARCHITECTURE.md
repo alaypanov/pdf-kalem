@@ -18,7 +18,7 @@
 | 6 | Extract the theme-resolution policy | Strong | ✅ Done — `src/lib/theme-resolve.ts`; 18 call sites collapsed |
 | 7 | Un-glue `PdfDoc` | Worth exploring | Open — shrunk by #1 |
 | 8 | Extract the Yoga style interpreter from `Widget` | Worth exploring | Open |
-| 9 | Deduplicate the test `FakeContext` | Strong | Open |
+| 9 | Deduplicate the test `FakeContext` | Strong | ✅ Done — `tests/fake-context.mjs`; −167 lines across two suites |
 
 Suggested order: 2 → 4 → 5 → 3 landed; remaining: **6 → 9 → 8 → 7**.
 
@@ -476,7 +476,7 @@ unclear payoff.
 
 ---
 
-## 9 — Deduplicate the test `FakeContext` `Strong`
+## 9 ✅ Deduplicate the test `FakeContext` — done (`tests/fake-context.mjs`)
 
 **Files:** `tests/pagination.test.mjs` · `tests/widgets.test.mjs`
 

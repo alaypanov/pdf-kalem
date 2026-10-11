@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import { PDFDocument } from 'pdf-lib';
 
-import { Paginator } from '../dist/internals.js';
+import { FakeContext, plan } from './fake-context.mjs';
 import {
   Page,
   Text,
@@ -20,92 +20,7 @@ import {
   FixedContainer,
 } from '../dist/widgets.js';
 
-/**
- * Deterministic fake backend for planning. Metrics: char width = 0.6 * size,
- * line height = 1.2 * size, ascent = size — so Text(size: 10, lineHeight: 10)
- * wraps 6 "word" tokens (29 chars = 174pt) per 200pt line.
- */
-class FakeContext {
-  constructor() {
-    this.pages = [];
-    this.page = null;
-  }
-  setTheme() {}
-  getTheme() {
-    return undefined;
-  }
-  setDebug() {}
-  isDebugEnabled() {
-    return false;
-  }
-  getDebugStrokeWidth() {
-    return 0.5;
-  }
-  setDefaultDimensions() {}
-  getOptions() {
-    return {};
-  }
-  measureTextWidth(text, size) {
-    return text.length * size * 0.6;
-  }
-  measureFontAscent(size) {
-    return size;
-  }
-  measureFontHeight(size) {
-    return size;
-  }
-  measureDefaultLineHeight(size) {
-    return size * 1.2;
-  }
-  async preloadFont() {}
-  drawRectangle() {}
-  async drawText() {}
-  drawLine() {}
-  drawImage() {}
-  drawSvgPath() {}
-  addLinkAnnotation() {}
-  async embedImage() {
-    throw new Error('embedImage not implemented in FakeContext');
-  }
-  addPage(dimensions) {
-    const page = { width: dimensions[0], height: dimensions[1] };
-    this.pages.push(page);
-    this.page = page;
-    return page;
-  }
-  getCurrentPage() {
-    return this.page;
-  }
-  setCurrentPage(page) {
-    this.page = page;
-  }
-  getPageHeight() {
-    return this.page ? this.page.height : 0;
-  }
-  getPageWidth() {
-    return this.page ? this.page.width : 0;
-  }
-  getDimensions() {
-    return this.page ? [this.page.width, this.page.height] : [200, 100];
-  }
-  getLayoutBox(widget) {
-    return widget.getAbsoluteLayoutBox();
-  }
-  mapContentBox(box) {
-    return { ...box };
-  }
-  getFlowOffset() {
-    return 0;
-  }
-}
-
 const words = (count) => Array.from({ length: count }, () => 'word').join(' ');
-
-async function plan(page) {
-  const context = new FakeContext();
-  page.setContext(context);
-  return new Paginator().paginate(page, context);
-}
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
