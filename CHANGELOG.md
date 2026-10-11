@@ -19,6 +19,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - I14 resolved: `PageBreak` rejected by design (pagination stays automatic and opaque); `SizedBox` rejected as sugar for `Container({ height })`.
 - Playground sandboxes expose the new widgets.
 
+### Internal
+
+- Theme-resolution policy extracted to `src/lib/theme-resolve.ts` (18 duplicated `override ?? theme ?? fallback` sites collapsed); Yoga style interpreter extracted to `src/lib/yoga-style.ts` (`Widget.ts` 424 → 201 lines); test `FakeContext` shared via `tests/fake-context.mjs`. No public interface changes.
+- Repo scripts: `pnpm test` runs every `tests/*.test.mjs` via `tests/run-all.mjs`; `pnpm example [names…]` runs one, several, or all examples via `examples/run.mjs`.
+
 ## [0.2.0] — 2026-10-10
 
 ### Changed
