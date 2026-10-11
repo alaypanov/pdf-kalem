@@ -8,34 +8,9 @@ import { PdfRenderer } from './PdfRenderer';
 import { FontRegistry } from './FontRegistry';
 import { Paginator } from './pagination/Paginator';
 import type { FontSet } from './fonts/types';
-// Changed PDFDocSize to a constant object
+import { downloadBytes, printBytes, toBlob, toBuffer, writeBytesToFile, type NodeBufferLike } from './doc-output';
 
 type Awaitable<T> = T | Promise<T>;
-type NodeBufferLike = Uint8Array;
-type NodeFsLike = {
-  writeFile(path: string, data: NodeBufferLike): Promise<void>;
-};
-
-function getNodeBufferFactory(): { from(data: Uint8Array): NodeBufferLike } | undefined {
-  const maybeBuffer = (globalThis as typeof globalThis & {
-    Buffer?: { from(data: Uint8Array): NodeBufferLike };
-  }).Buffer;
-
-  if (!maybeBuffer || typeof maybeBuffer.from !== 'function') {
-    return undefined;
-  }
-
-  return maybeBuffer;
-}
-
-async function getNodeFs(): Promise<NodeFsLike> {
-  try {
-    const loadFs = new Function("return import('node:fs/promises')") as () => Promise<NodeFsLike>;
-    return await loadFs();
-  } catch (err) {
-    throw new Error('node:fs/promises is not available in this runtime', { cause: err });
-  }
-}
 
 function applyMeta(doc: PDFDocument, meta?: PdfDocMeta): void {
   if (!meta) return;
@@ -103,13 +78,11 @@ export interface PdfDocAfterSaveArgs {
 /**
  * PdfDoc is the document model: it owns the page tree, theme, metadata, and
  * lifecycle hooks. It is intentionally not a Widget — a document is not a
- * layout node. Rendering is delegated to {@link PdfRenderer}, and runtime
- * helpers (blob/download/buffer/file) live on PdfDoc as convenience methods.
+ * layout node. Rendering is delegated to {@link PdfRenderer}; output
+ * mechanics (blob/download/buffer/file) delegate to the runtime adapters in
+ * `doc-output.ts`.
  */
 export class PdfDoc {
-  private static globalBeforeCreate: Array<(args: PdfDocBeforeCreateArgs) => Awaitable<void>> = [];
-  private static globalAfterSave: Array<(args: PdfDocAfterSaveArgs) => Awaitable<void>> = [];
-
   /**
    * Registers a font from `url`, stores its bytes in {@link FontRegistry},
    * and loads it into the browser font set (for canvas-based measurement via
@@ -137,19 +110,6 @@ export class PdfDoc {
 
   static registerFontkit(fontkit: any): void {
     FontRegistry.instance.registerFontkit(fontkit);
-  }
-
-  static beforeCreate(hook: (args: PdfDocBeforeCreateArgs) => Awaitable<void>): void {
-    PdfDoc.globalBeforeCreate.push(hook);
-  }
-
-  static afterSave(hook: (args: PdfDocAfterSaveArgs) => Awaitable<void>): void {
-    PdfDoc.globalAfterSave.push(hook);
-  }
-
-  static clearHooks(): void {
-    PdfDoc.globalBeforeCreate = [];
-    PdfDoc.globalAfterSave = [];
   }
 
   protected size?: PageSize; // Can be undefined if customSize is used
@@ -286,9 +246,6 @@ export class PdfDoc {
   }
 
   async savePdf(): Promise<Uint8Array> {
-    for (const hook of PdfDoc.globalBeforeCreate) {
-      await hook({ context: this.context, root: this });
-    }
     await this.beforeCreate?.({ context: this.context, root: this });
 
     const pdfDoc = await PDFDocument.create();
@@ -301,91 +258,29 @@ export class PdfDoc {
     const bytes = await pdfDoc.save();
 
     await this.afterSave?.({ doc: pdfDoc, context: this.context, root: this, bytes });
-    for (const hook of PdfDoc.globalAfterSave) {
-      await hook({ doc: pdfDoc, context: this.context, root: this, bytes });
-    }
 
     return bytes;
   }
 
   async getBlob(): Promise<Blob> {
-    if (typeof Blob === 'undefined') {
-      throw new Error('Blob is not available in this runtime');
-    }
-
-    const bytes = await this.savePdf();
-    return new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
+    return toBlob(await this.savePdf());
   }
 
   async download(fileName = 'document.pdf'): Promise<void> {
-    if (typeof document === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
-      throw new Error('PdfDoc.download is only available in browser-like runtimes');
-    }
-
-    const blob = await this.getBlob();
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-
-    anchor.href = url;
-    anchor.download = fileName;
-    anchor.style.display = 'none';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
+    downloadBytes(await this.savePdf(), fileName);
   }
 
   /**
-   * Opens the browser's print dialog with the generated PDF: the blob is
-   * loaded into a hidden iframe and the iframe's print is triggered once it
-   * finishes loading. Browser-only.
-   *
-   * Known limitation: Safari's PDF viewer doesn't support programmatic
-   * printing — the dialog may print blank there. Downloading and printing
-   * manually is the reliable fallback.
+   * Opens the browser's print dialog with the generated PDF. Browser-only.
+   * See `printBytes` in `doc-output.ts` for the mechanics and the Safari
+   * caveat.
    */
   async print(): Promise<void> {
-    if (typeof document === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
-      throw new Error('PdfDoc.print is only available in browser-like runtimes');
-    }
-
-    const blob = await this.getBlob();
-    const url = URL.createObjectURL(blob);
-
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    let cleanedUp = false;
-
-    const cleanup = (): void => {
-      if (cleanedUp) return;
-      cleanedUp = true;
-      iframe.remove();
-      URL.revokeObjectURL(url);
-    };
-
-    // afterprint fires when the dialog closes (Chrome/Firefox). Browsers
-    // that never fire it fall back to the timeout below.
-    iframe.addEventListener('load', () => {
-      iframe.contentWindow?.addEventListener('afterprint', cleanup);
-      // A deferred call — some engines aren't ready to print inside the
-      // load event itself.
-      setTimeout(() => iframe.contentWindow?.print(), 0);
-      // Fallback cleanup if afterprint never fires.
-      setTimeout(cleanup, 60_000);
-    });
-
-    iframe.src = url;
-    document.body.appendChild(iframe);
+    printBytes(await this.savePdf());
   }
 
   async getBuffer(): Promise<NodeBufferLike> {
-    const bufferFactory = getNodeBufferFactory();
-    if (!bufferFactory) {
-      throw new Error('Node Buffer is not available in this runtime');
-    }
-
-    const bytes = await this.savePdf();
-    return bufferFactory.from(bytes);
+    return toBuffer(await this.savePdf());
   }
 
   async writeToFile(filePath: string): Promise<void> {
@@ -393,9 +288,7 @@ export class PdfDoc {
       throw new Error('PdfDoc.writeToFile requires a file path');
     }
 
-    const fsModule = await getNodeFs();
-    const buffer = await this.getBuffer();
-    await fsModule.writeFile(filePath, buffer);
+    await writeBytesToFile(await this.savePdf(), filePath);
   }
 
   async save(): Promise<Uint8Array> {
@@ -403,10 +296,4 @@ export class PdfDoc {
   }
 }
 
-// export function PdfDocWidgetFactory(options: PdfDocOptions = {}): PdfDoc {
-//   return new PdfDoc(options);
-// }
-
-// Back-compat exports (older names)
-// export type PdfDocOptions = PdfDocOptions;
 export { PdfDoc as PdfDocWidget };

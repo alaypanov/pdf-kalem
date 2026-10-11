@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Breaking:** removed the process-global `PdfDoc.beforeCreate`/`afterSave`/`clearHooks` statics — two documents in one process shared hook state, and the constructor's `beforeCreate`/`afterSave` options are the supported channel. No in-repo callers; the statics were undocumented.
+- Runtime output mechanics (blob/download/print/buffer/file) moved from `PdfDoc` to `src/lib/doc-output.ts`; the `PdfDoc` methods remain as delegates — the public interface is otherwise unchanged.
 - I14 resolved: `PageBreak` rejected by design (pagination stays automatic and opaque); `SizedBox` rejected as sugar for `Container({ height })`.
 - Playground sandboxes expose the new widgets.
 

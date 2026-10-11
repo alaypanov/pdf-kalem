@@ -27,3 +27,4 @@ pdf-kalem — a PDF-focused widget-tree UI library for document generation. Type
 - Public API surface is what `package.json` `exports` declares — don't widen it without intent.
 - `sideEffects: false` — keep tree-shaking safe; no top-level side effects in `src/`.
 - Use the vocabulary from ARCHITECTURE.md when writing or reviewing design changes.
+- update changelog and version before pushing the code

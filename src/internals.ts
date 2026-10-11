@@ -24,3 +24,4 @@ export {
 } from './lib/aspect-fit';
 export { resolveColor, resolveFont } from './lib/theme-resolve';
 export { applyYogaStyle } from './lib/yoga-style';
+export { toBlob, toBuffer, writeBytesToFile, downloadBytes, printBytes } from './lib/doc-output';
