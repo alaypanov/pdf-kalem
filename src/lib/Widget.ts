@@ -354,6 +354,14 @@ export abstract class Widget {
     return this.children;
   }
 
+  /**
+   * @internal — package-internal: position this widget's node absolutely
+   * within its parent (Stack aligns its non-positioned children this way).
+   */
+  positionAbsolute(): void {
+    this.node.setPositionType(PositionType.Absolute);
+  }
+
   /** @internal — package-internal: append a child after construction (edit module overlays). */
   appendWidgetChild(widget: Widget): void {
     widget.parent = this;

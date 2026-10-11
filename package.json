@@ -1,6 +1,6 @@
 {
   "name": "pdf-kalem",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "PDF-focused widget-tree UI library for document generation.",
   "type": "module",
   "sideEffects": false,
@@ -51,7 +51,7 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm build && node tests/pagination.test.mjs && node tests/fonts.test.mjs && node tests/layout.test.mjs && node tests/runs.test.mjs && node tests/markdown.test.mjs && node tests/aspect-fit.test.mjs && node tests/edit.test.mjs",
+    "test": "pnpm build && node tests/pagination.test.mjs && node tests/fonts.test.mjs && node tests/layout.test.mjs && node tests/runs.test.mjs && node tests/markdown.test.mjs && node tests/aspect-fit.test.mjs && node tests/edit.test.mjs && node tests/widgets.test.mjs",
     "examples": "pnpm build && cd examples/basic && node main.ts && cd ../invoice && node src/main.ts && cd ../report && node src/main.ts && cd ../markdown && node src/main.ts && cd ../edit && node src/main.ts",
     "dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",

@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) — while in `0.x`, breaking changes bump the minor version.
 
+## [0.3.0] — 2026-10-11
+
+### Added
+
+- `Stack` — overlay composition: children painted in order in one box, non-positioned children aligned per `alignment`, `FixedContainer` children keeping their own insets. Sizes to its largest non-positioned child unless `width`/`height` are given; atomic under pagination.
+- `Spacer` — invisible flow space: `size` for a fixed gap, `grow` (default 1) to absorb free main-axis space.
+- `VLine` — vertical rule, the sibling of `HLine` (`color`, `thickness`, `height`; stretches to the row by default).
+
+### Changed
+
+- I14 resolved: `PageBreak` rejected by design (pagination stays automatic and opaque); `SizedBox` rejected as sugar for `Container({ height })`.
+- Playground sandboxes expose the new widgets.
+
 ## [0.2.0] — 2026-10-10
 
 ### Changed

@@ -288,16 +288,22 @@ A regular user's first attempt breaks; the working path is `readFile` +
 sniffable from magic bytes. Candidate: in Node, treat non-URL paths as files (the output
 side already sniffs runtime for `writeToFile`); sniff format from the byte signature.
 
-### I14 — Missing everyday widgets
+### I14 — Missing everyday widgets — RESOLVED (2026-10-10)
 
-Every document author reaches for these; none exist (see `src/lib/widgets.ts` exports):
+Resolved in `src/lib/Stack.ts`, `src/lib/Spacer.ts`, `src/lib/VLine.ts` (tests:
+`tests/widgets.test.mjs`):
 
-- **PageBreak** — pagination is automatic and opaque; no way to say "start a new page
-  here" (invoices/reports need this constantly).
-- **Spacer / SizedBox** — faked today with empty `Container({ height: 12 })`.
-- **VLine** — `HLine` exists but not its vertical sibling; the lab invoice faked one with
-  a 1pt Container (see I11 for why that was painful).
-- **Stack / z-ordering** — `FixedContainer` is absolute-only; no overlay composition.
+- **Stack** — overlay composition, painted in order. Non-positioned children align per
+  `alignment` (Yoga aligns inset-less absolute children via justifyContent/alignItems);
+  `FixedContainer` children keep their own insets. Sizes to its largest non-positioned
+  child (measured in prepareLayout), else explicit `width`/`height` (throws with guidance
+  if only positioned children and no size). Atomic under pagination.
+- **Spacer** — `size` for a fixed gap, `grow` (default 1) to absorb free main-axis space.
+- **VLine** — vertical sibling of `HLine` (`color`, `thickness`, `height`, stretches to
+  the row by default).
+- **PageBreak** — rejected by design: pagination is automatic and opaque; an explicit
+  break would fight the paginator's model. Revisit only if a real document demands it.
+- **SizedBox** — rejected as sugar: `Container({ height })` already says it.
 
 ### I15 — Icon registry too small to be useful
 

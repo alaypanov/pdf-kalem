@@ -18,6 +18,8 @@ import {
   Link,
   Page,
   Row,
+  Spacer,
+  Stack,
   SVGPath,
   Table,
   TableBody,
@@ -25,6 +27,7 @@ import {
   TableHead,
   TableRow,
   Text,
+  VLine,
 } from '../../../src/widgets';
 import { PageSize } from '../../../src';
 import { fromHex } from '../../../src/lib/utils/color-utils';
@@ -40,6 +43,9 @@ export function widgetSandbox(extra: Record<string, unknown> = {}): Record<strin
     Container,
     FixedContainer,
     HLine,
+    VLine,
+    Stack,
+    Spacer,
     Link,
     Table,
     TableHead,

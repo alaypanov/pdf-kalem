@@ -9,10 +9,13 @@ Everything in a pdf-kalem document is a widget created through a factory functio
 - `Row` / `Column` — flex containers with `mainAxisAlignment`, `crossAxisAlignment`, and `gap` (via `style`). Expose Flutter-ish statics: `Row.justifyBetween`, `Row.alignCenter`, `Column.alignEnd`, …
 - `FlexContainer` — the general flex box with a full `style` object.
 - `FixedContainer` — absolutely positioned against the page box (`top`/`bottom`/`left`/`right`). Used for page furniture like footers.
+- `Stack` — overlays its children in the same box, painted in order (first child bottom-most). Non-positioned children align per `alignment` (`'topLeft'` … `'bottomRight'`); a `FixedContainer` child keeps its own insets. Sizes to its largest non-positioned child unless given `width`/`height`. Atomic under pagination — it moves whole to the next page.
+- `Spacer` — invisible box that occupies space in flow: `Spacer({ size: 12 })` for a fixed gap, bare `Spacer()` (or `grow: 2`) to absorb free space and push siblings apart.
 - `HLine` — a horizontal rule with `color` and `thickness`.
+- `VLine` — the vertical sibling: `color`, `thickness`, and `height` (stretches to the row by default).
 
 ```ts
-import { Page, Column, Row, Container, Text, HLine } from 'pdf-kalem/widgets';
+import { Page, Column, Row, Container, Stack, FixedContainer, Text, HLine } from 'pdf-kalem/widgets';
 
 Page({
   padding: 36,
@@ -27,12 +30,25 @@ Page({
       ],
     }),
     HLine({ color: 'line', thickness: 1, width: '100%' }),
+    Spacer({ size: 24 }),
+    // A photo with a badge overlaid on its top-right corner:
+    Stack({
+      alignment: 'topLeft',
+      children: [
+        Image.png('/photo.png'),          // sizes the stack
+        FixedContainer({ top: 8, right: 8, width: 48, height: 16, bgColor: 'primary' }),
+      ],
+    }),
   ],
 });
 ```
 
 ::: tip Shrink-wrap
 Children of a `Container` shrink-wrap horizontally (`alignItems: 'flex-start'`). Give a `Row` or `Column` `width: '100%'` when you want it to fill the panel or let `justifyBetween` spread its children. Direct children of `Page` stretch by default.
+:::
+
+::: warning Stack needs something to size to
+A `Stack` whose children are all positioned (`FixedContainer`) has nothing to size itself against — pass explicit `width` and `height`, or include at least one non-positioned child.
 :::
 
 ## Text and rich runs
