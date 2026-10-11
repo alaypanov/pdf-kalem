@@ -4,7 +4,6 @@ import type { Theme } from './Theme';
 import { PageSize, PDFDocSize } from './types/doc-sizes';
 import { PageWidget } from './Page';
 import { PDFDocument } from 'pdf-lib';
-import { PdfRenderer } from './PdfRenderer';
 import { FontRegistry } from './FontRegistry';
 import { Paginator } from './pagination/Paginator';
 import type { FontSet } from './fonts/types';
@@ -78,7 +77,7 @@ export interface PdfDocAfterSaveArgs {
 /**
  * PdfDoc is the document model: it owns the page tree, theme, metadata, and
  * lifecycle hooks. It is intentionally not a Widget — a document is not a
- * layout node. Rendering is delegated to {@link PdfRenderer}; output
+ * layout node. Rendering is the save-time walk over the page tree; output
  * mechanics (blob/download/buffer/file) delegate to the runtime adapters in
  * `doc-output.ts`.
  */
@@ -252,8 +251,12 @@ export class PdfDoc {
     applyMeta(pdfDoc, this.getMeta());
     this.context.setDocument(pdfDoc);
 
-    const renderer = new PdfRenderer(this);
-    await renderer.render();
+    // The render walk is the save-time strategy itself — the constructor
+    // enforces that every child is a PageWidget, so there is nothing here
+    // worth a separate module (I5: the former PdfRenderer was a pass-through).
+    for (const page of this.children) {
+      await page.render(this.context);
+    }
 
     const bytes = await pdfDoc.save();
 

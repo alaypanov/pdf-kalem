@@ -139,14 +139,16 @@ Also neutralize `RenderImage` (still `PDFImage`-typed today).
 removed the backend pressure that motivated the split. The seam stays as pagination's
 composition point; revisit only if its width actually hurts.
 
-### I5 — Decide `PdfRenderer`'s fate with #2
+### I5 — `PdfRenderer` folded into `savePdf` — RESOLVED (2026-10-11)
 
-`PdfRenderer` is 24 lines: `render()` → `renderPages()` → `for (page of pages)
+`PdfRenderer` was 24 lines: `render()` → `renderPages()` → `for (page of pages)
 page.render(context)`. Deletion test: delete it and the loop moves into `savePdf` —
-complexity vanishes. It's a hypothetical seam (one caller, zero alternatives) *today*.
-Keep it only if pagination introduces a genuine second render strategy; otherwise fold it
-into `savePdf` and revisit when #2 lands. #2 decided 2026-10-02 (pure transformation —
-ARCHITECTURE.md §2): revisit at implementation.
+complexity vanishes. It's a hypothetical seam (one caller, zero alternatives).
+
+**Resolved 2026-10-11** — the walk is now inline in `PdfDoc.savePdf` (with the comment
+explaining why there is no separate module); `PdfRenderer.ts` deleted and its
+package-root export removed. Pagination did not introduce the second render strategy
+that would have made the seam real.
 
 ### I6 — Start an ADR practice
 
@@ -298,13 +300,27 @@ The three docs playgrounds surface warnings in their UI (`captureWarnings` in
 the Source strip + amber badge state) — not just DevTools. The layout-collapse half
 (debug-drawing zero-height boxes) stays open as I7 territory.
 
-### I13 — Local image files require manual loading
+### I13 — Local image files require manual loading — RESOLVED (2026-10-11)
 
 `Image.png('./logo.png')` calls `fetch()` on the URL, which fails for file paths in Node.
 A regular user's first attempt breaks; the working path is `readFile` +
 `Image.fromBytes(bytes, 'png')` with `format` specified explicitly even though it's
 sniffable from magic bytes. Candidate: in Node, treat non-URL paths as files (the output
 side already sniffs runtime for `writeToFile`); sniff format from the byte signature.
+
+**Fixed 2026-10-11** in `src/lib/Image.ts`:
+
+- In Node, a bare path (`./logo.png`) or `file://` URL reads from disk (`readNodeFile`
+  via the `new Function` escape hatch — no node types in src/); real URLs
+  (http/https/data/blob) fetch as before, in every runtime.
+- The bytes are ground truth: `sniffImageFormat` (moved to `utils/image-format.ts`,
+  shared with markdown) runs on every load; a sniffed format overrides a disagreeing
+  declared one, with a warning. Unrecognizable signatures fall through to the declared
+  format (embedImage reports unsupported formats).
+- `Image.fromBytes(bytes, format?)` — format is now optional when the signature sniffs;
+  throws with guidance when it doesn't and none was given.
+- Pinned by `tests/image.test.mjs` (absolute/relative/file:// paths, sniffing, mismatch
+  warning, data-URL path unchanged).
 
 ### I14 — Missing everyday widgets — RESOLVED (2026-10-10)
 

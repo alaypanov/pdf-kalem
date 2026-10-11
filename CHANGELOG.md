@@ -12,11 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `Spacer` — invisible flow space: `size` for a fixed gap, `grow` (default 1) to absorb free main-axis space.
 - `VLine` — vertical rule, the sibling of `HLine` (`color`, `thickness`, `height`; stretches to the row by default).
 - `pdf-kalem/preview` — `renderToPng(pdfBytes, { page, dpi })` rasterizes produced PDF bytes to PNG (Node-only; `pdfjs-dist` + `@napi-rs/canvas` as optional peer deps, loaded lazily). The fast visual feedback loop (I9 Stage 1).
+- `Image.png('/path/to/logo.png')` reads local file paths in Node (bare paths and `file://` URLs; URLs still fetch) — no more manual `readFile` + `fromBytes` (I13).
+- `Image.fromBytes(bytes, format?)` — `format` is optional when the png/jpeg signature sniffs from the bytes; a declared format that disagrees with the bytes is overridden (with a warning).
 
 ### Changed
 
 - **Breaking:** removed the process-global `PdfDoc.beforeCreate`/`afterSave`/`clearHooks` statics — two documents in one process shared hook state, and the constructor's `beforeCreate`/`afterSave` options are the supported channel. No in-repo callers; the statics were undocumented.
 - Runtime output mechanics (blob/download/print/buffer/file) moved from `PdfDoc` to `src/lib/doc-output.ts`; the `PdfDoc` methods remain as delegates — the public interface is otherwise unchanged.
+- **Breaking (internal surface):** the `PdfRenderer` class is removed — its render walk is inline in `PdfDoc.savePdf` (I5: one caller, zero alternatives). It was exported from the package root but undocumented.
 - I14 resolved: `PageBreak` rejected by design (pagination stays automatic and opaque); `SizedBox` rejected as sugar for `Container({ height })`.
 - Playground sandboxes expose the new widgets.
 

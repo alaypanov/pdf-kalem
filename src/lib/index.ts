@@ -1,5 +1,4 @@
 export * from './PdfDoc';
-export * from './PdfRenderer';
 export * from './RenderContext';
 export * from './FontRegistry';
 export * from './Theme';

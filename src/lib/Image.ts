@@ -7,10 +7,24 @@ import {
   aspectFitPlacement,
   type FitSpec,
 } from './aspect-fit';
+import { sniffImageFormat } from './utils/image-format';
 
 // Compat re-export: ImageSizing is the shared fit vocabulary (defined in
 // aspect-fit.ts) but was first shipped from this module.
 export { ImageSizing };
+
+/** True when running under Node — the runtime that can read file paths. */
+function isNode(): boolean {
+  return typeof (globalThis as { process?: { versions?: { node?: string } } }).process?.versions?.node === 'string';
+}
+
+/** Node fs via the same `new Function` escape hatch `doc-output.ts` uses. */
+async function readNodeFile(path: string): Promise<Uint8Array> {
+  const loadFs = new Function("return import('node:fs/promises')") as () => Promise<{
+    readFile(path: string): Promise<Uint8Array>;
+  }>;
+  return loadFs().then((fs) => fs.readFile(path));
+}
 
 interface ImageOptions extends WidgetOptions {
   url: string;
@@ -74,8 +88,16 @@ export class ImageWidget extends Widget {
 
   async loadImage(context: RenderContext): Promise<void> {
     if (this.pdfImage) return;
-    const bytes = this.bytes ?? (await (await fetch(this.url)).arrayBuffer());
-    this.pdfImage = await context.embedImage(bytes, this.format);
+    const bytes = this.bytes ?? (await this.fetchBytes());
+
+    // The bytes are ground truth: when the signature disagrees with the
+    // declared format (Image.jpeg on png data), the sniffed format wins —
+    // embedImage reports unsupported signatures itself.
+    const sniffed = sniffImageFormat(bytes);
+    if (sniffed && sniffed !== this.format) {
+      console.warn(`Image: declared format '${this.format}' does not match the bytes (sniffed '${sniffed}') — using the sniffed format.`);
+    }
+    this.pdfImage = await context.embedImage(bytes, sniffed ?? this.format);
     // Use natural image size initially
     this.imageWidth = this.pdfImage.width * this.scale;
     this.imageHeight = this.pdfImage.height * this.scale;
@@ -97,6 +119,26 @@ export class ImageWidget extends Widget {
   override async prepareLayout(context: RenderContext): Promise<void> {
     await this.loadImage(context);
     await super.prepareLayout(context);
+  }
+
+  /**
+   * I13: in Node, a bare path (`./logo.png`) or `file://` URL reads from
+   * disk — the regular user's first attempt, which used to break on
+   * `fetch`. Real URLs (http/https/data/blob) fetch as before, in every
+   * runtime.
+   */
+  private async fetchBytes(): Promise<ArrayBuffer> {
+    const url = this.url;
+    const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url);
+    const isFileUrl = url.startsWith('file://');
+
+    if (isNode() && (!hasScheme || isFileUrl)) {
+      const path = isFileUrl ? url.slice('file://'.length) : url;
+      const bytes = await readNodeFile(path);
+      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+    }
+
+    return (await fetch(url)).arrayBuffer();
   }
 
   async render(context: RenderContext): Promise<void> {
@@ -125,16 +167,22 @@ export const Image = {
   },
   /**
    * Builds an image from already-fetched bytes (no internal fetch). Copies
-   * typed-array views into an exact ArrayBuffer first.
+   * typed-array views into an exact ArrayBuffer first. `format` is optional
+   * when the bytes carry a recognizable png/jpeg signature (sniffed; a
+   * passed format that disagrees is overridden with a warning).
    */
   fromBytes(
     bytes: ArrayBuffer | Uint8Array,
-    format: 'png' | 'jpeg',
+    format?: 'png' | 'jpeg',
     options: Omit<ImageOptions, 'url' | 'format' | 'bytes'> = {},
   ): ImageWidget {
     const buffer = ArrayBuffer.isView(bytes)
       ? (bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer)
       : (bytes as ArrayBuffer);
-    return new ImageWidget({ ...options, url: '', format, bytes: buffer });
+    const resolved = format ?? sniffImageFormat(buffer);
+    if (!resolved) {
+      throw new Error("Image.fromBytes: could not sniff the format from the bytes — pass 'png' or 'jpeg' explicitly.");
+    }
+    return new ImageWidget({ ...options, url: '', format: resolved, bytes: buffer });
   },
 }
