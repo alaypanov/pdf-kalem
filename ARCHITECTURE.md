@@ -19,14 +19,50 @@
 | 7 | Un-glue `PdfDoc` | Worth exploring | ✅ Done — hooks removed (instance options are the channel); IO → `src/lib/doc-output.ts` |
 | 8 | Extract the Yoga style interpreter from `Widget` | Worth exploring | ✅ Done — `src/lib/yoga-style.ts`; `Widget.ts` 424 → 201 lines |
 | 9 | Deduplicate the test `FakeContext` | Strong | ✅ Done — `tests/fake-context.mjs`; −167 lines across two suites |
+| 10 | Move `adoptPage` off the neutral `RenderContext` interface | Worth exploring | Open |
 
-Suggested order: 2 → 4 → 5 → 3 landed; remaining: **6 → 9 → 8 → 7**.
+All candidates 1–9 landed. Remaining: **10**.
 
 > **Direction (2026-10-09): PDF-only focus** — [ADR 0001](./docs/adr/0001-pdf-only-focus.md).
 > No image/HTML backends will be built; the RenderContext seam is retained because pagination's
 > `PageScope` composes through it — not as a backend hook. New PDF-specific features get
 > PDF-typed modules (see `src/lib/edit/`), never interface widening. Candidates this unblocks
 > are recorded in [PLAN.md](./PLAN.md).
+
+---
+
+## Rejected — merging `PdfRenderContext` into the `RenderContext` seam (2026-10-11)
+
+**Proposal.** With PDF-only focus (ADR 0001), collapse the backend-neutral interface and
+the PDF implementation into one concrete `RenderContext` class — one less file, one less
+concept.
+
+**Why rejected.** The seam has **two real adapters**, and both are load-bearing:
+
+1. `PdfRenderContext` — the PDF backend (pdf-lib document, font embedding, the Y-flip).
+2. `PageScope` — one output page's view during pagination: answers geometry from the
+   page's plan, delegates everything else to the backend.
+
+Pagination's design rests on the second adapter: widgets keep calling
+`render(context)` + `getLayoutBox(this)` unchanged, and the scope is a second answer at
+the seam they already trust. Merging forces `PageScope` into one of two dead ends:
+
+- **Extend `PdfRenderContext`** — every paginated render drags pdf-lib document
+  internals, embedded font state, and page handles into a scope that uses none of them.
+- **Union types** — `render(context: PdfRenderContext | PageScope)` in every widget
+  signature (~30 sites), permanently.
+
+The deletion test agrees: delete the interface and the complexity doesn't vanish — it
+reappears in `PageScope` and every widget signature. ADR 0001 already adjudicated the
+underlying question (PDF-only focus, seam retained because `PageScope` composes through
+it); PDF-only is not new evidence for the merge, and the naming is already honest —
+`PdfRenderContext` was renamed *from* `RenderContext` precisely to free the name for the
+neutral interface.
+
+**What the proposal got right.** The interface carries PDF-specific members typed
+`unknown` — `adoptPage` (a pdf-lib `copyPages` concept, sole caller `LoadedPage` in the
+edit module) violates ADR 0001's own "never interface widening" rule. Narrowing that is
+board candidate **#10**.
 
 ---
 
@@ -491,3 +527,27 @@ test files import it. Deliberately *not* under `src/` — it exists only for the
 **Wins.**
 - metric changes (the 0.6·size char width, 1.2·size line height) land in one place
 - new test files stop inheriting a copy-paste tax
+
+---
+
+## 10 — Move `adoptPage` off the neutral `RenderContext` interface `Worth exploring`
+
+**Files:** `src/lib/RenderContextInterface.ts` · `src/lib/PdfRenderContext.ts` ·
+`src/lib/edit/LoadedPage.ts` · `src/lib/pagination/PageScope.ts`
+
+**Problem.** `adoptPage(source, pageIndex)` — a pdf-lib `copyPages` concept used only by
+the edit module's `LoadedPage` — sits on the "backend-neutral" interface, violating ADR
+0001's "never interface widening" rule. The page-handle members (`addPage`,
+`getCurrentPage`/`setCurrentPage`) are typed `unknown` for the same reason: the neutral
+interface doesn't tell the truth about what a page-scope-like adapter must answer versus
+what the PDF backend happens to do.
+
+**Direction.** A narrow PDF-specific context interface (e.g. `PdfPageSurface`) carrying
+the page-handle members and `adoptPage`; `PdfRenderContext` implements both. `LoadedPage`
+types its needs against the PDF-specific surface. Care needed at `LoadedPage.render`'s
+override signature (the base `render(context: RenderContext)` is the contract the
+paginator calls).
+
+**Wins.**
+- the neutral interface describes only what scope-like adapters must answer
+- PDF-specific mechanics live in PDF-typed modules, per ADR 0001
