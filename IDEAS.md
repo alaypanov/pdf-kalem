@@ -220,6 +220,16 @@ bytes-in/PNG-out interface; record `pdf-raster` as the fast Node-only adapter to
 once the preview seam gets its second adapter (browser/playground), at which point the
 seam is real rather than hypothetical. `lab/invoice/preview.mjs` is the working spike.
 
+**Shipped 2026-10-11 — Stage 1 done:** `pdf-kalem/preview` subpath exports
+`renderToPng(pdfBytes, { page, dpi })` (`src/lib/preview.ts`); `pdfjs-dist` +
+`@napi-rs/canvas` are optional peer deps loaded lazily on first call. Two findings from
+the promotion: pdfjs's Node standard-font factory reads with `fs.readFile`, so
+`standardFontDataUrl` must be a plain filesystem path (a `file://` string fails
+silently — warning only); and it resolves through `createRequire` so pnpm's symlink
+layout works. Pinned by `tests/preview.test.mjs` (dimensions, page selection, ink-on-
+page, default DPI). Stage 2 (pdf-raster adapter, playground/browser adapter) remains
+open until the seam gets its second adapter.
+
 ### I10 — Bold is runs-only; theme variants carry no weight
 
 The most common styling need requires the runs API: `Text([{ text: 'Total', bold: true }],

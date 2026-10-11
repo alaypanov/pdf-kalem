@@ -6,6 +6,9 @@ export default defineConfig({
     widgets: 'src/widgets.ts',
     markdown: 'src/markdown.ts',
     edit: 'src/edit.ts',
+    // Node-only preview rasterizer (IDEAS.md I9). Its deps are optional
+    // peers, loaded lazily — external keeps them out of the bundle.
+    preview: 'src/preview.ts',
     // Test-only surface (Paginator/PageScope/plans). Shipped in dist/ but not
     // in package.json exports, so it is not importable by package consumers.
     internals: 'src/internals.ts',
@@ -22,5 +25,5 @@ export default defineConfig({
   // entry points (e.g. `Page()` from 'pdf-kalem/widgets' passed to `PdfDoc` from
   // 'pdf-kalem').
   splitting: true,
-  external: ['@chenglou/pretext', 'pdf-lib', 'yoga-layout', '@pdf-lib/fontkit'],
+  external: ['@chenglou/pretext', 'pdf-lib', 'yoga-layout', '@pdf-lib/fontkit', 'pdfjs-dist', '@napi-rs/canvas'],
 });

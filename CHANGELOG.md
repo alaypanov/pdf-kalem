@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `Stack` — overlay composition: children painted in order in one box, non-positioned children aligned per `alignment`, `FixedContainer` children keeping their own insets. Sizes to its largest non-positioned child unless `width`/`height` are given; atomic under pagination.
 - `Spacer` — invisible flow space: `size` for a fixed gap, `grow` (default 1) to absorb free main-axis space.
 - `VLine` — vertical rule, the sibling of `HLine` (`color`, `thickness`, `height`; stretches to the row by default).
+- `pdf-kalem/preview` — `renderToPng(pdfBytes, { page, dpi })` rasterizes produced PDF bytes to PNG (Node-only; `pdfjs-dist` + `@napi-rs/canvas` as optional peer deps, loaded lazily). The fast visual feedback loop (I9 Stage 1).
 
 ### Changed
 

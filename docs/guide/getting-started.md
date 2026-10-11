@@ -54,6 +54,20 @@ await doc.writeToFile('invoice.pdf');         // Node fs
 
 `getBuffer()` and `writeToFile()` are intended for Node runtimes; `download()`, `getBlob()`, and `print()` for the browser. `print()` loads the PDF into a hidden iframe and opens the browser's print dialog — Safari's PDF viewer doesn't support programmatic printing, so download-and-print manually there.
 
+## Preview: PDF → PNG
+
+The `pdf-kalem/preview` subpath rasterizes the exact bytes `save()` produced — the pixels cannot lie about the output, which makes it the fast visual feedback loop for layout work:
+
+```ts
+import { renderToPng } from 'pdf-kalem/preview';
+
+const bytes = await doc.save();
+const png = await renderToPng(bytes, { page: 0, dpi: 144 }); // → PNG Uint8Array
+await writeFile('preview.png', png);
+```
+
+Node-only; the adapters (`pdfjs-dist`, `@napi-rs/canvas`) are optional peer dependencies loaded on first use — install them with `pnpm add -D pdfjs-dist @napi-rs/canvas` when you want previews.
+
 ## Metadata
 
 Pass document metadata at construction:
