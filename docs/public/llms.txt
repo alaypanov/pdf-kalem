@@ -1,0 +1,24 @@
+# pdf-kalem
+
+> A PDF-focused widget-tree UI library for document generation. TypeScript, ESM, built on pdf-lib + yoga-layout. You describe documents as a widget tree (Pages, Containers, Rows, Text, Tables); pdf-kalem handles flexbox layout, text wrapping, automatic pagination across pages, and PDF output. Markdown converts to paginated PDFs; existing PDFs load as editable widget trees.
+
+pdf-kalem is a Node/browser library for generating PDF documents from code. Install with `npm install pdf-kalem` (or pnpm/yarn). MIT licensed, repository at [github.com/alaypanov/pdf-kalem](https://github.com/alaypanov/pdf-kalem).
+
+## Getting started
+
+- [Getting started](https://alaypanov.github.io/pdf-kalem/guide/getting-started): install, first document, output helpers (save/blob/download/file), PDF→PNG preview.
+- [Widgets](https://alaypanov.github.io/pdf-kalem/guide/widgets): every widget — Page, Container, Row/Column, Flex, Stack, Spacer, Text with styled runs, Table, Image, Icon, HLine/VLine, FixedContainer, Link.
+
+## Core concepts
+
+- [Theming](https://alaypanov.github.io/pdf-kalem/guide/theming): theme tokens (colors, fonts), text variants, container/table defaults. Color values accept hex strings or theme tokens; unknown tokens warn.
+- [Fonts](https://alaypanov.github.io/pdf-kalem/guide/fonts): custom font embedding from files, doc-scoped font sets, CSS-like fontWeight/fontStyle with two-weight family snapping.
+- [Pagination](https://alaypanov.github.io/pdf-kalem/guide/pagination): automatic page breaking — how content splits, keep-together, repeating table heads, page furniture via FixedContainer.
+- [Markdown](https://alaypanov.github.io/pdf-kalem/guide/markdown): markdown → paginated PDF (headings, lists, tables, code blocks, images).
+- [Editing existing PDFs](https://alaypanov.github.io/pdf-kalem/guide/editing): load a PDF as widget trees, overlay content, compose with generated pages.
+
+## Optional
+
+- [Playgrounds](https://alaypanov.github.io/pdf-kalem/playground/widgets): live in-browser editors for widgets, markdown, and PDF editing — every guide snippet runs there.
+- [Changelog](https://github.com/alaypanov/pdf-kalem/blob/main/CHANGELOG.md): release history (Keep a Changelog format).
+- [Architecture](https://github.com/alaypanov/pdf-kalem/blob/main/ARCHITECTURE.md): module seams and design decisions (for contributors).

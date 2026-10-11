@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/alaypanov/pdf-kalem/issues"
   },
-  "homepage": "https://github.com/alaypanov/pdf-kalem#readme",
+  "homepage": "https://alaypanov.github.io/pdf-kalem/",
   "engines": {
     "node": ">=18"
   },

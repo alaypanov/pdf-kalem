@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://alaypanov.github.io/pdf-kalem/sitemap.xml

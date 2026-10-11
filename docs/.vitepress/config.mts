@@ -8,6 +8,28 @@ export default defineConfig({
   description: 'A PDF-focused widget-tree UI library for document generation.',
   // GitHub Pages project site: https://alaypanov.github.io/pdf-kalem/
   base: '/pdf-kalem/',
+  // Sitemap generation (docs/.vitepress/dist/sitemap.xml) — spiders find the
+  // pages through robots.txt's Sitemap line. VitePress 1.x builds sitemap
+  // URLs without `base` (relative paths resolved against the hostname), so
+  // transformItems prepends the GitHub Pages subpath; transformPageData adds
+  // a matching canonical link per page.
+  sitemap: {
+    hostname: 'https://alaypanov.github.io',
+    transformItems: (items) =>
+      items.map((item) => ({ ...item, url: `/pdf-kalem/${item.url}` })),
+  },
+  head: [
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:site_name', content: 'pdf-kalem' }],
+    ['meta', { name: 'twitter:card', content: 'summary' }],
+  ],
+  transformPageData(pageData) {
+    const canonicalUrl = `https://alaypanov.github.io/pdf-kalem/${pageData.relativePath}`
+      .replace(/index\.md$/, '')
+      .replace(/\.md$/, '.html')
+    pageData.frontmatter.head ??= []
+    pageData.frontmatter.head.push(['link', { rel: 'canonical', href: canonicalUrl }])
+  },
   vite: {
     plugins: [
       UnoCSS({ configFile: fileURLToPath(new URL('../uno.config.ts', import.meta.url)) }),
