@@ -23,5 +23,6 @@ export {
   type FitPlacement,
 } from './lib/aspect-fit';
 export { resolveColor, resolveFont } from './lib/theme-resolve';
+export { resetThemeWarningsForTests } from './lib/Theme';
 export { applyYogaStyle } from './lib/yoga-style';
 export { toBlob, toBuffer, writeBytesToFile, downloadBytes, printBytes } from './lib/doc-output';

@@ -9,8 +9,14 @@ import assert from 'node:assert/strict';
 
 import { Page, Container, Column, Text } from '../dist/widgets.js';
 import { PdfDoc, createTheme } from '../dist/index.js';
+import { fromHex } from '../dist/utils/color-utils.js';
 
 const theme = createTheme({
+  colors: {
+    // The summary panels' background — was silently falling back to white
+    // until the I12 token warning caught the missing definition.
+    panel: fromHex('#F5F5F5'),
+  },
   text: {
     h2: { size: 16, lineHeight: 20 },
     label: { size: 9.5, lineHeight: 11 },

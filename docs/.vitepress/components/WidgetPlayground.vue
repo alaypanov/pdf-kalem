@@ -9,7 +9,8 @@ import { tags as t } from '@lezer/highlight'
 import { javascript as javascriptMode } from '@codemirror/lang-javascript'
 import { PdfDoc, PageSize, createTheme, useFonts } from '../../../src/index'
 import { fromHex } from '../../../src/lib/utils/color-utils'
-import { evalPages, widgetSandbox } from './sandbox'
+import { captureWarnings, evalPages, widgetSandbox } from './sandbox'
+import PlaygroundStrip from './PlaygroundStrip.vue'
 import { mdiAbacus } from '@mdi/js'
 
 /**
@@ -317,6 +318,7 @@ const editorEl = ref<HTMLDivElement>()
 const frameEl = ref<HTMLIFrameElement>()
 const badge = ref('…')
 const error = ref('')
+const warning = ref('')
 const downloadHref = ref('')
 
 let view: EditorView | undefined
@@ -331,28 +333,34 @@ async function render(): Promise<void> {
   if (!view) return
   badge.value = 'rendering…'
   try {
-    const pages = evalPages(view.state.doc.toString(), widgetSandbox({ theme, mdiAbacus }))
+    const { result, warnings } = await captureWarnings(async () => {
+      const pages = evalPages(view!.state.doc.toString(), widgetSandbox({ theme, mdiAbacus }))
 
-    const doc = new PdfDoc({
-      size: PageSize.LETTER,
-      theme,
-      fonts,
-      meta: {
-        title: 'pdf-kalem widget playground',
-        creator: 'pdf-kalem',
-        producer: 'pdf-lib',
-      },
-      children: pages,
+      const doc = new PdfDoc({
+        size: PageSize.LETTER,
+        theme,
+        fonts,
+        meta: {
+          title: 'pdf-kalem widget playground',
+          creator: 'pdf-kalem',
+          producer: 'pdf-lib',
+        },
+        children: pages,
+      })
+
+      const blob = await doc.getBlob()
+      const pageCount = await doc.getPageCount()
+      return { blob, pageCount }
     })
 
-    const blob = await doc.getBlob()
-    const pageCount = await doc.getPageCount()
+    const { blob, pageCount } = result
 
     if (objectUrl) URL.revokeObjectURL(objectUrl)
     objectUrl = URL.createObjectURL(blob)
     if (frameEl.value) frameEl.value.src = objectUrl
     downloadHref.value = objectUrl
     error.value = ''
+    warning.value = warnings.join('\n')
     badge.value = `${pageCount} page${pageCount === 1 ? '' : 's'}`
   } catch (err) {
     console.error('widget playground: render failed', err)
@@ -504,11 +512,13 @@ onBeforeUnmount(() => {
          class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.06em] whitespace-nowrap"
          :class="error
            ? 'border-[rgba(185,28,28,0.35)] bg-[rgba(185,28,28,0.05)] text-[#b91c1c]'
-           : 'border-ink/15 text-muted'"
-         :title="error"
+           : warning
+             ? 'border-[rgba(180,83,9,0.35)] bg-[rgba(180,83,9,0.05)] text-[#b45309]'
+             : 'border-ink/15 text-muted'"
+         :title="warning || error"
        >
-         <span class="h-1.5 w-1.5 rounded-full" :class="error ? 'bg-red-500' : 'bg-green-500'"></span>
-         {{ badge }}
+         <span class="h-1.5 w-1.5 rounded-full" :class="error ? 'bg-red-500' : warning ? 'bg-[#b45309]' : 'bg-green-500'"></span>
+         {{ warning ? "⚠ warning" : badge }}
        </span>
         <!-- <span class="flex-1"></span> -->
        <button
@@ -527,33 +537,20 @@ onBeforeUnmount(() => {
     <main class="relative flex min-h-0 flex-1">
       <div class="relative flex min-h-0 flex-1">
         <div class="flex w-1/2 min-w-0 flex-col border-r border-ink/10">
-          <div class="flex h-9 flex-none items-center gap-2 border-b border-ink/10 px-4">
-            <span class="h-1.5 w-1.5 bg-accent"></span>
-            <span class="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Source</span>
-            <span class="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-[#a8a29e]">JavaScript</span>
-          </div>
+          <PlaygroundStrip dot="accent" label="Source" badge="JavaScript" :error="error" :warning="warning" />
           <div
             ref="editorEl"
             class="min-h-0 flex-1 focus-within:shadow-[inset_0_0_0_1px_rgba(180,83,9,0.3)]"
           ></div>
         </div>
         <div class="flex w-1/2 bg-paper2 min-w-0 flex-col">
-          <div class="flex h-9 flex-none  items-center gap-2 border-b border-ink/10 px-4">
-            <span class="h-1.5 w-1.5 bg-ink"></span>
-            <span class="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Proof</span>
-            <span class="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-[#a8a29e]">PDF</span>
-          </div>
+          <PlaygroundStrip dot="ink" label="Proof" badge="PDF" />
           <iframe
             ref="frameEl"
             class="min-h-0 flex-1 bg-paper2"
             title="PDF preview"
           ></iframe>
         </div>
-        <p
-          v-if="error"
-          class="absolute bottom-0 left-0 z-10 m-0 w-1/2 overflow-hidden whitespace-nowrap border-t border-[rgba(185,28,28,0.3)] bg-[rgba(185,28,28,0.05)] px-3.5 py-2 font-mono text-xs text-ellipsis text-[#b91c1c]"
-          :title="error"
-        >{{ error.split('\n')[0] }}</p>
       </div>
     </main>
   </div>

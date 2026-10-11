@@ -287,8 +287,16 @@ Two classes of silent failure, both hit in the lab session:
   undefined and call sites fall back silently (Container → white, Table borderColor →
   black). A misspelled theme token produces wrong colors with no warning.
 
-Candidate: throw (or `console.warn` once) on unknown theme tokens; a debug mode that
-draws zero-height/overflowing boxes (extends I7).
+**Token half fixed 2026-10-11:** `resolveThemeColor` warns once per unknown token
+(`warnUnknownColorToken` in `Theme.ts`; `resetThemeWarningsForTests` for isolation) —
+the choke point is `theme-resolve.ts`/`Theme.ts` since ARCHITECTURE #6, so one warn
+covers every call site. Colors only: variant names are a legitimate cascade and font
+names pass through as family names, so misses there stay silent. The warning caught a
+real latent typo on day one (`tests/layout.test.mjs` used an undefined `panel` token).
+The three docs playgrounds surface warnings in their UI (`captureWarnings` in
+`sandbox.ts` hooks `console.warn`; `PlaygroundStrip.vue` renders it as an amber pill on
+the Source strip + amber badge state) — not just DevTools. The layout-collapse half
+(debug-drawing zero-height boxes) stays open as I7 territory.
 
 ### I13 — Local image files require manual loading
 
@@ -324,3 +332,5 @@ either generate a larger registry from it at build time or document the
 `Icon.register`/inline-`path` escape hatch prominently in the docs.
 
 ## I16 - Barcodes and QR code genertors
+
+## I17 -  include charts

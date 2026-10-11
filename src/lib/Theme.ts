@@ -46,6 +46,28 @@ export function createTheme(theme: Theme = {}): Theme {
   return theme;
 }
 
+/**
+ * Tokens already warned about — one warning per token, not per render call
+ * (a widget renders once per page fragment; the typo is the same typo).
+ * I12: a misspelled theme token used to produce wrong colors with no
+ * warning, because every call site fell back silently.
+ */
+const warnedTokens = new Set<string>();
+
+function warnUnknownColorToken(token: string, hasTheme: boolean): void {
+  const key = `color:${token}`;
+  if (warnedTokens.has(key)) return;
+  warnedTokens.add(key);
+  console.warn(
+    `pdf-kalem: color token "${token}" is not defined in the theme${hasTheme ? '' : ' (no theme is set)'} — using the widget's fallback color.`,
+  );
+}
+
+/** @internal — test isolation for the warn-once state. Exported via internals. */
+export function resetThemeWarningsForTests(): void {
+  warnedTokens.clear();
+}
+
 export function resolveThemeColor(theme: Theme | undefined, value?: ThemeColorValue): ColorValue | undefined {
   if (value === undefined) {
     return undefined;
@@ -64,6 +86,10 @@ export function resolveThemeColor(theme: Theme | undefined, value?: ThemeColorVa
     return fromHex(value);
   }
 
+  // Not a hex literal and not a known token: always a miss (colors have no
+  // pass-through semantics — unlike font names, which are family names by
+  // default). Warn once; the call site's fallback applies.
+  warnUnknownColorToken(value, theme !== undefined);
   return undefined;
 }
 
