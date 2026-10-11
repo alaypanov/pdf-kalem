@@ -20,7 +20,8 @@ resolves to the local build (Node package self-reference), so build first:
 
 ```bash
 pnpm build      # examples import dist/
-pnpm examples   # run every example; each writes its PDF next to its code
+pnpm example   # run every example; each writes its PDF next to its code
+               # or: pnpm example invoice report — just those examples
 ```
 
 Or one at a time, from the example's folder:

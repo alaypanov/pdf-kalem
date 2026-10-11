@@ -50,7 +50,8 @@ The [`examples/`](./examples) folder holds self-contained, copyable projects —
 
 ```bash
 pnpm build      # examples import the built library
-pnpm examples   # run every example; each writes its PDF next to its code
+pnpm example   # run every example; each writes its PDF next to its code
+               # or: pnpm example invoice — just one
 ```
 
 See [`examples/README.md`](./examples/README.md) for what each one demonstrates and how to copy one.
@@ -324,7 +325,7 @@ The `RenderContext` seam stays because it is load-bearing, not as a backend hook
 ## Scripts
 
 - `pnpm build` builds the npm package into `dist/`.
-- `pnpm examples` builds the package and runs every example (each writes its PDF next to its code).
+- `pnpm example` builds the package and runs every example (each writes its PDF next to its code); pass names to run a subset: `pnpm example invoice report`.
 - `pnpm typecheck` runs TypeScript without emitting files.
 - `pnpm docs:dev` runs the documentation site.
 

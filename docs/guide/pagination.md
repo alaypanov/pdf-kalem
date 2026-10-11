@@ -50,4 +50,4 @@ Page({ overflow: false, children: [...] });
 
 ## See it live
 
-The copyable [`examples/report/`](https://github.com/alaypanov/pdf-kalem/tree/main/examples/report) project exercises the whole engine: splitting text, repeating table headers, keep-together panels, and per-page furniture. Run it with `pnpm examples` in the repo, or copy the folder and `node src/main.ts`.
+The copyable [`examples/report/`](https://github.com/alaypanov/pdf-kalem/tree/main/examples/report) project exercises the whole engine: splitting text, repeating table headers, keep-together panels, and per-page furniture. Run it with `pnpm example report` in the repo, or copy the folder and `node src/main.ts`.

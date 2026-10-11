@@ -143,7 +143,8 @@ doc.save()
 pnpm build        # tsup -> dist/
 pnpm typecheck    # tsc --noEmit
 pnpm test         # build + run tests/*.test.mjs against dist/
-pnpm examples     # build + run every example (writes PDFs next to example code)
+pnpm example       # build + run every example (writes PDFs next to example code)
+                   # or: pnpm example invoice report — just those examples
 ```
 
 ## Roadmap (from PLAN.md / README)
