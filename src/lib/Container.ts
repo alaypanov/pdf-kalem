@@ -1,4 +1,5 @@
-import { resolveThemeColor, type ThemeColorValue } from './Theme';
+import { type ThemeColorValue } from './Theme';
+import { resolveColor } from './theme-resolve';
 import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
 import type { RenderContext } from './RenderContextInterface';
 import type { RenderColor } from './RenderContextTypes';
@@ -63,13 +64,13 @@ export class ContainerWidget extends Widget {
   }
 
   private getResolvedBackgroundColor(): RenderColor {
-    return resolveThemeColor(this.context?.getTheme(), this.bgColor ?? this.getThemeContainerStyle()?.bgColor) ?? fromHex('#FFFFFF');
+    return resolveColor(this.context?.getTheme(), this.bgColor, this.getThemeContainerStyle()?.bgColor, fromHex('#FFFFFF'));
   }
 
   private getResolvedBorder(): { width?: number; color?: RenderColor; radius?: number } | undefined {
     const themeBorder = this.getThemeContainerStyle();
     const width = this.border?.width ?? themeBorder?.borderWidth;
-    const color = resolveThemeColor(this.context?.getTheme(), this.border?.color ?? themeBorder?.borderColor);
+    const color = resolveColor(this.context?.getTheme(), this.border?.color, themeBorder?.borderColor);
     const radius = this.border?.radius ?? themeBorder?.borderRadius;
 
     if (width === undefined && color === undefined && radius === undefined) {

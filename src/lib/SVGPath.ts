@@ -6,7 +6,8 @@ import {
   aspectFitPlacement,
   type FitSpec,
 } from './aspect-fit';
-import { resolveThemeColor, type ThemeColorValue } from './Theme';
+import { type ThemeColorValue } from './Theme';
+import { resolveColor } from './theme-resolve';
 import type { ColorValue } from './utils/color-utils';
 
 export interface SVGPathOptions extends WidgetOptions {
@@ -116,11 +117,11 @@ export class SVGPathWidget extends Widget {
   }
 
   protected resolveFillColor(): ColorValue | undefined {
-    return resolveThemeColor(this.context?.getTheme(), this.fill);
+    return resolveColor(this.context?.getTheme(), this.fill);
   }
 
   protected resolveStrokeColor(): ColorValue | undefined {
-    return resolveThemeColor(this.context?.getTheme(), this.stroke);
+    return resolveColor(this.context?.getTheme(), this.stroke);
   }
 
   async render(context: RenderContext): Promise<void> {

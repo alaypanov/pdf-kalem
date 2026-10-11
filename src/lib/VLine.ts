@@ -1,6 +1,7 @@
 import type { RenderContext } from './RenderContextInterface';
 import type { RenderColor } from './RenderContextTypes';
-import { resolveThemeColor, type ThemeColorValue } from './Theme';
+import { type ThemeColorValue } from './Theme';
+import { resolveColor } from './theme-resolve';
 import { fromHex } from './utils/color-utils';
 import { Widget, WidgetOptions, YogaStyleValue } from './Widget';
 
@@ -29,7 +30,7 @@ export class VLineWidget extends Widget {
   }
 
   private getColor(): RenderColor {
-    return resolveThemeColor(this.context?.getTheme(), this.color) ?? fromHex('#000000');
+    return resolveColor(this.context?.getTheme(), this.color, undefined, fromHex('#000000'));
   }
 
   async render(context: RenderContext): Promise<void> {

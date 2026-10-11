@@ -1,5 +1,6 @@
 import { MeasureMode } from 'yoga-layout';
-import { resolveThemeColor, resolveThemeFont, resolveThemeTextStyle, type ThemeColorValue } from './Theme';
+import { resolveThemeFont, resolveThemeTextStyle, type ThemeColorValue } from './Theme';
+import { resolveColor, resolveFont } from './theme-resolve';
 import { Widget, WidgetOptions } from './Widget';
 import type { RenderContext } from './RenderContextInterface';
 import type { RenderColor } from './RenderContextTypes';
@@ -143,7 +144,7 @@ export class TextWidget extends Widget {
   }
 
   protected getColor(): RenderColor {
-    return resolveThemeColor(this.context?.getTheme(), this.colorOverride ?? this.getThemeTextStyle()?.color) ?? this.getFallbackColor();
+    return resolveColor(this.context?.getTheme(), this.colorOverride, this.getThemeTextStyle()?.color, this.getFallbackColor());
   }
 
   protected getAlign(): 'left' | 'center' | 'right' {
@@ -165,7 +166,7 @@ export class TextWidget extends Widget {
 
   protected getFontName(): string {
     const base = resolveBuiltinPdfFont(
-      resolveThemeFont(this.context?.getTheme(), this.fontNameOverride ?? this.getThemeTextStyle()?.font)
+      resolveFont(this.context?.getTheme(), this.fontNameOverride, this.getThemeTextStyle()?.font)
     ) ?? 'Helvetica';
     return this.applyBlockTypography(base);
   }
@@ -267,7 +268,7 @@ export class TextWidget extends Widget {
         text: run.text,
         fontName,
         canvasFont,
-        color: resolveThemeColor(this.context?.getTheme(), run.color) ?? this.getColor(),
+        color: resolveColor(this.context?.getTheme(), run.color, undefined, this.getColor()),
         strike: run.strike ?? false,
         underline: run.underline ?? false,
         href: run.href,
@@ -305,7 +306,7 @@ export class TextWidget extends Widget {
 
   protected getCanvasFont(): string {
     const fontFamily = resolveBuiltinCanvasFont(
-      resolveThemeFont(this.context?.getTheme(), this.fontNameOverride ?? this.getThemeTextStyle()?.font)
+      resolveFont(this.context?.getTheme(), this.fontNameOverride, this.getThemeTextStyle()?.font)
     ) ?? this.getFontName();
     return `${this.getSize()}px ${toCanvasFontFamily(fontFamily)}`;
   }

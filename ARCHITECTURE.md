@@ -15,10 +15,12 @@
 | 3 | Stand up the verification seam | Strong | ✅ Done — `tests/` suite runs in `pnpm test`; FontRegistry test-isolation hook still open (I3) |
 | 4 | Collapse the aspect-fit triplication | Strong | ✅ Done — `src/lib/aspect-fit.ts`; B1 fixed, Image measure no longer logs |
 | 5 | Retire the string-keyed `setProperty` interpreter | Strong | ✅ Done — `setYogaStyle` is the only styling entry; dead accessors dropped |
-| 6 | Extract the theme-resolution policy | Worth exploring | Open |
+| 6 | Extract the theme-resolution policy | Strong | ✅ Done — `src/lib/theme-resolve.ts`; 18 call sites collapsed |
 | 7 | Un-glue `PdfDoc` | Worth exploring | Open — shrunk by #1 |
+| 8 | Extract the Yoga style interpreter from `Widget` | Worth exploring | Open |
+| 9 | Deduplicate the test `FakeContext` | Strong | Open |
 
-Suggested order: 2 → 4 → 5 → 3 landed; remaining: **6 → 7**.
+Suggested order: 2 → 4 → 5 → 3 landed; remaining: **6 → 9 → 8 → 7**.
 
 > **Direction (2026-10-09): PDF-only focus** — [ADR 0001](./docs/adr/0001-pdf-only-focus.md).
 > No image/HTML backends will be built; the RenderContext seam is retained because pagination's
@@ -404,7 +406,7 @@ their overrides; Text and the Table family keep the overrides with real fallback
 
 ---
 
-## 6 — Extract the theme-resolution policy `Worth exploring`
+## 6 ✅ Extract the theme-resolution policy — done (`theme-resolve.ts`)
 
 **Files:** `src/lib/Container.ts` L58–81 · `src/lib/Text.ts` L82–128 · `src/lib/Table.ts`
 L117–139, L211–224, L322–356 · `src/lib/HLine.ts` L41–43 · `src/lib/Icon.ts` L183–192 ·
@@ -414,6 +416,10 @@ L117–139, L211–224, L322–356 · `src/lib/HLine.ts` L41–43 · `src/lib/Ic
 methods in seven-plus places with ad-hoc fallback colors (`#000000` vs `#FFFFFF` vs
 `#0000EE` chosen per widget). Precedence drifts and is verified by nothing — every resolver
 is private, so testing it means instantiating widgets with a wired context.
+
+**Measured (2026-10-11).** 18 call sites across `Container`, `HLine`, `VLine` (a fresh
+copy of `HLine`'s resolver, added with the widget), `SVGPath`, `Table` (×6), `Text` (×5),
+`Icon`. Every new widget adds another copy — the policy is one `VLine` away from 19.
 
 **Direction.** Pure resolver functions returning plain style objects; widgets consume them
 in `render`. Testable with no widget, no context, no Yoga.
@@ -443,3 +449,45 @@ standalone output module.
 - two docs in one process stop colliding
 - document model interface shrinks
 - IO becomes an explicit seam
+
+---
+
+## 8 — Extract the Yoga style interpreter from `Widget` `Worth exploring`
+
+**Files:** `src/lib/Widget.ts` (`setYogaStyle`/`applyStyle`/`setDimension`, ~150 lines of
+the 424)
+
+**Problem.** The base class every widget extends has accreted four concerns: the Yoga
+style interpreter, layout lifecycle, pagination hooks (`getBreakUnits`,
+`getFlowGeometry`, `getPositionEdges`), and package-internal escape hatches
+(`appendWidgetChild`, `positionAbsolute`). Each cross-cutting feature (pagination, then
+Stack) widens the interface **all** widgets inherit — interface creep at the widest seam
+in the library.
+
+**Direction.** The style interpreter is a deep module in waiting: typed dispatch, one
+entry, no widget state. Extract `applyStyle(node, style)` into a standalone module;
+`Widget.setYogaStyle` becomes a thin delegation. The pagination hooks stay — only
+`Text`/`Table`/`FixedContainer` override them, and moving them is a redesign with
+unclear payoff.
+
+**Wins.**
+- the widget base interface stops growing with each cross-cutting feature
+- the interpreter becomes testable without any widget
+
+---
+
+## 9 — Deduplicate the test `FakeContext` `Strong`
+
+**Files:** `tests/pagination.test.mjs` · `tests/widgets.test.mjs`
+
+**Problem.** The fake `RenderContext` (~70 lines: deterministic metrics, page handles,
+geometry pass-through) is copy-pasted verbatim in two test files, and every new test file
+that plans pages will copy it again. The verification seam is supposed to concentrate
+complexity, not spread it.
+
+**Direction.** `tests/fake-context.mjs` exports the class (and the `plan(page)` helper);
+test files import it. Deliberately *not* under `src/` — it exists only for the tests.
+
+**Wins.**
+- metric changes (the 0.6·size char width, 1.2·size line height) land in one place
+- new test files stop inheriting a copy-paste tax

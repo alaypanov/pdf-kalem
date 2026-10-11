@@ -22,3 +22,4 @@ export {
   type FitBox,
   type FitPlacement,
 } from './lib/aspect-fit';
+export { resolveColor, resolveFont } from './lib/theme-resolve';

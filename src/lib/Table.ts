@@ -1,7 +1,8 @@
 
 import type { RenderContext } from './RenderContextInterface';
 import type { RenderColor } from './RenderContextTypes';
-import { resolveThemeColor, type ThemeColorValue } from './Theme';
+import { type ThemeColorValue } from './Theme';
+import { resolveColor } from './theme-resolve';
 import { fromHex } from './utils/color-utils';
 import { Widget, WidgetOptions, type YogaStyleValue } from './Widget';
 import type { BreakUnit } from './pagination/types';
@@ -120,7 +121,7 @@ export class TableRowWidget extends Widget {
   getResolvedBackgroundColor(): RenderColor | undefined {
     const theme = this.context?.getTheme();
     if (this.bgColor) {
-      return resolveThemeColor(theme, this.bgColor);
+      return resolveColor(theme, this.bgColor);
     }
 
     const table = this.getTable();
@@ -208,7 +209,7 @@ export class TableCellWidget extends Widget {
   }
 
   private getResolvedBorderColor(): RenderColor | undefined {
-    return resolveThemeColor(this.context?.getTheme(), this.borderColor) ?? this.getTable()?.getBorderColor();
+    return resolveColor(this.context?.getTheme(), this.borderColor) ?? this.getTable()?.getBorderColor();
   }
 
   private getResolvedBorderWidth(): number {
@@ -220,7 +221,7 @@ export class TableCellWidget extends Widget {
   }
 
   private getResolvedBackgroundColor(): RenderColor | undefined {
-    return resolveThemeColor(this.context?.getTheme(), this.bgColor) ?? this.getRow()?.getResolvedBackgroundColor();
+    return resolveColor(this.context?.getTheme(), this.bgColor) ?? this.getRow()?.getResolvedBackgroundColor();
   }
 
   override async prepareLayout(context: RenderContext): Promise<void> {
@@ -319,7 +320,7 @@ export class TableWidget extends Widget {
   }
 
   getBorderColor(): RenderColor {
-    return resolveThemeColor(this.context?.getTheme(), this.borderColor ?? this.context?.getTheme()?.table?.borderColor) ?? fromHex('#000000');
+    return resolveColor(this.context?.getTheme(), this.borderColor, this.context?.getTheme()?.table?.borderColor, fromHex('#000000'));
   }
 
   getBorderWidth(): number {
@@ -327,15 +328,15 @@ export class TableWidget extends Widget {
   }
 
   getHeadBgColor(): RenderColor | undefined {
-    return resolveThemeColor(this.context?.getTheme(), this.headBgColor ?? this.context?.getTheme()?.table?.headBgColor);
+    return resolveColor(this.context?.getTheme(), this.headBgColor, this.context?.getTheme()?.table?.headBgColor);
   }
 
   getRowBgColor(): RenderColor | undefined {
-    return resolveThemeColor(this.context?.getTheme(), this.rowBgColor ?? this.context?.getTheme()?.table?.rowBgColor);
+    return resolveColor(this.context?.getTheme(), this.rowBgColor, this.context?.getTheme()?.table?.rowBgColor);
   }
 
   getAlternateRowBgColor(): RenderColor | undefined {
-    return resolveThemeColor(this.context?.getTheme(), this.alternateRowBgColor ?? this.context?.getTheme()?.table?.alternateRowBgColor);
+    return resolveColor(this.context?.getTheme(), this.alternateRowBgColor, this.context?.getTheme()?.table?.alternateRowBgColor);
   }
 
   getColumnWidth(index: number): YogaStyleValue | undefined {
