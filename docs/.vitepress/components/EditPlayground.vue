@@ -38,7 +38,7 @@ const SAMPLE_CODE = `// PDF editing playground — edit the code; the PDF re-ren
 
 // A review stamp on page one — flow placement from the top of the page.
 pages[0].add([
-  Text([{ text: 'REVIEWED', bold: true, color: fromHex('#B45309') }], { size: 26 }),
+  Text([{ text: 'REVIEWED', fontWeight: 700, color: fromHex('#B45309') }], { size: 26 }),
   HLine({ thickness: 2, color: fromHex('#B45309') }),
   Text('Approved by pdf-kalem on ' + new Date().toLocaleDateString(), {
     size: 10,

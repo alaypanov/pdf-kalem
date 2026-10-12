@@ -28,7 +28,7 @@ const blocks = await markdownToWidgets(md, { styles: { spacing: 8 } });
 - **Blockquotes** — left rule + italic text.
 - **Tables** — GFM tables with per-column alignment, padded cells, header row.
 - **Horizontal rules** — full-width lines.
-- **Images** — png/jpeg; the format is sniffed from the fetched bytes, other formats are skipped with a warning.
+- **Images** — png/jpeg; the format is sniffed from the fetched bytes, other formats are skipped with a warning. Images render wherever they appear — paragraphs, list items, headings, and table cells — and are block-level: an image inside a link renders unlinked (with a warning). In Node, relative paths and `file://` URLs read from disk.
 
 ## Styling
 

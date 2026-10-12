@@ -13,12 +13,12 @@ Mental model is borrowed from **Flutter**: declarative widget trees, theme token
 ## Three-layer architecture
 
 1. **Widget tree** (`src/lib/*.ts`) — `Page`, `Container`, `Text`, `Row`, `Column`, `Image`, `Link`, `FixedContainer`, `SVGPath`, `Table`, `HLine`, `Icon`. Widgets depend only on the backend-neutral **`RenderContext` interface**, never on a concrete backend.
-2. **Render layer** — `PdfRenderContext` implements `RenderContext` and drives `pdf-lib`. `PdfRenderer` walks the page tree and drives the context. **The PDF Y-flip (y grows up from bottom-left) lives inside `PdfRenderContext.getLayoutBox`** — widgets work in top-left-origin layout boxes, not PDF math.
+2. **Render layer** — `PdfRenderContext` implements `RenderContext` and drives `pdf-lib`. The save-time render walk lives in `PdfDoc.savePdf` (the former `PdfRenderer` was folded in — I5). **The PDF Y-flip (y grows up from bottom-left) lives inside `PdfRenderContext.getLayoutBox`** — widgets work in top-left-origin layout boxes, not PDF math.
 3. **Shared services** — `FontRegistry` (singleton: font bytes + fontkit + browser `FontFace` loading), `TextLayoutEngine` (pure measure/wrap/truncate), `TextPainter` (draws a laid-out block via `RenderContext`). `TextLayoutEngine`/`TextPainter` are shared by `Text` and `Link`.
 
 ## Key rules / invariants
 
-- **`PdfDoc` is NOT a `Widget`.** It's the document model: owns page tree, theme, metadata, hooks. Rendering is delegated to `PdfRenderer`. Output helpers (`save`/`getBlob`/`download`/`getBuffer`/`writeToFile`) live on `PdfDoc`.
+- **`PdfDoc` is NOT a `Widget`.** It's the document model: owns page tree, theme, metadata, hooks. Rendering is the save-time walk in `savePdf`. Output helpers (`save`/`getBlob`/`download`/`getBuffer`/`writeToFile`) live on `PdfDoc`.
 - **`PdfDoc` children must be `PageWidget` instances** (enforced via `instanceof` in the constructor).
 - **Layout runs once per Page widget** (`prepareLayout` → Yoga). Fitting content renders exactly as today; overflowing content goes through the **pagination transformation** (see §Pagination below).
 
@@ -62,7 +62,6 @@ widgets, no `renderAt`, no mutable render state.
 |---|---|
 | `Widget.ts` | Abstract base: children, Yoga node, `setYogaStyle`/`setProperty` (string-keyed Yoga applier), `getAbsoluteLayoutBox`. |
 | `PdfDoc.ts` | Document model + lifecycle hooks + runtime output helpers. Static font-registration delegates to `FontRegistry`. |
-| `PdfRenderer.ts` | Walks pages and calls `page.render(context)`. Thin. |
 | `PdfRenderContext.ts` | PDF backend: embeds fonts (fontkit), draws primitives on `PDFPage`, applies Y-flip in `getLayoutBox`. Font/text-width caches. |
 | `RenderContextInterface.ts` | The backend-neutral interface widgets depend on. 3 concerns: theme/debug, measurement, drawing+page lifecycle. |
 | `RenderContext.ts` | Re-exports `RenderContextTypes` + the interface + `PdfRenderContext`. Import hub for public entries — internal modules import from `RenderContextInterface`/`RenderContextTypes` directly (importing the type through this hub creates a circular chunk in the DTS build). |
@@ -92,7 +91,7 @@ widgets, no `renderAt`, no mutable render state.
 
 ## Entry points (public API)
 
-- `src/index.ts` → `src/lib/index.ts` → `PdfDoc`, `PdfRenderer`, `RenderContext` (hub: interface + types + `PdfRenderContext`), `FontRegistry`, `Theme`, `types/*`.
+- `src/index.ts` → `src/lib/index.ts` → `PdfDoc`, `RenderContext` (hub: interface + types + `PdfRenderContext`), `FontRegistry`, `Theme`, `types/*`.
 - `src/widgets.ts` → `src/lib/widgets.ts` → all widgets + the `RenderContext` seam (interface, types, `PdfRenderContext`) + text engine/painter.
 - `src/markdown.ts` → `src/lib/markdown/` → `markdownToWidgets`, `markdownToPdf`, `MarkdownStyles`, `markdownThemeDefaults`, `sniffImageFormat`.
 - `src/edit.ts` → `src/lib/edit/` → `loadPdf`, `LoadedPdf`, `LoadedPage`.
@@ -107,7 +106,7 @@ new PdfDoc({ children: [Page({ children: [...] })] })
   -> constructor wires context down the tree (setContext)
 doc.save()
   -> savePdf(): run beforeCreate hooks -> PDFDocument.create() -> applyMeta
-     -> context.setDocument(pdfDoc) -> new PdfRenderer(doc).render()
+     -> context.setDocument(pdfDoc) -> savePdf walks the page tree
         -> per PageWidget: Paginator.paginate (prepareLayout -> flow layout -> fragmentation)
            -> per PagePlan: addPage -> PageScope(backend, plan) -> plan roots .render(scope)
      -> pdfDoc.save() -> afterSave hooks -> Uint8Array

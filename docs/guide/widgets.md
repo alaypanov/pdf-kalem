@@ -138,8 +138,10 @@ Table({
 ## Media: images, SVG paths, icons
 
 - `Image.png(url)` / `Image.jpeg(url)` / `Image.fromBytes(bytes, format)` — embed raster images with `sizing: ImageSizing.Fit | Cover | None`. The drawn area is centered in the layout box.
-- `SVGPath(d, { viewBoxWidth, viewBoxHeight, fill, stroke, strokeWidth })` — draw vector paths.
+- `SVGPath(d, { viewBoxWidth, viewBoxHeight, fill, stroke, strokeWidth })` — draw vector paths. `strokeWidth` is in user units and scales with the shape.
 - `Icon({ path, size, color })` — Material-style icons from SVG path data, with a small built-in registry (`Icon.register`). Colors resolve theme tokens.
+
+Give media one of `width`/`height` and the other dimension derives from the aspect ratio; give neither and it sizes to its intrinsic size; give both and the fit/cover `sizing` places it in the box.
 
 ```ts
 import { Image, ImageSizing, SVGPath, Icon } from 'pdf-kalem/widgets';

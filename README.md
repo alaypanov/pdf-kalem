@@ -178,9 +178,9 @@ import { Text, Link } from 'pdf-kalem/widgets';
 Text(
   [
     { text: 'Revenue grew ' },
-    { text: '12%', bold: true },
+    { text: '12%', fontWeight: 700 },
     { text: ' quarter over quarter' },
-    { text: ' (audited)', italic: true, color: '#666666' },
+    { text: ' (audited)', fontStyle: 'italic', color: '#666666' },
   ],
   { size: 12 }
 );
@@ -194,7 +194,7 @@ Text([{ text: 'Read the ' }, { text: 'full report', href: 'https://example.com' 
 Text([{ text: 'const x = 1', mono: true }]);
 ```
 
-Run flags: `bold`, `italic`, `strike`, `href`, `mono`, `font`, `color`. Faces resolve through the run's family with the usual fallback chain, so `{ bold: true }` in an `inter` text uses `inter-bold` when loaded and falls back with a warning otherwise. Words that span run boundaries (`he` + `**llo**`) never break internally; wrapping, `maxLines`, and `ellipsis` all work across runs.
+Run fields: `fontWeight`, `fontStyle`, `strike`, `href`, `mono`, `font`, `color`. Weight follows CSS matching — 100–500 renders regular, 600–900 renders bold — and each axis replaces the base style (an explicit `fontWeight: 400` un-bolds a bold base). Faces resolve through the run's family with the usual fallback chain, so `{ fontWeight: 700 }` in an `inter` text uses `inter-bold` when loaded and falls back with a warning otherwise. Words that span run boundaries (`he` + `**llo**`) never break internally; wrapping, `maxLines`, and `ellipsis` all work across runs.
 
 ## Fonts
 
