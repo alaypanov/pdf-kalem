@@ -15,6 +15,7 @@ The design is heavily inspired by [Flutter](https://flutter.dev)'s widget-tree m
 - Builds page-based layouts with Yoga (flexbox: `Row`, `Column`, `gap`, `flexGrow`, `%` widths, absolute positioning).
 - **Pagination**: content taller than one page automatically flows onto additional pages. Text blocks split by line, table rows stay whole and headers repeat, and each `Page` re-renders its chrome per output page. Opt out per page with `Page({ overflow: false })` or keep a text block together with `Text(..., { breakable: false })`.
 - **Edits existing PDFs** via `pdf-kalem/edit`: load a PDF as Page widgets, overlay widgets on its pages, restructure/merge, save — original content, annotations, and form fields preserved.
+- **Builds fillable forms** via `pdf-kalem/forms`: text fields, checkboxes, dropdowns, radio groups, and buttons as widget-tree nodes — real AcroForm fields in the output, with `formData` data binding (template + data).
 - Exports PDFs through `pdf-lib` with metadata, custom fonts, link annotations, and SVG paths.
 - Provides a shared text engine (powered by [`@chenglou/pretext`](https://github.com/chenglou/pretext)) with grapheme-aware wrapping, `maxLines`, and `ellipsis` overflow.
 - Supports document-scoped themes (color tokens, font aliases, text variants, table/container defaults) with per-widget overrides.
@@ -261,6 +262,32 @@ Supported: headings (`h1`..`h6` theme variants, bold), emphasis (`**bold**`, `*i
 Styling is theme-driven: headings resolve the `h1`..`h6` text variants, links resolve the `link` color token, and `MarkdownStyles` overrides the rest (code font/colors, blockquote rule, list indent, spacing, image width, table options). `markdownThemeDefaults` is exported so custom docs can merge the same baseline.
 
 A copyable converter project ships in [`examples/markdown/`](./examples/markdown) — a small CLI that turns any markdown file (or an embedded sample) into a paginated PDF.
+
+## Forms
+
+The `pdf-kalem/forms` subpath adds **real AcroForm fields** to the widget tree — the saved PDF is fillable in any PDF reader:
+
+```ts
+import { TextField, CheckBox, Dropdown, RadioGroup, Radio, Button, Signature } from 'pdf-kalem/forms';
+
+Page({
+  padding: 48,
+  children: [
+    TextField('email', { height: 28 }),
+    Dropdown('country', { options: ['Germany', 'Kazakhstan'] }),
+    RadioGroup('plan', { children: [Radio('basic'), Radio('pro')] }),
+    CheckBox('consent'),
+    Button('submit', { label: 'Register' }), // visual only — pdf-lib has no action API
+    Signature(),                             // drawn signing line, not a field
+  ],
+});
+```
+
+Every field takes a unique `name` (the AcroForm field name), ships a usable default size, and is atomic — on overflow it moves whole to the next page. Labels are plain `Text` widgets you compose yourself.
+
+**Data binding**: `new PdfDoc({ children, formData })` applies values by field name, winning over per-widget `value`/`checked` options — the same tree-builder with different `formData` produces filled variants of one template. Type mismatches throw at construction; keys matching no field warn.
+
+A copyable form project ships in [`examples/forms/`](./examples/forms) (blank template + filled variant). See the [form widgets guide](https://alaypanov.github.io/pdf-kalem/guide/forms) for the full field set and limitations (field text is Helvetica; buttons carry no actions; `Signature` is a drawn placeholder, not a signature field).
 
 ## Theme
 

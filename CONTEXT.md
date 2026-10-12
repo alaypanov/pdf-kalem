@@ -12,7 +12,7 @@ Mental model is borrowed from **Flutter**: declarative widget trees, theme token
 
 ## Three-layer architecture
 
-1. **Widget tree** (`src/lib/*.ts`) — `Page`, `Container`, `Text`, `Row`, `Column`, `Image`, `Link`, `FixedContainer`, `SVGPath`, `Table`, `HLine`, `Icon`. Widgets depend only on the backend-neutral **`RenderContext` interface**, never on a concrete backend.
+1. **Widget tree** (`src/lib/*.ts`) — `Page`, `Container`, `Text`, `Row`, `Column`, `Image`, `Link`, `FixedContainer`, `SVGPath`, `Table`, `HLine`, `Icon`. Widgets depend only on the backend-neutral **`RenderContext` interface**, never on a concrete backend. The exception is deliberate and patterned: form widgets (`src/lib/forms/`, `pdf-kalem/forms`) are PDF-typed (ADR 0001) and narrow the context to `PdfFormSurface` at render time, exactly like `LoadedPage` narrows to `PdfPageSurface`.
 2. **Render layer** — `PdfRenderContext` implements `RenderContext` and drives `pdf-lib`. The save-time render walk lives in `PdfDoc.savePdf` (the former `PdfRenderer` was folded in — I5). **The PDF Y-flip (y grows up from bottom-left) lives inside `PdfRenderContext.getLayoutBox`** — widgets work in top-left-origin layout boxes, not PDF math.
 3. **Shared services** — `FontRegistry` (singleton: font bytes + fontkit + browser `FontFace` loading), `TextLayoutEngine` (pure measure/wrap/truncate), `TextPainter` (draws a laid-out block via `RenderContext`). `TextLayoutEngine`/`TextPainter` are shared by `Text` and `Link`.
 
@@ -84,6 +84,7 @@ widgets, no `renderAt`, no mutable render state.
 | `types/doc-fonts.ts` | `BuiltinPdfFonts` aliases (`sans`, `serif`, `mono`, +bold/italic) → pdf-lib StandardFonts + canvas font stacks. Reverse lookup (`builtinPdfNameFace`) decomposes a pdf name back into family + style. |
 | `markdown/` | Markdown → widgets (`pdf-kalem/markdown` subpath). `convert.ts` holds the entry points (`markdownToWidgets` deep seam, `markdownToPdf` sugar); `render.ts` walks marked's block tokens; `inline.ts` folds inline tokens into `Run`s (images hoisted out); `styles.ts` resolves `MarkdownStyles` defaults; `types.ts` styles + `markdownThemeDefaults` fragment; `format.ts` sniffs png/jpeg magic bytes. |
 | `edit/` | Existing-PDF editing (`pdf-kalem/edit` subpath). `loadPdf` opens bytes into a `LoadedPdf` whose `pages` are `LoadedPage` widgets (`PageWidget` subclass, dimensions preset from the file) — editing is array manipulation + `page.add([...])` overlays; `save()` sugar builds a `PdfDoc`. Loaded pages are **adopted** into the output at render time via `RenderContext.adoptPage` (pdf-lib `copyPages`), preserving annotations/links/form fields. |
+| `forms/` | Form widgets (`pdf-kalem/forms` subpath): `TextField`, `CheckBox`, `Dropdown`, `RadioGroup`+`Radio`, `Button` (visual only — no action API in pdf-lib), `Signature` (drawn placeholder — pdf-lib can't create signature fields). PDF-typed per ADR 0001: widgets narrow to `PdfFormSurface` (`getForm` + `getCurrentPage`, structural guard) at render time; fields are created fresh each render walk and placed at `getLayoutBox(widget)` (already Y-flipped — pagination's `PageScope` answers it, so fields compose with pagination and `FixedContainer`). `FormWidget` is the base (name, readOnly, appearance); `PlacedFormWidget` places a field at its own box; `RadioGroup` extends the base directly (its box holds children). `bind.ts` is the `formData` walk (PdfDoc constructor → `bindValue` by field name; `formData` wins over widget values; unknown keys warn; per-type validation — pdf-lib's dropdown `select` silently enables editing for unknown values, so Dropdown validates early). |
 | `types/doc-sizes.ts` | `PageSize` enum + `PDFDocSize` point dimensions (A4/A3/A5/LETTER). |
 | `types/styles.ts` | Flex/alignment string constants (`justifyBetween`, `alignCenter`, …) + `Row.justifyBetween` statics source. |
 | `utils/color-utils.ts` | `ColorValue` (rgb), `fromHex`, `fromRGB`, `toPdfLibColor`. |
@@ -95,6 +96,7 @@ widgets, no `renderAt`, no mutable render state.
 - `src/widgets.ts` → `src/lib/widgets.ts` → all widgets + the `RenderContext` seam (interface, types, `PdfRenderContext`) + text engine/painter.
 - `src/markdown.ts` → `src/lib/markdown/` → `markdownToWidgets`, `markdownToPdf`, `MarkdownStyles`, `markdownThemeDefaults`, `sniffImageFormat`.
 - `src/edit.ts` → `src/lib/edit/` → `loadPdf`, `LoadedPdf`, `LoadedPage`.
+- `src/forms.ts` → `src/lib/forms/` → the form widgets + `PdfFormSurface`.
 - `src/lib/utils/color-utils.ts` → published as `pdf-kalem/utils/color-utils`.
 
 Built by **tsup** (ESM only) into `dist/`. **`splitting: true` is required** — with multiple entries and no shared chunks, classes get duplicated per entry and `instanceof` breaks across entry points (this was a real shipped bug).

@@ -29,6 +29,15 @@ import {
   Text,
   VLine,
 } from '../../../src/widgets';
+import {
+  Button,
+  CheckBox,
+  Dropdown,
+  Radio,
+  RadioGroup,
+  Signature,
+  TextField,
+} from '../../../src/lib/forms';
 import { PageSize } from '../../../src';
 import { fromHex } from '../../../src/lib/utils/color-utils';
 import type { Widget } from '../../../src/lib/Widget';
@@ -56,6 +65,13 @@ export function widgetSandbox(extra: Record<string, unknown> = {}): Record<strin
     ImageSizing,
     SVGPath,
     Icon,
+    TextField,
+    CheckBox,
+    Dropdown,
+    RadioGroup,
+    Radio,
+    Button,
+    Signature,
     PageSize,
     fromHex,
     ...extra,

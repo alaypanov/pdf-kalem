@@ -1,3 +1,4 @@
+import type { PDFForm, PDFPage } from 'pdf-lib';
 import type {
   RenderContext,
 } from '../RenderContextInterface';
@@ -13,6 +14,7 @@ import type {
 } from '../RenderContextTypes';
 import type { Theme } from '../Theme';
 import type { Widget } from '../Widget';
+import type { PdfFormSurface } from '../forms/surface';
 import type { Fragment, LayoutBox, PagePlan } from './types';
 
 /**
@@ -167,5 +169,32 @@ export class PageScope implements RenderContext {
 
   mapContentBox(box: LayoutBox): LayoutBox {
     return this.backend.mapContentBox(box);
+  }
+
+  // --- PDF-typed form surface (pass-through) ---
+
+  /**
+   * Form widgets (`src/lib/forms/`) narrow to `PdfFormSurface` at render
+   * time — including when they render through a scope on a paginated page.
+   * The scope is a view of ITS backend, so the PDF-typed members pass
+   * through; a backend without them fails with the same honest error the
+   * form widgets themselves throw.
+   */
+  getForm(): PDFForm {
+    return this.requirePdfMember('getForm').getForm();
+  }
+
+  getCurrentPage(): PDFPage | null {
+    return this.requirePdfMember('getCurrentPage').getCurrentPage();
+  }
+
+  private requirePdfMember<K extends 'getForm' | 'getCurrentPage'>(name: K): PdfFormSurface & Pick<PdfFormSurface, K> {
+    const backend = this.backend as unknown as Partial<PdfFormSurface>;
+    if (typeof backend[name] !== 'function') {
+      throw new Error(
+        `PageScope: the backend does not expose ${name}() — form widgets require the PDF render context (pdf-kalem/forms renders through pdf-lib).`,
+      );
+    }
+    return this.backend as unknown as PdfFormSurface & Pick<PdfFormSurface, K>;
   }
 }

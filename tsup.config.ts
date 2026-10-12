@@ -6,6 +6,7 @@ export default defineConfig({
     widgets: 'src/widgets.ts',
     markdown: 'src/markdown.ts',
     edit: 'src/edit.ts',
+    forms: 'src/forms.ts',
     // Node-only preview rasterizer (IDEAS.md I9). Its deps are optional
     // peers, loaded lazily — external keeps them out of the bundle.
     preview: 'src/preview.ts',

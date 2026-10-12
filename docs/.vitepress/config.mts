@@ -49,6 +49,7 @@ export default defineConfig({
         text: 'Playgrounds',
         items: [
           { text: 'Widget tree', link: '/playground/widgets' },
+          { text: 'Forms', link: '/playground/forms' },
           { text: 'Markdown converter', link: '/playground/markdown' },
           { text: 'PDF editing', link: '/playground/editing' },
         ],
@@ -61,6 +62,7 @@ export default defineConfig({
           items: [
             { text: 'Getting started', link: '/guide/getting-started' },
             { text: 'Widgets', link: '/guide/widgets' },
+            { text: 'Form widgets', link: '/guide/forms' },
             { text: 'Theming', link: '/guide/theming' },
             { text: 'Fonts', link: '/guide/fonts' },
             { text: 'Pagination', link: '/guide/pagination' },

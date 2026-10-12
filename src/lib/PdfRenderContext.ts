@@ -12,6 +12,8 @@ import type { Widget } from './Widget';
 import type { Theme } from './Theme';
 import type { RenderContext } from './RenderContextInterface';
 import type { PdfPageSurface } from './PdfPageSurface';
+import type { PDFForm } from 'pdf-lib';
+import type { PdfFormSurface } from './forms/surface';
 import type {
   RenderImage,
   RenderContextOptions,
@@ -39,7 +41,7 @@ import { debugLog, setDebugEnabled } from './utils/debug';
  * backend-specific nature explicit and frees the `RenderContext` name for
  * the backend-neutral interface that widgets depend on.
  */
-export class PdfRenderContext implements RenderContext, PdfPageSurface {
+export class PdfRenderContext implements RenderContext, PdfPageSurface, PdfFormSurface {
   private options: RenderContextOptions;
   private theme?: Theme;
   private doc?: PDFDocument;
@@ -155,6 +157,16 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface {
       throw new Error('No document set on RenderContext');
     }
     return this.doc;
+  }
+
+  /**
+   * The document's interactive form (created in the catalog on first use).
+   * Form widgets (`src/lib/forms/`) narrow to {@link PdfFormSurface} at render
+   * time and create their fields through it — PDF-typed per ADR 0001, never
+   * part of the neutral `RenderContext`.
+   */
+  getForm(): PDFForm {
+    return this.getDocument().getForm();
   }
 
   addPage(dimensions: [number, number]): PDFPage {

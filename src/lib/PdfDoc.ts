@@ -8,6 +8,7 @@ import { FontRegistry } from './FontRegistry';
 import { Paginator } from './pagination/Paginator';
 import type { FontSet } from './fonts/types';
 import { downloadBytes, printBytes, toBlob, toBuffer, writeBytesToFile, type NodeBufferLike } from './doc-output';
+import { bindFormData } from './forms/bind';
 
 type Awaitable<T> = T | Promise<T>;
 
@@ -42,6 +43,15 @@ export interface PdfDocOptions extends WidgetOptions {
    * is never mutated) and resolved doc-scoped during rendering.
    */
   fonts?: FontSet;
+  /**
+   * Data binding: values applied to the tree's form widgets (`pdf-kalem/forms`)
+   * by AcroForm field name — the widgets' `name`. Applied in the constructor;
+   * wins over per-widget `value`/`checked` options. Type mismatches throw
+   * (text wants a string, checkbox a boolean, dropdown/radio a declared
+   * option); keys matching no field warn. The same tree-builder with
+   * different `formData` produces filled variants of one template.
+   */
+  formData?: Record<string, string | boolean>;
   /** Enables drawing colored debug outlines around every widget. */
   debug?: boolean;
   meta?: PdfDocMeta;
@@ -173,6 +183,12 @@ export class PdfDoc {
       throw new Error(
         'PdfDoc requires at least one Page child — pass Page({ ... }) widgets in children.'
       );
+    }
+
+    // Data binding runs once, at construction: the widget tree is the state,
+    // so bound values land on the widgets exactly like option values would.
+    if (options.formData) {
+      bindFormData(this.children, options.formData);
     }
   }
 

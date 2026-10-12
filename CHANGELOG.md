@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) — while in `0.x`, breaking changes bump the minor version.
 
+## [0.5.0] — 2026-10-12
+
+### Added
+
+- **`pdf-kalem/forms`** — form widgets that create real AcroForm fields, laid out by the widget tree: `TextField` (`value`, `multiline`, `maxLength`), `CheckBox` (`checked`), `Dropdown` (`options`, `value`), `RadioGroup` + `Radio` (one field spread over the children's boxes; options may nest in Rows for labels), `Button` (`label` — visual only: pdf-lib exposes no action API), and `Signature` (a drawn signing line + caption — pdf-lib can read but not create signature fields). Every field takes a unique `name` (the AcroForm field name), ships a usable default size, honors `readOnly` and appearance options (`fontSize`, `textColor`, `backgroundColor`, `borderColor`, `borderWidth`; unset options fall back to pdf-lib's visible-box defaults), and is atomic under pagination — a field moves whole to the next page, never splits. Percent-width fields (`TextField`, `Dropdown`, `Signature`) default to filling the available width with a **120pt floor**: inside a shrink-wrapping `Column` a bare `'100%'` resolves against the wrapped parent and collapses to an invisible sliver — wrap label + field in a `Column({ width: '100%' })` to make fields fill the page.
+- **Data binding** — `new PdfDoc({ children, formData })` applies values to the tree's form fields by name, winning over per-widget `value`/`checked` options: the same tree-builder with different `formData` produces filled variants of one template. Type mismatches throw at construction (text wants a string, checkbox a boolean, dropdown/radio a declared option); keys matching no field warn; duplicate field names fail at save (pdf-lib refuses them).
+- `PdfFormSurface` — the PDF-typed form seam (ADR 0001 pattern, same as `PdfPageSurface`): `getForm()` + `getCurrentPage()` with a structural guard; form widgets narrow at render time. `PageScope` forwards the members so fields render through paginated scopes.
+- `examples/forms/` — a registration form (blank template + filled variant via `formData`), and a forms guide page + live forms playground on the docs site.
+
+### Internal
+
+- The docs playgrounds share one shell now (`CodePdfWorkbench.vue` + `workbench.ts`): editor, preview, debounce, status, and the CodeMirror/font setup are extracted; the widget/editing playgrounds became thin wrappers around it (no behavior change). The forms playground is the first new consumer.
+- pdf-lib quirks pinned by tests: unset field-appearance options must be omitted (not passed as `undefined`) for pdf-lib's defaults to apply; the widget rect straddles the layout box by `borderWidth/2`; `setFontSize` must follow `addToPage` (it needs the `/DA` entry that call creates); `PDFDropdown.select` silently enables editing for unknown values, so values are validated before it runs.
+
 ## [0.4.0] — 2026-10-11
 
 ### Fixed

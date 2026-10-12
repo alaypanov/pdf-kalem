@@ -67,6 +67,101 @@ VitePress (Vue 3) + UnoCSS docs in `docs/`, built with `pnpm docs:build`.
 2. ✅ **Markdown playground (live)** — `/playground/markdown` hosts the real workbench: `docs/.vitepress/components/MarkdownPlayground.vue` mounts a CodeMirror editor (markdown mode) over a debounced `markdownToPdf` preview with the shipped `inter`/`jetbrains-mono` families — page-count badge, download, reset, error strip — mounted via `<ClientOnly>` inside the open layout. The TLA blocker is solved in the config, not worked around: VitePress's esbuild targets (build, source transform, dev dep pre-bundle) are raised to es2022 because yoga-layout's ESM entry loads its WASM with top-level await and VitePress's defaults (chrome87/es2020) reject it; modern browsers support TLA. Landed 2026-10-07.
 3. ✅ **Widget + editing playgrounds (live)** — `/playground/widgets` hosts the widget-tree workbench (`WidgetPlayground.vue`): CodeMirror (javascript mode) over a debounced render, the editor holding the body of a plain-JS function returning `Page[]` with factories/`theme`/`fromHex`/`PageSize` injected as parameters (`sandbox.ts`, `new Function` — no transpiler); starter tree is the invoice example. `/playground/editing` hosts the PDF-editing workbench (`EditPlayground.vue`): the editor holds a function receiving `pages` (the loaded document as Page widgets) — overlays via `pages[i].add([...])`, restructure by array mutation; the sample document is synthesized with pdf-lib (no binary assets) and a file input loads the visitor's own PDF. Landed 2026-10-09.
 
+## Feature: Form widgets (`pdf-kalem/forms`)
+
+Generate AcroForm forms from the widget tree. Authoring first — filling existing
+PDFs is postponed (it stays a candidate under *Focus: PDF-only* below). The
+design (settled 2026-10-12):
+
+**Field set.** `TextField` (single-line ~24pt default, `multiline`, `maxLength`),
+`CheckBox` (~13pt square), `RadioGroup` + `Radio` children (one field; each child
+places an option at its own box), `Dropdown` (options + selected value), `Button`
+(visual only — pdf-lib has no action API; the widget paints its own centered
+label via the shared text painter), `Signature` (visual placeholder built on the
+SVG/text primitives — pdf-lib can read but not create signature fields). All
+accept `name`, `value`, `readOnly`.
+
+**Seam.** The `edit/` pattern (ADR 0001): a small `PdfFormSurface` (`getForm()` +
+`getCurrentPage()`) with a structural guard; `PdfRenderContext` implements it;
+form widgets narrow the context at render time (`LoadedPage` precedent). No
+`RenderContext` widening. Fields are created fresh each render walk — a second
+save builds a fresh `PDFDocument`, so nothing is cached on widgets. Placement is
+`context.getLayoutBox(widget)` — already Y-flipped PDF coords, exactly what
+pdf-lib's `addToPage` wants — so pagination (`PageScope`) and `FixedContainer`
+compose for free. Form widgets are atomic leaves (childless → `getBreakUnits()`
+null); `RadioGroup` forces `breakable: false`.
+
+**Data binding.** `new PdfDoc({ children, formData })` — a flat
+`Record<string, string | boolean>` keyed by field name (names are the binding
+keys; keep them simple — AcroForm reads dots as hierarchy), applied in the
+constructor via a tree walk (type-only imports — avoids the DTS circular
+chunk). Precedence: `formData` wins over per-widget `value`. Duplicate names
+throw (they would silently collide in the AcroForm); unknown keys warn; values
+are validated per field type (checkbox wants a boolean, radio/dropdown values
+must be declared options).
+
+**Styling.** Per-widget options with sensible defaults (font size, text/border/
+background colors, border width); the default appearance font is Helvetica —
+embedded-font faces can come later. No theme tokens yet — `theme.form.*` once
+the shape settles. Flatten is postponed; when it lands it is a root property
+(`new PdfDoc({ flattenForms: true })`).
+
+**Pieces:** `src/lib/forms/` (`FormWidget` base, field widgets, `surface.ts`,
+binding walk), `src/forms.ts` → `pdf-kalem/forms` subpath (tsup entry +
+`package.json` exports), `tests/forms.test.mjs` (save → reload via pdf-lib →
+assert names/types/values/positions; binding; pagination atomicity),
+`examples/forms/` (auto-discovered by `examples/run.mjs` — needs only a
+`main.ts`), docs guide page, CHANGELOG + version bump.
+
+1. ✅ **Form surface + leaf fields** — `PdfFormSurface` + guard on
+   `PdfRenderContext`; `FormWidget` base (name, readOnly, default sizing,
+   placement); `TextField` (+ multiline), `CheckBox`, `Dropdown`; the subpath
+   entry; round-trip tests. Landed 2026-10-12. Unset appearance options are
+   omitted (not passed as undefined) so pdf-lib's `addToPage` defaults apply
+   (black text, white background, black 1pt border — a visible box); the
+   widget rect straddles the layout box by borderWidth/2; `setFontSize` must
+   follow `addToPage` (it needs the /DA entry `addToPage` creates).
+   Post-landing fix from the playground: percent-width fields (`TextField`,
+   `Dropdown`, `Signature`) default to fill-with-a-120pt-floor — `Column`
+   shrink-wraps its children (alignItems: flex-start), so a bare '100%'
+   resolved against the wrapped parent and collapsed to an invisible sliver;
+   the samples wrap label + field in `Column({ width: '100%' })` (the
+   documented convention) and a regression test pins floor + fill.
+2. ✅ **Composite + remaining fields** — `RadioGroup`/`Radio` (the group creates
+   the field, children add options through their parent group); `Button`
+   (painted label); `Signature`; pagination atomicity test (a field moves whole
+   to page 2, its annotation lands on that page). Landed 2026-10-12.
+   Adjustments discovered in code: pdf-lib's `PDFButton.addToPage` takes the
+   caption itself — no manual label painting; `Radio` finds its group through
+   the parent chain, so options nested in Rows (for labels) work; the group
+   selects its initial value AFTER children render (pdf-lib validates against
+   the added options); and `PageScope` forwards `getForm`/`getCurrentPage` to
+   its backend — form widgets render through scopes on paginated pages, so the
+   PDF-typed surface must pass through (with the same honest error when the
+   backend lacks it).
+3. ✅ **Data binding** — `formData` on `PdfDoc` + the walk; duplicate-throw /
+   unknown-warn / per-type validation; example renders one tree with two
+   datasets. Landed 2026-10-12. The walk (`forms/bind.ts`, called from the
+   PdfDoc constructor) applies values through `FormWidget.bindValue` — the
+   tree is the state, so binding mutates widgets exactly like option values
+   would, with `formData` winning. Per-type validation: text wants a string,
+   checkbox a boolean, dropdown a declared option (validated at bind time —
+   pdf-lib's `select` silently turns unknown values into editable combo
+   boxes, so the constructor `value` is validated too); radio groups validate
+   at render against the options their Radio children added (early
+   validation would need the Radio class, and Radio.ts imports the group).
+   Duplicate names stay pdf-lib's to catch at save; unknown keys warn; the
+   walk reads `formData` with `Object.hasOwn` (prototype keys must not bind).
+4. ✅ **Example + docs + release** — `examples/forms/` (registration-style form:
+   text fields, consent checkbox, plan radio group, country dropdown, submit
+   button, signature line), docs guide page, README/CONTEXT/ARCHITECTURE
+   updates, CHANGELOG + version bump. Landed 2026-10-12 (0.5.0). The docs
+   playgrounds were consolidated first: `CodePdfWorkbench.vue` + `workbench.ts`
+   own the editor/preview shell (render-callback contract), the widget and
+   editing playgrounds became thin wrappers, and the new forms playground
+   (`/playground/forms`) is the first feature consumer — the form factories
+   joined the shared sandbox so every playground can render fields.
+
 ## Focus: PDF-only — and what it unlocks
 
 Decision 2026-10-09 ([ADR 0001](./docs/adr/0001-pdf-only-focus.md)): no image/HTML backends;

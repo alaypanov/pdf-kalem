@@ -20,8 +20,9 @@
 | 8 | Extract the Yoga style interpreter from `Widget` | Worth exploring | ✅ Done — `src/lib/yoga-style.ts`; `Widget.ts` 424 → 201 lines |
 | 9 | Deduplicate the test `FakeContext` | Strong | ✅ Done — `tests/fake-context.mjs`; −167 lines across two suites |
 | 10 | Move `adoptPage` off the neutral `RenderContext` interface | Worth exploring | ✅ Done — `PdfPageSurface` + runtime narrowing; neutral interface no longer declares page lifecycle |
+| 11 | PDF-typed form surface (the #10 pattern's second application) | Strong | ✅ Done — `PdfFormSurface` (`src/lib/forms/surface.ts`) + runtime narrowing; `PageScope` forwards the members so fields render through paginated scopes |
 
-All candidates 1–9 landed. Remaining: **10**.
+All candidates 1–11 landed.
 
 > **Direction (2026-10-09): PDF-only focus** — [ADR 0001](./docs/adr/0001-pdf-only-focus.md).
 > No image/HTML backends will be built; the RenderContext seam is retained because pagination's

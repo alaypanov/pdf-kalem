@@ -1,18 +1,12 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import Breadcrumbs from './Breadcrumbs.vue'
-import { EditorState } from '@codemirror/state'
-import { drawSelection, dropCursor, EditorView, keymap, lineNumbers } from '@codemirror/view'
-import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
-import { HighlightStyle, indentOnInput, syntaxHighlighting } from '@codemirror/language'
-import { tags as t } from '@lezer/highlight'
-import { javascript as javascriptMode } from '@codemirror/lang-javascript'
+import { ref } from 'vue'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
-import { PdfDoc, createTheme, useFonts } from '../../../src/index'
+import { PdfDoc, createTheme, type FontSet } from '../../../src/index'
 import { loadPdf } from '../../../src/lib/edit'
 import { fromHex } from '../../../src/lib/utils/color-utils'
-import { applyEdits, captureWarnings, widgetSandbox } from './sandbox'
-import PlaygroundStrip from './PlaygroundStrip.vue'
+import { applyEdits, widgetSandbox } from './sandbox'
+import { loadPlaygroundFonts } from './workbench'
+import CodePdfWorkbench from './CodePdfWorkbench.vue'
 
 /**
  * Live PDF-editing workbench for the docs playground.
@@ -23,7 +17,8 @@ import PlaygroundStrip from './PlaygroundStrip.vue'
  * and helpers are injected as parameters (same sandbox contract as the
  * widget playground), evaluated with `new Function` on every debounced
  * render. The sample document is synthesized with pdf-lib — no binary
- * assets — and a file input swaps in the visitor's own PDF.
+ * assets — and a file input swaps in the visitor's own PDF. The shell
+ * (editor, preview, debounce, status) lives in {@link CodePdfWorkbench}.
  * Mount inside <ClientOnly> — rendering touches browser APIs.
  */
 
@@ -163,79 +158,11 @@ async function makeSamplePdf(): Promise<Uint8Array> {
   return doc.save()
 }
 
-// --- State -------------------------------------------------------------------
+// --- Sample-document state (the file input swaps the bytes) -------------------
 
-const editorEl = ref<HTMLDivElement>()
-const frameEl = ref<HTMLIFrameElement>()
-const badge = ref('…')
-const error = ref('')
-const warning = ref('')
-const downloadHref = ref('')
 const fileName = ref('sample document')
-
-const view = ref<EditorView>()
-let objectUrl: string | undefined
-let timer: ReturnType<typeof setTimeout> | undefined
+const workbench = ref<InstanceType<typeof CodePdfWorkbench>>()
 let sampleBytes: Uint8Array | undefined
-// Assigned after useFonts resolves; undefined keeps builtin fonts.
-let fonts: Awaited<ReturnType<typeof useFonts>> | undefined
-
-// --- Rendering ----------------------------------------------------------------
-
-async function render(): Promise<void> {
-  if (!view.value || !sampleBytes) return
-  badge.value = 'rendering…'
-  try {
-    const { result, warnings } = await captureWarnings(async () => {
-      // Fresh load per render: LoadedPage state (overlays) lives on the widget
-      // tree, so re-loading the bytes keeps repeated renders idempotent.
-      const pdf = await loadPdf(sampleBytes!, { theme, fonts })
-      applyEdits(view.value!.state.doc.toString(), widgetSandbox({ theme }), pdf.pages)
-
-      const doc = new PdfDoc({
-        theme,
-        fonts,
-        meta: {
-          title: 'pdf-kalem editing playground',
-          creator: 'pdf-kalem',
-          producer: 'pdf-lib',
-        },
-        children: pdf.pages,
-      })
-
-      const blob = await doc.getBlob()
-      const pageCount = await doc.getPageCount()
-      return { blob, pageCount }
-    })
-
-    const { blob, pageCount } = result
-
-    if (objectUrl) URL.revokeObjectURL(objectUrl)
-    objectUrl = URL.createObjectURL(blob)
-    if (frameEl.value) frameEl.value.src = objectUrl
-    downloadHref.value = objectUrl
-    error.value = ''
-    warning.value = warnings.join('\n')
-    badge.value = `${pageCount} page${pageCount === 1 ? '' : 's'}`
-  } catch (err) {
-    console.error('editing playground: render failed', err)
-    error.value = err instanceof Error ? err.message : String(err)
-    badge.value = 'render failed'
-  }
-}
-
-function schedule(): void {
-  if (timer) clearTimeout(timer)
-  timer = setTimeout(() => {
-    void render()
-  }, 400)
-}
-
-function reset(): void {
-  if (!view.value) return
-  view.value.dispatch({ changes: { from: 0, to: view.value.state.doc.length, insert: SAMPLE_CODE } })
-  void render()
-}
 
 async function loadFile(event: Event): Promise<void> {
   const input = event.target as HTMLInputElement
@@ -243,180 +170,54 @@ async function loadFile(event: Event): Promise<void> {
   if (!file) return
   sampleBytes = new Uint8Array(await file.arrayBuffer())
   fileName.value = file.name
-  await render()
+  // Immediate render — a file swap should not wait for the debounce.
+  await workbench.value?.render()
 }
 
-// --- Editor --------------------------------------------------------------------
+// --- Render contract ------------------------------------------------------------
 
-// Light syntax theme tuned to the docs palette (same as the other playgrounds).
-const syntaxTheme = HighlightStyle.define([
-  { tag: [t.keyword, t.modifier, t.operatorKeyword, t.self, t.null], color: '#b45309' },
-  { tag: [t.string, t.special(t.string)], color: '#0f766e' },
-  { tag: [t.number, t.bool, t.atom], color: '#9a3412' },
-  { tag: [t.lineComment, t.blockComment, t.docComment], color: '#a8a29e', fontStyle: 'italic' },
-  { tag: [t.propertyName, t.attributeName], color: '#1c1917' },
-  { tag: [t.invalid], color: '#b91c1c' },
-])
+async function renderCode(code: string, fonts: FontSet | undefined) {
+  if (!sampleBytes) throw new Error('No sample document loaded yet')
+  // Fresh load per render: LoadedPage state (overlays) lives on the widget
+  // tree, so re-loading the bytes keeps repeated renders idempotent.
+  const pdf = await loadPdf(sampleBytes, { theme, fonts })
+  applyEdits(code, widgetSandbox({ theme }), pdf.pages)
 
-const editorTheme = EditorView.theme({
-  '&': {
-    height: '100%',
-    fontSize: '13px',
-    background: 'transparent',
-    color: '#292524',
-  },
-  '&.cm-focused': {
-    outline: 'none',
-  },
-  '.cm-scroller': {
-    fontFamily: "ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace",
-    lineHeight: '1.6',
-  },
-  '.cm-content': {
-    padding: '14px 16px 16px 6px',
-    caretColor: '#b45309',
-  },
-  '.cm-cursor, .cm-dropCursor': {
-    borderLeftColor: '#b45309',
-  },
-  '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
-    background: 'rgba(180, 83, 9, 0.15)',
-  },
-  '.cm-gutters': {
-    background: 'transparent',
-    borderRight: 'none',
-    color: '#a8a29e',
-  },
-  '.cm-lineNumbers .cm-gutterElement': {
-    paddingLeft: '14px',
-    paddingRight: '10px',
-    minWidth: '2em',
-    textAlign: 'right',
-  },
-})
-
-onMounted(async () => {
-  view.value = new EditorView({
-    parent: editorEl.value!,
-    state: EditorState.create({
-      doc: SAMPLE_CODE,
-      extensions: [
-        lineNumbers(),
-        history(),
-        drawSelection(),
-        dropCursor(),
-        indentOnInput(),
-        syntaxHighlighting(syntaxTheme, { fallback: true }),
-        EditorView.lineWrapping,
-        editorTheme,
-        javascriptMode(),
-        keymap.of([
-          // Cmd/Ctrl+Enter renders immediately instead of waiting for the debounce.
-          {
-            key: 'Mod-Enter',
-            run: () => {
-              void render()
-              return true
-            },
-          },
-          ...defaultKeymap,
-          ...historyKeymap,
-          indentWithTab,
-        ]),
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) schedule()
-        }),
-      ],
-    }),
+  const doc = new PdfDoc({
+    theme,
+    fonts,
+    meta: {
+      title: 'pdf-kalem editing playground',
+      creator: 'pdf-kalem',
+      producer: 'pdf-lib',
+    },
+    children: pdf.pages,
   })
 
-  try {
-    // Inter loads from the docs site's static assets (docs/public/fonts);
-    // code falls back to the builtin mono alias (Courier). BASE_URL keeps
-    // this correct under the GitHub Pages subpath.
-    const face = (name: string) => fetch(`${import.meta.env.BASE_URL}fonts/${name}`).then((r) => r.arrayBuffer())
-    fonts = await useFonts(
-      { body: 'inter' },
-      {
-        files: {
-          inter: {
-            regular: await face('Inter-Regular.ttf'),
-            bold: await face('Inter-Bold.ttf'),
-            italic: await face('Inter-Italic.ttf'),
-            boldItalic: await face('Inter-BoldItalic.ttf'),
-          },
-        },
-      },
-    )
-  } catch (err) {
-    console.error('editing playground: font loading failed, falling back to builtins', err)
-  }
-
-  sampleBytes = await makeSamplePdf()
-  await render()
-})
-
-onBeforeUnmount(() => {
-  view.value?.destroy()
-  if (objectUrl) URL.revokeObjectURL(objectUrl)
-  if (timer) clearTimeout(timer)
-})
+  const blob = await doc.getBlob()
+  const pageCount = await doc.getPageCount()
+  return { blob, pageCount }
+}
 </script>
 
 <template>
-  <div class="flex min-h-0 w-full h-screen flex-1 flex-col overflow-hidden bg-paper">
-    <header class="flex w-full items-center border-b border-ink/10 justify-between px-4">
-     <Breadcrumbs :title="'editing'" />
-     <div class="flex items-center gap-2  py-2">
-       <span
-         class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.06em] whitespace-nowrap"
-         :class="error
-           ? 'border-[rgba(185,28,28,0.35)] bg-[rgba(185,28,28,0.05)] text-[#b91c1c]'
-           : warning
-             ? 'border-[rgba(180,83,9,0.35)] bg-[rgba(180,83,9,0.05)] text-[#b45309]'
-             : 'border-ink/15 text-muted'"
-         :title="warning || error"
-       >
-         <span class="h-1.5 w-1.5 rounded-full" :class="error ? 'bg-red-500' : warning ? 'bg-[#b45309]' : 'bg-green-500'"></span>
-         {{ warning ? "⚠ warning" : badge }}
-       </span>
-       <label
-         class="cursor-pointer rounded-md border border-solid border-ink/15 px-2.5 py-1.5 font-mono text-xs uppercase tracking-[0.2em] text-ink no-underline transition-colors duration-120 hover:border-ink hover:bg-ink hover:text-paper"
-         :title="fileName"
-       >Load PDF
-         <input type="file" accept="application/pdf,.pdf" class="hidden" @change="loadFile" />
-       </label>
-       <button
-         type="button"
-         class="cursor-pointer rounded-md border border-solid border-ink/15 px-2.5 py-1.5 font-mono text-xs uppercase tracking-[0.2em] text-ink no-underline transition-colors duration-120 hover:border-ink hover:bg-ink hover:text-paper"
-         @click="reset"
-       >Reset</button>
-       <a
-         class="rounded-md border border-solid border-ink bg-ink px-2.5 py-1.5 font-mono text-xs uppercase tracking-[0.2em] text-paper no-underline transition-colors duration-120 hover:border-black hover:bg-black"
-         :href="downloadHref"
-         download="edited.pdf"
-       >Download PDF</a>
-     </div>
-    </header>
-
-    <main class="relative flex min-h-0 flex-1">
-      <div class="relative flex min-h-0 flex-1">
-        <div class="flex w-1/2 min-w-0 flex-col border-r border-ink/10">
-          <PlaygroundStrip dot="accent" label="Overlay code" badge="JavaScript" :error="error" :warning="warning" />
-          <div
-            ref="editorEl"
-            class="min-h-0 flex-1 focus-within:shadow-[inset_0_0_0_1px_rgba(180,83,9,0.3)]"
-          ></div>
-        </div>
-        <div class="flex w-1/2 bg-paper2 min-w-0 flex-col">
-          <PlaygroundStrip dot="ink" label="Proof" :badge="fileName" />
-          <iframe
-            ref="frameEl"
-            class="min-h-0 flex-1 bg-paper2"
-            title="PDF preview"
-          ></iframe>
-        </div>
-      </div>
-    </main>
-  </div>
+  <CodePdfWorkbench
+    ref="workbench"
+    :sample-code="SAMPLE_CODE"
+    breadcrumbs="editing"
+    source-label="Overlay code"
+    download-name="edited.pdf"
+    :proof-badge="fileName"
+    :load-fonts="() => loadPlaygroundFonts({ body: 'inter' }, 'editing playground')"
+    :render-code="renderCode"
+  >
+    <template #actions>
+      <label
+        class="cursor-pointer rounded-md border border-solid border-ink/15 px-2.5 py-1.5 font-mono text-xs uppercase tracking-[0.2em] text-ink no-underline transition-colors duration-120 hover:border-ink hover:bg-ink hover:text-paper"
+        :title="fileName"
+      >Load PDF
+        <input type="file" accept="application/pdf,.pdf" class="hidden" @change="loadFile" />
+      </label>
+    </template>
+  </CodePdfWorkbench>
 </template>

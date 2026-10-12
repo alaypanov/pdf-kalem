@@ -12,6 +12,7 @@ not browsed as a demo.
 | [`report/`](./report/) | Multi-page pagination: flowing text, repeating table headers, keep-together panels, per-page furniture, builtin font aliases |
 | [`markdown/`](./markdown/) | Markdown → PDF converter with a small CLI |
 | [`edit/`](./edit/) | Editing an existing PDF: load, overlay widgets, restructure/merge pages |
+| [`forms/`](./forms/) | Fillable forms: AcroForm fields as widgets, labels by composition, template + data via `formData` |
 
 ## Run (inside this repo)
 
