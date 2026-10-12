@@ -4,6 +4,33 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) — while in `0.x`, breaking changes bump the minor version.
 
+## [0.4.0] — 2026-10-11
+
+### Fixed
+
+Full-project review fixes (IDEAS.md B8–B19); each is pinned by a regression test in `tests/review-fixes.test.mjs`.
+
+- **A second output from the same `PdfDoc` is no longer corrupt** (B8). `save()`/`getBlob()`/`download()`/`getBuffer()`/`writeToFile()`/`print()` can now be combined freely: the render context resets its per-document font/image state on every document swap, and images re-embed per output document. Previously the second file referenced the first document's font/image objects and rendered broken.
+- **`getPageCount()` before `save()` no longer poisons text measurement** (B9). The dry run's estimated widths are no longer cached, the text engine rebuilds with real metrics once fonts embed, and the page-count memo resets on save — count-then-save now renders identically to save-only.
+- **A `Page` without an explicit size uses the doc default** instead of inheriting the previous output page's dimensions (B10).
+- **Absolute-positioned children (`FixedContainer`) inside a splitting container no longer vanish** — they render on the page their flow position lands on, anchored to their parent's fragment (B11).
+- **One-sided `width`/`height` on `Image`/`SVGPath`/`Icon` now scales the media** — the aspect-fit measure derives the other dimension — instead of drawing at the intrinsic size (B12). Output-changing fix.
+- **`SVGPath`/`Icon` `strokeWidth` scales exactly once**: it is passed in raw user units and pdf-lib's CTM applies the fit scale; previously the effective stroke was `strokeWidth × scale²` (B13). Output-changing fix.
+- **The `style` escape hatch is the last word on `FlexContainer`/`Row`/`Column`** (B14) — `style.width`/`height`/`justifyContent`/`alignItems`/`gap` now take effect (they were silently clobbered); `flexDirection` stays pinned to the widget's identity. Output-changing fix.
+- **`Stack` and `Icon` honor `margin`** (B15) — the typed option was accepted and silently dropped.
+- **Widgets appended after `PdfDoc` construction receive the context** (B16) — `appendWidgetChild` propagates it, so theme tokens/padding resolve for late appends (edit overlays included).
+- **Browser text measurement uses the styled face** (B17) — canvas measurement carries the resolved weight/style (builtin stacks get `bold`/`italic` keywords; custom families measure under the face id), so bold/italic text no longer wraps ~5–10% too wide in the browser.
+- **The edit subpath preserves AcroForm** (B18) — `loadPdf` → `save()` keeps interactive form fields, as documented; adopted pages also stop duplicating shared resources once per page.
+- **Sharing a widget instance fails with a readable error** (B19) — the same instance twice in one `children` array (or in two parents) throws instead of aborting the process inside Yoga's WASM heap.
+- **Minor fixes from the review's B20 list** — pre-wrap whitespace-only paragraphs survive the Node fallback wrapper; rich ellipsis shows on a blank last visible line; run-href annotation rects cover the full line box (half-leading included); run `font`/`mono` overrides resolve through the override name's own face style; `Container` `style.padding` survives `prepareLayout`, `border.width: 0` draws nothing, and `children`/`child` no longer mutates the caller's array; unknown color tokens warn once **per theme**; `fromHex` rejects invalid hex characters; `Table.fromRows([], { header: true })` no longer crashes and `Table({ children })` throws with guidance; `Image` validates `scale`; Windows drive-letter paths read from disk; `SVGPath` with `fill` + `strokeWidth` but no `stroke` draws no outline; repeated table heads clip to the content box; markdown images render inside list items/headings/table cells and resolve relative paths in Node, an image inside a link warns instead of silently dropping it, `blockquote.color` styles the quote text, and a truncated PNG is skipped at conversion instead of crashing `save()`; overlays offset by a non-zero MediaBox origin; a doc-scoped family named after a builtin alias (`sans`) is reachable; `ColorValue.alpha` warns instead of silently rendering opaque; `renderToPng` no longer detaches a caller-owned `ArrayBuffer` and validates the page index; `new PdfDoc({})` throws with guidance instead of saving a pageless PDF; `Widget`/`WidgetOptions` are exported (type-only) from `pdf-kalem/widgets`.
+- **Builtin styled text measures with the embedded font** (found during the fix session) — `sans-bold` and friends used to wrap with the `0.6em/char` estimate because the font cache was keyed by the alias-resolved pdf name while measurement looked the caller's id up raw.
+- **Doc rot** (B21) — `CONTEXT.md` no longer references the removed `PdfRenderer`; the `TextOverflow` doc matches `maxLines` semantics.
+
+### Internal
+
+- `tests/review-fixes.test.mjs` — 47 regression tests covering the fixes above.
+- Yoga quirk worth knowing: explicit per-edge values (even `0`) take precedence over the `Edge.All` slot in `setPadding`/`setMargin`.
+
 ## [0.3.0] — 2026-10-11
 
 ### Added
