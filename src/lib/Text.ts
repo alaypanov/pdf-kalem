@@ -5,9 +5,10 @@ import { Widget, WidgetOptions } from './Widget';
 import type { RenderContext } from './RenderContextInterface';
 import type { RenderColor } from './RenderContextTypes';
 import {
+  BuiltinPdfFonts,
   builtinPdfNameFace,
-  resolveBuiltinCanvasFont,
   resolveBuiltinPdfFont,
+  type BuiltinPdfFontName,
 } from './types/doc-fonts';
 import { faceId, parseFaceId, resolveFaceStyle } from './fonts/face';
 import type { FontStyle, FontStyleValue, FontWeightValue } from './fonts/types';
@@ -72,6 +73,25 @@ function toCanvasFontFamily(family: string): string {
     return family;
   }
   return `"${family.replace(/"/g, '\\"')}"`;
+}
+
+/**
+ * The canvas font string that measures the same face `face` draws: builtin
+ * faces get the weight/style keywords over their canvas stack; custom
+ * families measure under the face id — browser `FontFace`s register per face
+ * id (`inter-bold`), so measuring under the plain family name would use the
+ * regular face for styled text (B17).
+ */
+function canvasFontForFace(face: string, size: number): string {
+  const builtin = BuiltinPdfFonts[face as BuiltinPdfFontName];
+  if (builtin) {
+    const style = parseFaceId(face)?.style ?? 'regular';
+    const bold = style === 'bold' || style === 'boldItalic';
+    const italic = style === 'italic' || style === 'boldItalic';
+    const prefix = `${bold ? 'bold ' : ''}${italic ? 'italic ' : ''}`;
+    return `${prefix}${size}px ${builtin.canvas}`;
+  }
+  return `${size}px ${toCanvasFontFamily(face)}`;
 }
 
 /** A run fully resolved to concrete fonts and colors for measure/draw. */
@@ -171,11 +191,11 @@ export class TextWidget extends Widget {
     return this.applyBlockTypography(base);
   }
 
-  /** The face style implied by block/variant typography alone (no family name). */
-  private blockFaceStyle(): FontStyle {
+  /** The face style implied by block/variant typography over `base`. */
+  private blockFaceStyle(base: FontStyle = 'regular'): FontStyle {
     const variant = this.getThemeTextStyle();
     return resolveFaceStyle(
-      'regular',
+      base,
       this.fontWeightOverride ?? variant?.fontWeight,
       this.fontStyleOverride ?? variant?.fontStyle,
     );
@@ -218,7 +238,20 @@ export class TextWidget extends Widget {
       family = run.font
         ? resolveThemeFont(this.context?.getTheme(), run.font) ?? run.font
         : 'mono';
-      baseStyle = this.blockFaceStyle();
+      const overrideParsed = parseFaceId(family);
+      if (overrideParsed) {
+        // The override name carries its own style ('inter-bold') — it is the
+        // more specific base that block typography and the run's axes
+        // replace, so an explicit 400 un-bolds it like the block path (B20).
+        family = overrideParsed.family;
+        baseStyle = this.blockFaceStyle(overrideParsed.style);
+      } else {
+        // Inherit the block's fully-styled face (the base name's own style +
+        // block typography) — the same decomposition non-override runs use.
+        const blockFaceName = this.getFontName();
+        const parsed = builtinPdfNameFace(blockFaceName) ?? parseFaceId(blockFaceName);
+        baseStyle = parsed?.style ?? 'regular';
+      }
     } else {
       const basePdfName = this.getFontName();
       const builtin = builtinPdfNameFace(basePdfName);
@@ -234,9 +267,7 @@ export class TextWidget extends Widget {
 
     const face = faceId(family, resolveFaceStyle(baseStyle, run.fontWeight, run.fontStyle));
     const pdfFamily = resolveBuiltinPdfFont(face) ?? face;
-    // Browser FontFaces register under the family name, not the face id.
-    const canvasFamily = resolveBuiltinCanvasFont(family) ?? family;
-    return { fontName: pdfFamily, canvasFont: `${this.getSize()}px ${toCanvasFontFamily(canvasFamily)}` };
+    return { fontName: pdfFamily, canvasFont: canvasFontForFace(face, this.getSize()) };
   }
 
   /** Runs as the engine sees them (text + measuring font), memoized. */
@@ -305,10 +336,9 @@ export class TextWidget extends Widget {
   }
 
   protected getCanvasFont(): string {
-    const fontFamily = resolveBuiltinCanvasFont(
-      resolveFont(this.context?.getTheme(), this.fontNameOverride, this.getThemeTextStyle()?.font)
-    ) ?? this.getFontName();
-    return `${this.getSize()}px ${toCanvasFontFamily(fontFamily)}`;
+    // Measure with the same face that draws (B17) — getFontName() is the
+    // fully-styled face id (e.g. 'sans-bold', 'inter-bold').
+    return canvasFontForFace(this.getFontName(), this.getSize());
   }
 
   /**
@@ -438,6 +468,11 @@ export class TextWidget extends Widget {
     const paintRuns = this.getPaintRuns();
     const lineHeight = this.getLineHeight();
     const ascent = this.getFontAscent();
+    // The line box spans baseline ± (halfLeading + ascent) top / (lineHeight
+    // - halfLeading - ascent) bottom — the same model TextPainter.position
+    // uses. The previous rect dropped the half-leading and sat one notch
+    // below the line box (B20).
+    const halfLeading = (lineHeight - this.getFontHeight()) / 2;
 
     for (const line of renderedLayout.lines) {
       if (!line.fragments) {
@@ -452,9 +487,9 @@ export class TextWidget extends Widget {
           href,
           rect: [
             fragment.x,
-            line.y - (lineHeight - ascent),
+            line.y - (lineHeight - halfLeading - ascent),
             fragment.x + fragment.width,
-            line.y + ascent,
+            line.y + halfLeading + ascent,
           ],
         });
       }
@@ -467,6 +502,12 @@ export class TextWidget extends Widget {
       ? [...new Set(paintRuns.map((run) => run.fontName))]
       : [this.getFontName()];
     await Promise.all(fontNames.map((fontName) => context.preloadFont(fontName)));
+
+    // The engine captures ascent/lineHeight and measurement closures. If it
+    // was built before fonts were embedded (a getPageCount dry run), drop it
+    // so it rebuilds with the real metrics now that preloading has embedded
+    // them (B9).
+    this.engine = undefined;
 
     if (typeof document !== 'undefined' && 'fonts' in document) {
       if (paintRuns.length > 0) {

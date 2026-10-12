@@ -216,10 +216,12 @@ export class Paginator {
     }
 
     // Frame completed: finalize its fragment at the widget's true end
-    // (clipped to the content box).
+    // (clipped to the content box) and emit its absolute children for the
+    // flow range this page consumed (B11).
     if (frame.frag) {
       const bottom = Math.min(frame.origin + frame.flowHeight, contentBottom);
       frame.frag.box.height = Math.max(0, bottom - frame.frag.box.y);
+      this.emitFrameAbsolutes(frame, Math.max(frame.origin, this.content.y), bottom);
     }
   }
 
@@ -304,6 +306,37 @@ export class Paginator {
   }
 
   /**
+   * Absolute-positioned children of a splitting frame: whole-placed subtrees
+   * render them via their real children, but a split frame renders only its
+   * placed fragments — so each absolute child is re-emitted as a fragment
+   * anchored to the frame's box, on every page whose consumed flow range
+   * contains the child's flow position (B11).
+   */
+  private emitFrameAbsolutes(frame: Frame, rangeTop: number, rangeBottom: number): void {
+    if (frame.isPageRoot || !frame.frag) return;
+    for (const child of frame.widget.getChildWidgets()) {
+      const geometry = child.getFlowGeometry();
+      if (!geometry.absolute) continue;
+      const pageY = frame.origin + geometry.top;
+      const top = Math.max(pageY, rangeTop);
+      const bottom = Math.min(pageY + geometry.height, rangeBottom);
+      if (bottom <= top + EPS) continue;
+      frame.frag.children.push({
+        widget: child,
+        box: {
+          x: frame.x + geometry.left,
+          y: top,
+          width: geometry.width,
+          height: bottom - top,
+        },
+        sliceTop: 0,
+        repeated: false,
+        children: [],
+      });
+    }
+  }
+
+  /**
    * Closes the current page mid-flow: finalizes in-progress fragments
    * (clipped to the content box), pushes the page, opens the next one,
    * re-emits the deepest frame's `repeat` units at the top, and re-anchors
@@ -316,6 +349,12 @@ export class Paginator {
       if (f.frag) {
         f.frag.box.height = Math.max(0, contentBottom - f.frag.box.y);
       }
+    }
+    // Emit open frames' absolute children for the flow consumed up to the
+    // break point — content below it continues on the next page (B11).
+    const breakPointY = deepest.origin + resumeOffset;
+    for (const f of chain) {
+      this.emitFrameAbsolutes(f, Math.max(f.origin, this.content.y), Math.min(breakPointY, f.origin + f.flowHeight));
     }
     this.pagesAcc.push(this.current);
 
@@ -339,13 +378,16 @@ export class Paginator {
         if (!u.widget) continue;
         if (repeatBase === null) repeatBase = u.offset;
         const abs = u.widget.getAbsoluteLayoutBox();
+        const fragY = this.content.y + (u.offset - repeatBase);
         const frag: FragmentBuilder = {
           widget: u.widget,
           box: {
             x: abs.x,
-            y: this.content.y + (u.offset - repeatBase),
+            y: fragY,
             width: abs.width,
-            height: u.height,
+            // Clip like placeWholeUnit does — a repeat taller than the
+            // content box must not draw past the page edge (B20).
+            height: Math.max(0, Math.min(u.height, contentBottom - fragY)),
           },
           sliceTop: 0,
           repeated: true,

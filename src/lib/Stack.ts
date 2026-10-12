@@ -61,7 +61,9 @@ export class StackWidget extends Widget {
   private readonly explicitHeight?: YogaStyle['height'];
 
   constructor(options: StackOptions = {}) {
-    super({ children: options.children });
+    // Forward the full options so the base wiring (margin, breakable) runs —
+    // passing only `children` silently dropped `margin` (B15).
+    super(options);
 
     this.explicitWidth = options.width;
     this.explicitHeight = options.height;

@@ -44,13 +44,14 @@ export type RowComponent = ((options?: RowOptions) => FlexContainer) &
  * Creates a Row widget that arranges its children horizontally
  */
 function createRow(options: RowOptions = {}): FlexContainer {
-  // console.log('Creating Row with options:', this);
-  // Map alignment properties to flex style
+  // Prop-derived values first, `style` last (the escape hatch wins per key,
+  // same contract as Container — B14). The direction stays pinned: it is the
+  // widget's identity, not a default.
   const style: YogaStyle = {
-    ...options.style,
-    flexDirection: 'row',
     justifyContent: options.mainAxisAlignment || justifyStart,
     alignItems: options.crossAxisAlignment || alignStart,
+    ...options.style,
+    flexDirection: 'row',
   };
 
   return new FlexContainer({

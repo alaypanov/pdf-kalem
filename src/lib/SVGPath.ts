@@ -88,11 +88,11 @@ export class SVGPathWidget extends Widget {
       this.setYogaStyle({ height: options.height });
     }
 
-    // If consumer didn't explicitly size the widget, set intrinsic size for Yoga.
-    if (!this.explicitWidth) {
+    // Pin the intrinsic size only when neither dimension is explicit — with
+    // one dimension user-set the other must stay auto so the aspect-fit
+    // measure function derives it (B12).
+    if (!this.explicitWidth && !this.explicitHeight) {
       this.node.setWidth(this.intrinsicWidth);
-    }
-    if (!this.explicitHeight) {
       this.node.setHeight(this.intrinsicHeight);
     }
 
@@ -127,6 +127,7 @@ export class SVGPathWidget extends Widget {
   async render(context: RenderContext): Promise<void> {
     const box = context.getLayoutBox(this);
     const placement = aspectFitPlacement(this.spec(), box);
+    const strokeColor = this.resolveStrokeColor();
 
     context.drawSvgPath({
       d: this.d,
@@ -134,10 +135,17 @@ export class SVGPathWidget extends Widget {
       y: placement.top,
       scale: placement.scale,
       color: this.resolveFillColor(),
-      borderColor: this.resolveStrokeColor(),
+      borderColor: strokeColor,
+      // Raw user units: pdf-lib emits setLineWidth inside the scale(s, -s)
+      // CTM, so the stroke scales with the shape exactly once. Pre-multiplying
+      // here would scale it twice (B13). Only when a stroke color resolves —
+      // a strokeWidth on a fill-only path would otherwise stroke with
+      // pdf-lib's default black (B20).
       borderWidth:
-        this.strokeWidth !== undefined && Number.isFinite(this.strokeWidth)
-          ? this.strokeWidth * placement.scale
+        strokeColor !== undefined &&
+        this.strokeWidth !== undefined &&
+        Number.isFinite(this.strokeWidth)
+          ? this.strokeWidth
           : undefined,
     });
   }

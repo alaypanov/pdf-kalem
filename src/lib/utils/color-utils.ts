@@ -19,6 +19,16 @@ function clampByte(value: number): number {
 function normalizeHex(hex: string): string {
     const cleanHex = hex.trim().replace(/^#/, '');
 
+    // Validate the characters too: `parseInt('ZZ', 16)` would otherwise
+    // produce NaN colors (a cryptic late pdf-lib error) or silently wrong
+    // ones (`parseInt('1G', 16)` = 1) (B20).
+    if (
+        !/^[0-9a-fA-F]+$/.test(cleanHex) ||
+        (cleanHex.length !== 3 && cleanHex.length !== 4 && cleanHex.length !== 6 && cleanHex.length !== 8)
+    ) {
+        throw new Error(`Invalid hex color: ${hex}`);
+    }
+
     if (cleanHex.length === 3 || cleanHex.length === 4) {
         return cleanHex
             .split('')
@@ -26,11 +36,7 @@ function normalizeHex(hex: string): string {
             .join('');
     }
 
-    if (cleanHex.length === 6 || cleanHex.length === 8) {
-        return cleanHex;
-    }
-
-    throw new Error(`Invalid hex color: ${hex}`);
+    return cleanHex;
 }
 
 export function fromHex(hex?: string): ColorValue {
@@ -58,9 +64,18 @@ export function fromRGB(red: number, green: number, blue: number, alpha?: number
     };
 }
 
+let alphaUnsupportedWarned = false;
+
 export function toPdfLibColor(color?: ColorValue): PdfLibColor | undefined {
     if (!color) {
         return undefined;
+    }
+
+    // pdf-lib's rgb() has no alpha channel; warn once instead of silently
+    // rendering transparency as fully opaque (B20).
+    if (color.alpha !== undefined && color.alpha < 255 && !alphaUnsupportedWarned) {
+        alphaUnsupportedWarned = true;
+        console.warn('pdf-kalem: ColorValue.alpha is not supported by the PDF backend — the color renders fully opaque.');
     }
 
     return rgb(color.red / 255, color.green / 255, color.blue / 255);

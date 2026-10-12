@@ -50,8 +50,11 @@ export class PageWidget extends Widget {
       }
     }
 
-    const docDimensions = context.getDimensions();
-    return docDimensions;
+    // Doc default — read from the options, NOT context.getDimensions():
+    // during save that reflects the current output page, so a size-less page
+    // would inherit the previous page's size (B10).
+    const options = context.getOptions();
+    return [options.width || 0, options.height || 0];
   }
 
   /** Whether content overflowing this page splits across continuation pages. */

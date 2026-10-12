@@ -47,7 +47,9 @@ export interface TextLayoutResult {
 
 /**
  * How a text block should behave when it overflows its box.
- * - `visible`: lines are not truncated.
+ * - `visible`: no height-derived truncation — lines beyond the box stay
+ *   laid out. An explicit `maxLines` still clamps (CSS line-clamp
+ *   semantics); `overflow` only chooses the indicator for that clamp.
  * - `clip`: lines beyond the limit are dropped.
  * - `ellipsis`: the last visible line is truncated with an ellipsis.
  */
@@ -327,6 +329,15 @@ export class TextLayoutEngine {
       }
 
       const words = normalizedParagraph.split(' ');
+
+      // pre-wrap preserves a whitespace-only paragraph literally (the rich
+      // path keeps it as a space-only word); the split(' ') walk below
+      // produces only empty words for it, so emit it as-is (B20).
+      if (this.config.whiteSpace === 'pre-wrap' && words.every((word) => word === '')) {
+        this.appendFallbackLine(lines, normalizedParagraph);
+        continue;
+      }
+
       let currentLine = '';
 
       for (const word of words) {
@@ -695,7 +706,21 @@ export class TextLayoutEngine {
    */
   private ellipsizeRichLine(line: TextLayoutLine, maxWidth: number): TextLayoutLine {
     const fragments = line.fragments ?? [];
-    if (fragments.length === 0 || maxWidth <= 0) {
+    if (maxWidth <= 0) {
+      return { text: '', width: 0 };
+    }
+
+    // A blank last line (no fragments) still shows the ellipsis, in the
+    // first run's font — matching the plain path (B20).
+    if (fragments.length === 0) {
+      const ellipsisWidth = this.measureRunWidthFor(0, '…');
+      if (ellipsisWidth <= maxWidth) {
+        return {
+          text: '…',
+          width: ellipsisWidth,
+          fragments: [{ runIndex: 0, text: '…', width: ellipsisWidth }],
+        };
+      }
       return { text: '', width: 0 };
     }
 
@@ -732,6 +757,17 @@ export class TextLayoutEngine {
     }
 
     if (!best) {
+      // No cut fits under the accumulated prefixes — fall back to a bare
+      // ellipsis in the first fragment's font (the plain path keeps one).
+      const ellipsisWidth = this.measureRunWidthFor(fragments[0].runIndex, '…');
+      if (ellipsisWidth <= maxWidth) {
+        const runIndex = fragments[0].runIndex;
+        return {
+          text: '…',
+          width: ellipsisWidth,
+          fragments: [{ runIndex, text: '…', width: ellipsisWidth }],
+        };
+      }
       return { text: '', width: 0 };
     }
 

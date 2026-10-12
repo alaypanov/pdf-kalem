@@ -26,6 +26,31 @@ async function readNodeFile(path: string): Promise<Uint8Array> {
   return loadFs().then((fs) => fs.readFile(path));
 }
 
+/**
+ * Resolves an image source to bytes: in Node, bare paths and `file://` URLs
+ * read from disk (I13); real URLs (http/https/data/blob) fetch in every
+ * runtime. Shared with the markdown renderer so its images resolve the same
+ * way (B20).
+ */
+export async function fetchImageBytes(url: string): Promise<ArrayBuffer> {
+  // A single-letter "scheme" is a Windows drive letter (`C:\\img.png`), not
+  // a URL scheme (B20).
+  const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url) && !/^[a-zA-Z]:/.test(url);
+  const isFileUrl = url.startsWith('file://');
+
+  if (isNode() && (!hasScheme || isFileUrl)) {
+    const path = isFileUrl ? url.slice('file://'.length) : url;
+    const bytes = await readNodeFile(path);
+    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  }
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`fetch failed: ${response.status} ${response.statusText}`);
+  }
+  return response.arrayBuffer();
+}
+
 interface ImageOptions extends WidgetOptions {
   url: string;
   /** Pre-fetched image bytes; when set, `loadImage` skips the fetch. */
@@ -43,6 +68,7 @@ export class ImageWidget extends Widget {
   private scale: number;
   private format: 'png' | 'jpeg';
   private pdfImage?: RenderImage;
+  private resolvedFormat?: 'png' | 'jpeg';
   private imageWidth: number = 0;
   private imageHeight: number = 0;
   private explicitWidth: boolean;
@@ -54,7 +80,12 @@ export class ImageWidget extends Widget {
     super(options);
     this.url = options.url;
     this.bytes = options.bytes;
-    this.scale = options.scale || 1;
+    this.scale = options.scale ?? 1;
+    if (!Number.isFinite(this.scale) || this.scale <= 0) {
+      // Same guard SVGPath has — scale 0 used to silently become 1 and a
+      // negative scale silently drew nothing (B20).
+      throw new Error('Image: scale must be a positive number');
+    }
     this.format = options.format;
 
     this.explicitWidth = options.width !== undefined;
@@ -87,26 +118,34 @@ export class ImageWidget extends Widget {
   }
 
   async loadImage(context: RenderContext): Promise<void> {
-    if (this.pdfImage) return;
-    const bytes = this.bytes ?? (await this.fetchBytes());
+    if (!this.bytes) {
+      this.bytes = await fetchImageBytes(this.url);
+    }
+    const bytes = this.bytes;
 
     // The bytes are ground truth: when the signature disagrees with the
     // declared format (Image.jpeg on png data), the sniffed format wins —
-    // embedImage reports unsupported signatures itself.
+    // embedImage reports unsupported signatures itself. The decision is
+    // memoized so re-loads within/across saves warn once, not per call.
     const sniffed = sniffImageFormat(bytes);
-    if (sniffed && sniffed !== this.format) {
+    const format = sniffed ?? this.format;
+    if (sniffed && sniffed !== this.format && this.resolvedFormat !== format) {
       console.warn(`Image: declared format '${this.format}' does not match the bytes (sniffed '${sniffed}') — using the sniffed format.`);
     }
-    this.pdfImage = await context.embedImage(bytes, sniffed ?? this.format);
+    this.resolvedFormat = format;
+    // No widget-level embed cache: the backend dedupes per document, and a
+    // cached PDFImage would point into a discarded document on a second
+    // save (B8).
+    this.pdfImage = await context.embedImage(bytes, format);
     // Use natural image size initially
     this.imageWidth = this.pdfImage.width * this.scale;
     this.imageHeight = this.pdfImage.height * this.scale;
 
-    // If consumer didn't explicitly size the image, set intrinsic size for Yoga.
-    if (!this.explicitWidth) {
+    // Pin the intrinsic size only when neither dimension is explicit — with
+    // one dimension user-set the other must stay auto so the aspect-fit
+    // measure function derives it (B12).
+    if (!this.explicitWidth && !this.explicitHeight) {
       this.node.setWidth(this.imageWidth);
-    }
-    if (!this.explicitHeight) {
       this.node.setHeight(this.imageHeight);
     }
 
@@ -119,26 +158,6 @@ export class ImageWidget extends Widget {
   override async prepareLayout(context: RenderContext): Promise<void> {
     await this.loadImage(context);
     await super.prepareLayout(context);
-  }
-
-  /**
-   * I13: in Node, a bare path (`./logo.png`) or `file://` URL reads from
-   * disk — the regular user's first attempt, which used to break on
-   * `fetch`. Real URLs (http/https/data/blob) fetch as before, in every
-   * runtime.
-   */
-  private async fetchBytes(): Promise<ArrayBuffer> {
-    const url = this.url;
-    const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url);
-    const isFileUrl = url.startsWith('file://');
-
-    if (isNode() && (!hasScheme || isFileUrl)) {
-      const path = isFileUrl ? url.slice('file://'.length) : url;
-      const bytes = await readNodeFile(path);
-      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-    }
-
-    return (await fetch(url)).arrayBuffer();
   }
 
   async render(context: RenderContext): Promise<void> {

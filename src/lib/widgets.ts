@@ -18,3 +18,8 @@ export * from './Stack'
 export * from './Spacer'
 export * from './Icon'
 export * from './types/styles'
+
+// The base class appears in public signatures (PdfDocOptions.children,
+// LoadedPage.add) — consumers need to be able to name the type. Type-only:
+// the abstract class stays non-instantiable outside the package (B20).
+export type { Widget, WidgetOptions } from './Widget';

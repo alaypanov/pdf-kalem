@@ -38,14 +38,16 @@ export class ContainerWidget extends Widget {
   private bgColor?: ThemeColorValue;
   private border?: BorderOptions;
   private padding?: Spacing;
+  private readonly styleOptions?: YogaStyle;
 
   constructor(options: ContainerOptions) {
-    // If a single child is provided, add it to the children array
-    const children = options.children || [];
+    // Copy: the caller's array must not gain `child` (B20).
+    const children = options.children ? [...options.children] : [];
     if (options.child) {
       children.push(options.child);
     }
     super({ ...options, children });
+    this.styleOptions = options.style;
     this.border = options.border;
     this.bgColor = options.bgColor;
     this.padding = options.padding;
@@ -96,6 +98,23 @@ export class ContainerWidget extends Widget {
     this.node.setPadding(Edge.Right, padding.right);
     this.node.setPadding(Edge.Bottom, padding.bottom);
     this.node.setPadding(Edge.Left, padding.left);
+    // The style escape hatch is the last word (B14 contract): re-apply any
+    // padding keys it sets, or the resolved edges above would clobber them
+    // at layout time (B20). Per-edge sets, not the `All` slot — Yoga gives
+    // explicit per-edge values precedence over `All`.
+    const style = this.styleOptions;
+    if (style) {
+      if (style.padding !== undefined) {
+        this.node.setPadding(Edge.Top, style.padding);
+        this.node.setPadding(Edge.Right, style.padding);
+        this.node.setPadding(Edge.Bottom, style.padding);
+        this.node.setPadding(Edge.Left, style.padding);
+      }
+      if (style.paddingTop !== undefined) this.node.setPadding(Edge.Top, style.paddingTop);
+      if (style.paddingRight !== undefined) this.node.setPadding(Edge.Right, style.paddingRight);
+      if (style.paddingBottom !== undefined) this.node.setPadding(Edge.Bottom, style.paddingBottom);
+      if (style.paddingLeft !== undefined) this.node.setPadding(Edge.Left, style.paddingLeft);
+    }
     await super.prepareLayout(context);
   }
 
@@ -114,17 +133,21 @@ export class ContainerWidget extends Widget {
     // Draw border if specified
     const border = this.getResolvedBorder();
     if (border) {
-      const borderWidth = border.width || borderDefaults.width;
+      // `??` not `||`: an explicit width of 0 means no border (B20) — skip
+      // the draw entirely, pdf-lib would still emit a zero-width stroke op.
+      const borderWidth = border.width ?? borderDefaults.width;
       const borderColor = border.color ?? fromHex('#000000');
-      context.drawRectangle({
-        x,
-        y,
-        width,
-        height,
-        borderWidth,
-        borderColor,
-        color: undefined, // No fill, just border
-      });
+      if (borderWidth !== undefined && borderWidth > 0) {
+        context.drawRectangle({
+          x,
+          y,
+          width,
+          height,
+          borderWidth,
+          borderColor,
+          color: undefined, // No fill, just border
+        });
+      }
     }
 
     // Render all children (now always uses children array)

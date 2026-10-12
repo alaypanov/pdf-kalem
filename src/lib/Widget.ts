@@ -40,8 +40,18 @@ export abstract class Widget {
     this.node = Yoga.Node.create();
     this.breakableOption = options.breakable;
 
-    // Add child nodes to this node and wire parent pointers
+    // Add child nodes to this node and wire parent pointers. A widget
+    // instance belongs to exactly one parent: sharing an instance (twice in
+    // one array, or across two parents) makes Yoga's WASM heap abort the
+    // whole process — throw a readable error instead (B19).
+    const seen = new Set<Widget>();
     for (const child of this.children) {
+      if (child.parent !== undefined || seen.has(child)) {
+        throw new Error(
+          'Widget instances cannot be shared or re-parented: this instance already belongs to a parent (or appears twice in one children array). Build a fresh widget instead — re-parenting corrupts the Yoga WASM heap.'
+        );
+      }
+      seen.add(child);
       child.parent = this;
       this.node.insertChild(child.node, this.node.getChildCount());
     }
@@ -156,9 +166,19 @@ export abstract class Widget {
 
   /** @internal — package-internal: append a child after construction (edit module overlays). */
   appendWidgetChild(widget: Widget): void {
+    if (widget.parent !== undefined) {
+      throw new Error(
+        'Widget instances cannot be shared or re-parented: this instance already belongs to a parent. Build a fresh widget instead — re-parenting corrupts the Yoga WASM heap.'
+      );
+    }
     widget.parent = this;
     this.children.push(widget);
     this.node.insertChild(widget.node, this.node.getChildCount());
+    // Late appends must see the same context/theme as the rest of the tree —
+    // setContext otherwise runs only in the PdfDoc constructor (B16).
+    if (this.context) {
+      widget.setContext(this.context);
+    }
   }
 
   /** Flow geometry from the last Yoga layout (positions are parent-border-box-relative). */

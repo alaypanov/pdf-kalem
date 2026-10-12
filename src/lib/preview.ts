@@ -50,6 +50,7 @@ interface PdfjsPage {
 }
 
 interface PdfjsDoc {
+  numPages: number;
   getPage: (pageNumber: number) => Promise<PdfjsPage>;
   destroy?: () => Promise<void>;
 }
@@ -146,14 +147,22 @@ export async function renderToPng(
   };
 
   const doc = await getDocument({
-    data: new Uint8Array(pdfBytes),
+    // Copy an ArrayBuffer input: pdfjs transfers the buffer to its worker,
+    // which would detach the caller's memory (B20).
+    data: pdfBytes instanceof ArrayBuffer ? new Uint8Array(pdfBytes.slice(0)) : new Uint8Array(pdfBytes),
     canvasFactory,
     standardFontDataUrl: await standardFontDataUrl(),
     isEvalSupported: false,
   }).promise;
 
   try {
-    // pdfjs pages are 1-based.
+    // pdfjs pages are 1-based; validate before pdfjs's bare "Invalid page
+    // request" error (B20).
+    if (!Number.isInteger(page) || page < 0 || page >= doc.numPages) {
+      throw new Error(
+        `pdf-kalem/preview: page index ${page} is out of range (document has ${doc.numPages} page${doc.numPages === 1 ? '' : 's'})`
+      );
+    }
     const pdfPage = await doc.getPage(page + 1);
     const viewport = pdfPage.getViewport({ scale: dpi / 72 });
     const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));

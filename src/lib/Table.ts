@@ -288,6 +288,11 @@ export class TableWidget extends Widget {
   private readonly columnWeights?: number[];
 
   constructor(options: TableOptions) {
+    if (options.children && options.children.length > 0) {
+      throw new Error(
+        'Table: children are not supported — compose rows via head/body (TableHead/TableBody/TableRow/TableCell) or Table.fromRows.'
+      );
+    }
     const children = [options.head, options.body].filter(Boolean) as Widget[];
     super({ ...options, children });
     this.head = options.head;
@@ -458,7 +463,9 @@ export function fromRows(
     TableRow({ children: cells.map(toCell) });
 
   const bodyRows = rows.map(toRow);
-  const head = header ? TableHead({ rows: [bodyRows.shift()!] }) : undefined;
+  // No rows → nothing to promote to the head; `shift()` on an empty array
+  // would otherwise crash with an opaque TypeError (B20).
+  const head = header && bodyRows.length > 0 ? TableHead({ rows: [bodyRows.shift()!] }) : undefined;
   const body = TableBody({ rows: bodyRows });
 
   return createTable({ ...tableOptions, head, body });

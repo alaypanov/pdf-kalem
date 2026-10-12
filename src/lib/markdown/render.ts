@@ -5,22 +5,24 @@
  * from the bytes; the widget renders from those bytes without a re-fetch.
  */
 import type { Token, Tokens } from 'marked';
-import { Text, type Run, type TextWidget } from '../Text';
+import { Text, type Run } from '../Text';
 import { Container } from '../Container';
 import { Column } from '../Column';
 import { Row } from '../Row';
 import { HLine } from '../HLine';
-import { Image, type ImageWidget } from '../Image';
+import { Image, fetchImageBytes, type ImageWidget } from '../Image';
 import { Table } from '../Table';
 import type { Widget } from '../Widget';
 import { coalesceRuns, inlineToRuns } from './inline';
 import { sniffImageFormat } from './format';
 import type { ResolvedMarkdownStyles } from './styles';
 
-/** Inherited render context (blockquote italics, list nesting depth). */
+/** Inherited render context (blockquote italics/color, list nesting depth). */
 interface RenderContext {
   italic: boolean;
   listLevel: number;
+  /** Blockquote text color, inherited by the quote's content (B20). */
+  color?: ResolvedMarkdownStyles['blockquoteColor'];
 }
 
 const INITIAL_CONTEXT: RenderContext = { italic: false, listLevel: 0 };
@@ -45,7 +47,7 @@ async function renderBlock(
   switch (token.type) {
     case 'heading': {
       const heading = token as Tokens.Heading;
-      return [renderHeading(heading, styles)];
+      return renderHeading(heading, styles);
     }
 
     case 'paragraph':
@@ -60,6 +62,7 @@ async function renderBlock(
       const content = await renderBlockTokens(quote.tokens ?? [], styles, {
         ...context,
         italic: styles.blockquoteItalic,
+        color: styles.blockquoteColor,
       });
       return [renderBlockquote(content, styles)];
     }
@@ -68,7 +71,7 @@ async function renderBlock(
       return [await renderList(token as Tokens.List, styles, context)];
 
     case 'table':
-      return [renderTable(token as Tokens.Table, styles)];
+      return [await renderTable(token as Tokens.Table, styles)];
 
     case 'hr':
       return [
@@ -82,11 +85,21 @@ async function renderBlock(
   }
 }
 
-function renderHeading(heading: Tokens.Heading, styles: ResolvedMarkdownStyles): TextWidget {
-  const { runs } = inlineToRuns(heading.tokens, styles);
-  return Text(withBold(coalesceRuns(runs)), {
-    variant: `${styles.headingVariantPrefix}${heading.depth}`,
-  });
+async function renderHeading(heading: Tokens.Heading, styles: ResolvedMarkdownStyles): Promise<Widget[]> {
+  const { runs, images } = inlineToRuns(heading.tokens, styles);
+  const widgets: Widget[] = [
+    Text(withBold(coalesceRuns(runs)), {
+      variant: `${styles.headingVariantPrefix}${heading.depth}`,
+    }),
+  ];
+  // Hoisted images render after the heading text, like paragraphs do (B20).
+  for (const image of images) {
+    const widget = await renderImage(image, styles);
+    if (widget) {
+      widgets.push(widget);
+    }
+  }
+  return widgets;
 }
 
 async function renderParagraphish(
@@ -96,6 +109,7 @@ async function renderParagraphish(
 ): Promise<Widget[]> {
   const { runs, images } = inlineToRuns(inlineTokensOf(token), styles, {
     fontStyle: context.italic ? 'italic' : undefined,
+    color: context.color,
   });
 
   const widgets: Widget[] = [];
@@ -170,11 +184,19 @@ async function renderListItem(
   for (const token of item.tokens ?? []) {
     if (token.type === 'paragraph' || token.type === 'text') {
       // The item's own inline content; task checkboxes render in the marker.
-      const { runs } = inlineToRuns(inlineTokensOf(token as Tokens.Paragraph), styles, {
+      const { runs, images } = inlineToRuns(inlineTokensOf(token as Tokens.Paragraph), styles, {
         fontStyle: context.italic ? 'italic' : undefined,
+        color: context.color,
       });
       if (runs.length > 0) {
         content.push(Text(coalesceRuns(runs)));
+      }
+      // Hoisted images render after the item text, like paragraphs do (B20).
+      for (const image of images) {
+        const widget = await renderImage(image, styles);
+        if (widget) {
+          content.push(widget);
+        }
       }
       continue;
     }
@@ -214,17 +236,29 @@ function listMarkerText(
   return styles.bullet;
 }
 
-function renderTable(table: Tokens.Table, styles: ResolvedMarkdownStyles): Widget {
-  const cellWidget = (cell: Tokens.TableCell, column: number, bold: boolean): TextWidget => {
-    const { runs } = inlineToRuns(cell.tokens, styles);
-    return Text(withBold(coalesceRuns(runs), bold), {
+async function renderTable(table: Tokens.Table, styles: ResolvedMarkdownStyles): Promise<Widget> {
+  const cellWidget = async (cell: Tokens.TableCell, column: number, bold: boolean): Promise<Widget> => {
+    const { runs, images } = inlineToRuns(cell.tokens, styles);
+    const text = Text(withBold(coalesceRuns(runs), bold), {
       align: cell.align ?? table.align[column] ?? undefined,
     });
+    if (images.length === 0) {
+      return text;
+    }
+    // A cell with hoisted images composes them under its text (B20).
+    const parts: Widget[] = [text];
+    for (const image of images) {
+      const widget = await renderImage(image, styles);
+      if (widget) {
+        parts.push(widget);
+      }
+    }
+    return Column({ children: parts });
   };
 
   const rows: Widget[][] = [
-    table.header.map((cell, column) => cellWidget(cell, column, true)),
-    ...table.rows.map((row) => row.map((cell, column) => cellWidget(cell, column, false))),
+    await Promise.all(table.header.map((cell, column) => cellWidget(cell, column, true))),
+    ...await Promise.all(table.rows.map((row) => Promise.all(row.map((cell, column) => cellWidget(cell, column, false))))),
   ];
 
   return Table.fromRows(rows, {
@@ -239,11 +273,9 @@ async function renderImage(
   styles: ResolvedMarkdownStyles,
 ): Promise<ImageWidget | undefined> {
   try {
-    const response = await fetch(image.href);
-    if (!response.ok) {
-      throw new Error(`${response.status} ${response.statusText}`);
-    }
-    const bytes = new Uint8Array(await response.arrayBuffer());
+    // Same source resolution as Image widgets: bare paths and file:// URLs
+    // read from disk in Node (B20).
+    const bytes = new Uint8Array(await fetchImageBytes(image.href));
     const format = sniffImageFormat(bytes);
     if (!format) {
       console.warn(`markdown: skipping image '${image.href}' — only png/jpeg can be embedded`);

@@ -93,6 +93,9 @@ export class FontRegistry {
         fontSet.add(loadedFont);
         await fontSet.ready;
       } catch (err) {
+        // Drop the memoized entry so a later call can retry — a transient
+        // failure must not be cached forever (B20).
+        this.browserFontLoads.delete(fontName);
         console.warn(`FontRegistry.loadBrowserFont: failed to load '${fontName}' into browser fonts`, err);
       }
     })();

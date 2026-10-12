@@ -2,6 +2,7 @@ import {
   PDFArray,
   PDFDocument,
   PDFName,
+  PDFObjectCopier,
   PDFPage,
   PDFString,
   PDFFont,
@@ -21,7 +22,7 @@ import type {
   DrawSvgPathArgs,
   LinkAnnotationArgs,
 } from './RenderContextTypes';
-import { resolveBuiltinPdfFont } from './types/doc-fonts';
+import { builtinPdfNameFace, resolveBuiltinPdfFont } from './types/doc-fonts';
 import { toPdfLibColor } from './utils/color-utils';
 import { FontRegistry } from './FontRegistry';
 import { parseFaceId, resolveFaceBytes } from './fonts/face';
@@ -49,6 +50,12 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface {
   private fontkitRegisteredOnDoc = false;
   private fontkitInstance?: unknown;
   private fonts?: FontSet;
+  /** User-space origin of the current page's MediaBox (0,0 for generated pages). */
+  private pageOrigin = { x: 0, y: 0 };
+  /** Embedded images for the current document, keyed on the bytes identity. */
+  private imageCache = new WeakMap<object, Map<string, RenderImage>>();
+  /** Copiers for adopted foreign documents (reset with the document). */
+  private pageCopiers = new Map<PDFDocument, PDFObjectCopier>();
 
   constructor(options: RenderContextOptions) {
     this.options = options;
@@ -130,6 +137,17 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface {
 
   setDocument(doc: PDFDocument): void {
     this.doc = doc;
+    // Embedded fonts/images belong to one PDFDocument: a second save creates
+    // a fresh document, and cached PDFFont/PDFImage refs pointing into the
+    // discarded one would silently corrupt its resources (B8).
+    this.fontCache.clear();
+    this.textWidthCache.clear();
+    this.fontkitRegisteredOnDoc = false;
+    this.page = null;
+    this.dimensions = undefined;
+    this.pageOrigin = { x: 0, y: 0 };
+    this.imageCache = new WeakMap();
+    this.pageCopiers = new Map();
   }
 
   getDocument(): PDFDocument {
@@ -152,6 +170,10 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface {
   setCurrentPage(currentPage: PDFPage): void {
     this.page = currentPage;
     this.dimensions = [currentPage.getWidth(), currentPage.getHeight()];
+    // Adopted pages can carry a non-zero MediaBox origin (scanners, CAD);
+    // overlay drawing must offset by it (B20).
+    const mediaBox = currentPage.getMediaBox();
+    this.pageOrigin = { x: mediaBox.x, y: mediaBox.y };
   }
 
   /**
@@ -162,8 +184,32 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface {
    */
   async adoptPage(source: unknown, pageIndex: number): Promise<void> {
     const doc = this.getDocument();
-    const [copied] = await doc.copyPages(source as PDFDocument, [pageIndex]);
-    this.setCurrentPage(doc.addPage(copied));
+    const src = source as PDFDocument;
+    await src.flush();
+
+    // One copier per source document (reset with the document): pages copied
+    // through it share deduplicated resources, and the catalog AcroForm
+    // copied through the same copier keeps its field refs connected to the
+    // widget annotations the pages bring along. pdf-lib's `copyPages` drops
+    // the AcroForm entirely and exposes no copier to reuse (B18).
+    const copier = this.copierFor(src);
+    const copiedPage = copier.copy(src.getPage(pageIndex).node);
+    const ref = doc.context.register(copiedPage);
+    this.setCurrentPage(doc.addPage(PDFPage.of(copiedPage, ref, doc)));
+
+    const acroForm = src.catalog.get(PDFName.of('AcroForm'));
+    if (acroForm) {
+      doc.catalog.set(PDFName.of('AcroForm'), copier.copy(acroForm));
+    }
+  }
+
+  private copierFor(source: PDFDocument): PDFObjectCopier {
+    let copier = this.pageCopiers.get(source);
+    if (!copier) {
+      copier = PDFObjectCopier.for(source.context, this.getDocument().context);
+      this.pageCopiers.set(source, copier);
+    }
+    return copier;
   }
 
   getPageHeight(): number {
@@ -200,9 +246,12 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface {
     height: number;
   } {
     const pageHeight = this.getPageHeight();
+    // Generated pages have a (0,0) MediaBox origin, so this is a no-op for
+    // them; adopted pages with a shifted origin get their overlays placed in
+    // the visible box (B20).
     return {
-      x: box.x,
-      y: pageHeight - box.y - box.height,
+      x: box.x + this.pageOrigin.x,
+      y: pageHeight + this.pageOrigin.y - box.y - box.height,
       width: box.width,
       height: box.height,
     };
@@ -226,24 +275,26 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface {
   // --- Font embedding / measurement ---
 
   async getFont(fontName: StandardFonts | string = StandardFonts.Helvetica): Promise<PDFFont> {
-    const requestedName = resolveBuiltinPdfFont(fontName) ?? StandardFonts.Helvetica;
-    const cached = this.fontCache.get(requestedName);
+    const cached = this.fontCache.get(fontName);
     if (cached) return cached;
 
     const doc = this.getDocument();
     const registry = FontRegistry.instance;
+    const requestedName = resolveBuiltinPdfFont(fontName) ?? StandardFonts.Helvetica;
 
-    // Doc-scoped resolution first (new PdfDoc({ fonts })), then the global
-    // registry. In both, exact family names win: a family literally named
-    // 'inter-bold' embeds as itself, never as the bold face of 'inter'.
-    // Suffixed ids resolve through the family's faces, falling back (with
-    // a warning) when a face is missing — bold-italic → bold → italic →
-    // regular.
-    let registered = this.fonts?.families.get(requestedName)?.regular;
+    // Doc-scoped resolution first (new PdfDoc({ fonts })), under the RAW
+    // name: a family registered as 'sans' must stay reachable past the
+    // alias → pdf-name mapping, and its faces ('sans-bold') parse through
+    // it (B20). In both doc-scoped and global resolution, exact family
+    // names win: a family literally named 'inter-bold' embeds as itself,
+    // never as the bold face of 'inter'. Suffixed ids resolve through the
+    // family's faces, falling back (with a warning) when a face is missing
+    // — bold-italic → bold → italic → regular.
+    let registered = this.fonts?.families.get(fontName)?.regular;
     let faceNote: string | undefined;
 
     if (!registered) {
-      const face = parseFaceId(requestedName);
+      const face = parseFaceId(fontName);
       const variants: FontVariants | undefined = face
         ? this.fonts?.families.get(face.family)
         : undefined;
@@ -251,7 +302,25 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface {
         const resolved = resolveFaceBytes(variants, face.style);
         registered = resolved.bytes;
         if (resolved.fellBack) {
-          faceNote = `face '${requestedName}' is not available for family '${face.family}'; using its ${resolved.style} face`;
+          faceNote = `face '${fontName}' is not available for family '${face.family}'; using its ${resolved.style} face`;
+        }
+      }
+    }
+
+    if (!registered) {
+      // A builtin pdf name ('Helvetica', 'Helvetica-Bold') maps back into a
+      // doc family registered under the alias name ('sans'): plain-text
+      // requests arrive under the pdf name because getFontName resolves the
+      // alias before typography (B20).
+      const builtinFace = builtinPdfNameFace(fontName);
+      const variants: FontVariants | undefined = builtinFace
+        ? this.fonts?.families.get(builtinFace.family)
+        : undefined;
+      if (builtinFace && variants) {
+        const resolved = resolveFaceBytes(variants, builtinFace.style);
+        registered = resolved.bytes;
+        if (resolved.fellBack) {
+          faceNote = `face '${fontName}' is not available for family '${builtinFace.family}'; using its ${resolved.style} face`;
         }
       }
     }
@@ -282,26 +351,29 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface {
         this.fontkitRegisteredOnDoc = true;
       }
       const font = await doc.embedFont(registered as any);
-      this.fontCache.set(requestedName, font);
+      // Cache under the name the caller used — measurement looks the name up
+      // raw, so alias ids ('sans-bold') hit the embedded font instead of
+      // silently measuring with the estimate (B20).
+      this.fontCache.set(fontName, font);
       if (faceNote) {
         console.warn(`RenderContext.getFont: ${faceNote}.`);
       }
       // Canvas-based measurement (pretext) needs the face registered under
       // the same name in the browser font set; no-op outside the browser.
-      await registry.loadBrowserFont(requestedName, registered);
+      await registry.loadBrowserFont(fontName, registered);
       return font;
     }
 
     if (typeof requestedName === 'string' && !FontRegistry.isStandardFontName(requestedName)) {
       console.warn(
-        `RenderContext.getFont: font '${requestedName}' is not registered and is not a StandardFonts value. ` +
+        `RenderContext.getFont: font '${fontName}' is not registered and is not a StandardFonts value. ` +
         `Falling back to '${StandardFonts.Helvetica}'.`
       );
       return this.getFont(StandardFonts.Helvetica);
     }
 
     const font = await doc.embedFont(requestedName as any);
-    this.fontCache.set(requestedName, font);
+    this.fontCache.set(fontName, font);
     return font;
   }
 
@@ -343,20 +415,25 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface {
   }
 
   measureTextWidth(text: string, size: number, fontName: StandardFonts | string = StandardFonts.Helvetica): number {
+    // The cache key is the name the caller used — getFont caches under the
+    // raw name, so alias ids ('sans-bold') hit the embedded font instead of
+    // silently measuring with the estimate (B20).
     const cacheKey = `${fontName}\u0000${size}\u0000${text}`;
     const cachedWidth = this.textWidthCache.get(cacheKey);
     if (cachedWidth !== undefined) {
       return cachedWidth;
     }
 
-    let measuredWidth: number;
     const font = this.fontCache.get(fontName);
-    if (font) {
-      measuredWidth = font.widthOfTextAtSize(text, size);
-    } else {
-      measuredWidth = text.length * size * 0.6;
+    if (!font) {
+      // Un-embedded font (e.g. the getPageCount dry run, which has no
+      // document): return the estimate WITHOUT caching it — otherwise save()
+      // would keep wrapping text with the estimate after the real font is
+      // embedded (B9).
+      return text.length * size * 0.6;
     }
 
+    const measuredWidth = font.widthOfTextAtSize(text, size);
     this.textWidthCache.set(cacheKey, measuredWidth);
     return measuredWidth;
   }
@@ -439,11 +516,21 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface {
 
   async embedImage(bytes: ArrayBuffer, format: 'png' | 'jpeg'): Promise<RenderImage> {
     const doc = this.getDocument();
-    if (format === 'png') {
-      return doc.embedPng(bytes);
+    // Per-document dedup keyed on the bytes identity: one embed per image per
+    // output document, and a fresh embed when the document changes (B8).
+    let byFormat = this.imageCache.get(bytes);
+    if (!byFormat) {
+      byFormat = new Map();
+      this.imageCache.set(bytes, byFormat);
+    }
+    const cached = byFormat.get(format);
+    if (cached) {
+      return cached;
     }
 
-    return doc.embedJpg(bytes);
+    const image = format === 'png' ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+    byFormat.set(format, image);
+    return image;
   }
 
   // --- Drawing primitives ---

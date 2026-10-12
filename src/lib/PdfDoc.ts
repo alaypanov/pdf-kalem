@@ -166,6 +166,14 @@ export class PdfDoc {
         throw new Error('PdfDoc children must be instances of PageWidget');
       }
     }
+
+    // A pageless document would save as a degenerate PDF that loads back as
+    // one phantom page — fail fast instead (B20).
+    if (this.children.length === 0) {
+      throw new Error(
+        'PdfDoc requires at least one Page child — pass Page({ ... }) widgets in children.'
+      );
+    }
   }
 
   getContext(): PdfRenderContext {
@@ -250,6 +258,10 @@ export class PdfDoc {
     const pdfDoc = await PDFDocument.create();
     applyMeta(pdfDoc, this.getMeta());
     this.context.setDocument(pdfDoc);
+
+    // Any dry run before this save measured with un-embedded fonts; the real
+    // count — and any later dry run — must recompute with embedded metrics (B9).
+    this.cachedPageCount = undefined;
 
     // The render walk is the save-time strategy itself — the constructor
     // enforces that every child is a PageWidget, so there is nothing here

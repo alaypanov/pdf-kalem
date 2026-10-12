@@ -47,25 +47,39 @@ export function createTheme(theme: Theme = {}): Theme {
 }
 
 /**
- * Tokens already warned about — one warning per token, not per render call
- * (a widget renders once per page fragment; the typo is the same typo).
+ * Tokens already warned about — one warning per token per theme, not per
+ * render call (a widget renders once per page fragment; the typo is the same
+ * typo). The partition is per theme object: different documents can carry
+ * different themes, so a warning in one must not suppress the same missing
+ * token in another (B20). The no-theme case shares one partition.
  * I12: a misspelled theme token used to produce wrong colors with no
  * warning, because every call site fell back silently.
  */
-const warnedTokens = new Set<string>();
+let warnedTokensByTheme = new WeakMap<object, Set<string>>();
+const warnedTokensWithoutTheme = new Set<string>();
 
-function warnUnknownColorToken(token: string, hasTheme: boolean): void {
-  const key = `color:${token}`;
-  if (warnedTokens.has(key)) return;
-  warnedTokens.add(key);
+function warnUnknownColorToken(token: string, theme: Theme | undefined): void {
+  let warned: Set<string> | undefined;
+  if (theme === undefined) {
+    warned = warnedTokensWithoutTheme;
+  } else {
+    warned = warnedTokensByTheme.get(theme);
+    if (!warned) {
+      warned = new Set<string>();
+      warnedTokensByTheme.set(theme, warned);
+    }
+  }
+  if (warned.has(token)) return;
+  warned.add(token);
   console.warn(
-    `pdf-kalem: color token "${token}" is not defined in the theme${hasTheme ? '' : ' (no theme is set)'} — using the widget's fallback color.`,
+    `pdf-kalem: color token "${token}" is not defined in the theme${theme !== undefined ? '' : ' (no theme is set)'} — using the widget's fallback color.`,
   );
 }
 
 /** @internal — test isolation for the warn-once state. Exported via internals. */
 export function resetThemeWarningsForTests(): void {
-  warnedTokens.clear();
+  warnedTokensByTheme = new WeakMap();
+  warnedTokensWithoutTheme.clear();
 }
 
 export function resolveThemeColor(theme: Theme | undefined, value?: ThemeColorValue): ColorValue | undefined {
@@ -89,7 +103,7 @@ export function resolveThemeColor(theme: Theme | undefined, value?: ThemeColorVa
   // Not a hex literal and not a known token: always a miss (colors have no
   // pass-through semantics — unlike font names, which are family names by
   // default). Warn once; the call site's fallback applies.
-  warnUnknownColorToken(value, theme !== undefined);
+  warnUnknownColorToken(value, theme);
   return undefined;
 }
 

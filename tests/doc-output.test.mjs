@@ -51,7 +51,8 @@ test('browser-only adapters throw a branded error outside the browser', () => {
 });
 
 test('PdfDoc.writeToFile guards the path before doing any work', async () => {
-  const doc = new PdfDoc({});
+  const { Page } = await import('../dist/widgets.js');
+  const doc = new PdfDoc({ children: [Page({ dimensions: [300, 200] })] });
   await assert.rejects(doc.writeToFile('  '), /requires a file path/);
 });
 

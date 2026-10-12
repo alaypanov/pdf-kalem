@@ -96,11 +96,15 @@ export class IconWidget extends SVGPathWidget {
 
     super({
       breakable: options.breakable,
+      margin: options.margin,
       d: def.d,
       viewBoxWidth: vb,
       viewBoxHeight: vb,
-      width: options.width ?? size,
-      height: options.height ?? size,
+      // Pin the box to `size` only when neither dimension is explicit; with
+      // one dimension given the other stays auto so the aspect-fit measure
+      // derives it (B12).
+      width: options.width ?? (options.height === undefined ? size : undefined),
+      height: options.height ?? (options.width === undefined ? size : undefined),
       scale: options.scale,
       sizing: options.sizing,
       fill: options.color,
