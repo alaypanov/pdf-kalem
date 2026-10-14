@@ -71,8 +71,6 @@ export class ImageWidget extends Widget {
   private resolvedFormat?: 'png' | 'jpeg';
   private imageWidth: number = 0;
   private imageHeight: number = 0;
-  private explicitWidth: boolean;
-  private explicitHeight: boolean;
   private sizing: ImageSizing;
   private measureConfigured = false;
 
@@ -88,16 +86,19 @@ export class ImageWidget extends Widget {
     }
     this.format = options.format;
 
-    this.explicitWidth = options.width !== undefined;
-    this.explicitHeight = options.height !== undefined;
     this.sizing = options.sizing ?? ImageSizing.Fit;
 
-    if (options.width !== undefined) {
-      this.setYogaStyle({ width: options.width });
-    }
-    if (options.height !== undefined) {
-      this.setYogaStyle({ height: options.height });
-    }
+    // Media shrink-wraps: a stretching parent (Page sets alignItems:
+    // stretch) would blow the box up to the full column width and center
+    // the drawn content inside it — an unsized image draws at its intrinsic
+    // size, at the flow position, unless the user sizes it (width/height,
+    // e.g. '100%'). The fit measure caps ambient (AtMost) space at the
+    // intrinsic size, so a parent-provided box only ever shrinks it.
+    this.setYogaStyle({
+      alignSelf: 'flex-start',
+      width: options.width,
+      height: options.height,
+    });
   }
 
   /**
@@ -137,18 +138,18 @@ export class ImageWidget extends Widget {
     // cached PDFImage would point into a discarded document on a second
     // save (B8).
     this.pdfImage = await context.embedImage(bytes, format);
-    // Use natural image size initially
     this.imageWidth = this.pdfImage.width * this.scale;
     this.imageHeight = this.pdfImage.height * this.scale;
 
-    // Pin the intrinsic size only when neither dimension is explicit — with
-    // one dimension user-set the other must stay auto so the aspect-fit
-    // measure function derives it (B12).
-    if (!this.explicitWidth && !this.explicitHeight) {
-      this.node.setWidth(this.imageWidth);
-      this.node.setHeight(this.imageHeight);
-    }
-
+    // The node's size is the measure function's job, never a pinned
+    // intrinsic size: a node with definite dimensions never consults its
+    // measure func, so a pinned image would ignore the parent's box and
+    // overflow it (a 360pt image in a Container({ width: 180 }) drew at
+    // natural size). Unconstrained contexts measure at the intrinsic size;
+    // definite parent boxes (Container width/height, percent widths) fit
+    // into the available space; one explicit dimension derives the other
+    // (B12). loadImage runs in prepareLayout — before any layout — so the
+    // spec is always known by measure time.
     if (!this.measureConfigured) {
       this.node.setMeasureFunc(aspectFitMeasure(() => this.spec()));
       this.measureConfigured = true;

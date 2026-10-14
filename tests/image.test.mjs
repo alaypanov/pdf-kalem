@@ -9,9 +9,10 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { Image, Page } from '../dist/widgets.js';
+import { Container, Image, ImageSizing, Page } from '../dist/widgets.js';
 import { PdfDoc } from '../dist/index.js';
 import { sniffImageFormat } from '../dist/internals.js';
+import { createCanvas } from '@napi-rs/canvas';
 
 // A 1x1 black PNG (the markdown tests' fixture).
 const PNG_1X1 =
@@ -100,6 +101,37 @@ test('a lying declared format loses to the sniffed bytes (with a warning)', asyn
 test('data URLs still fetch (unchanged path)', async () => {
   const bytes = await saveWith(Image.png(`data:image/png;base64,${PNG_1X1}`));
   assert.ok(bytes.length > 0);
+});
+
+test('Fit constrains against the parent-provided box (no intrinsic pin)', async () => {
+  // The old behavior pinned the intrinsic size onto the Yoga node when no
+  // width/height was given — a node with definite dimensions never consults
+  // its measure func, so a 360pt image overflowed a Container({ width: 180,
+  // height: 50 }) at natural size. Fit scale = min(180/360, 50/200) = 0.25.
+  const canvas = createCanvas(360, 200);
+  canvas.getContext('2d').fillRect(0, 0, 360, 200);
+  const image = Image.fromBytes(canvas.toBuffer('image/png'), 'png', { sizing: ImageSizing.Fit });
+  const box = Container({ width: 180, height: 50, child: image });
+  await new PdfDoc({
+    children: [Page({ dimensions: [400, 300], children: [box] })],
+  }).save();
+  assert.equal(image.getWidth(), 90);
+  assert.equal(image.getHeight(), 50);
+});
+
+test('Fit never scales up on ambient space (a small logo stays intrinsic)', async () => {
+  // A 1x1 image as a direct child of Page (alignItems: stretch): the removed
+  // pin used to guarantee the intrinsic size; without it, the AtMost cap in
+  // the fit measure keeps the image intrinsic instead of scaling up to the
+  // full content width (which overflowed the page and moved the image to
+  // page 2).
+  const image = Image.fromBytes(Buffer.from(PNG_1X1, 'base64'));
+  const doc = new PdfDoc({
+    children: [Page({ dimensions: [300, 200], children: [image] })],
+  });
+  await doc.save();
+  assert.equal(image.getWidth(), 1);
+  assert.equal(image.getHeight(), 1);
 });
 
 for (const { name, fn } of tests) {

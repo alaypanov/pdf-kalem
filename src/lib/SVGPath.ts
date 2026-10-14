@@ -53,9 +53,6 @@ export class SVGPathWidget extends Widget {
   private stroke?: ThemeColorValue;
   private strokeWidth?: number;
 
-  private explicitWidth: boolean;
-  private explicitHeight: boolean;
-
   constructor(options: SVGPathOptions) {
     super(options);
 
@@ -68,9 +65,6 @@ export class SVGPathWidget extends Widget {
     this.stroke = options.stroke;
     this.strokeWidth = options.strokeWidth;
 
-    this.explicitWidth = options.width !== undefined;
-    this.explicitHeight = options.height !== undefined;
-
     if (!Number.isFinite(this.viewBoxWidth) || this.viewBoxWidth <= 0) {
       throw new Error('SVGPath: viewBoxWidth must be a positive number');
     }
@@ -81,30 +75,23 @@ export class SVGPathWidget extends Widget {
       throw new Error('SVGPath: scale must be a positive number');
     }
 
-    if (options.width !== undefined) {
-      this.setYogaStyle({ width: options.width });
-    }
-    if (options.height !== undefined) {
-      this.setYogaStyle({ height: options.height });
-    }
+    // Media shrink-wraps (same contract as Image): unsized paths draw at
+    // their intrinsic size at the flow position; the fit measure caps
+    // ambient (AtMost) space at the intrinsic size, so a parent-provided
+    // box only ever shrinks them.
+    this.setYogaStyle({
+      alignSelf: 'flex-start',
+      width: options.width,
+      height: options.height,
+    });
 
-    // Pin the intrinsic size only when neither dimension is explicit — with
-    // one dimension user-set the other must stay auto so the aspect-fit
-    // measure function derives it (B12).
-    if (!this.explicitWidth && !this.explicitHeight) {
-      this.node.setWidth(this.intrinsicWidth);
-      this.node.setHeight(this.intrinsicHeight);
-    }
-
+    // No pinned intrinsic size (same contract as Image): a node with
+    // definite dimensions never consults its measure func, so a pinned path
+    // would overflow any parent-provided box instead of fitting it. The
+    // measure function measures the intrinsic size when unconstrained and
+    // fits into definite parent boxes; with one dimension user-set the other
+    // stays auto so the fit derives it (B12).
     this.node.setMeasureFunc(aspectFitMeasure(() => this.spec()));
-  }
-
-  private get intrinsicWidth(): number {
-    return this.viewBoxWidth * this.baseScale;
-  }
-
-  private get intrinsicHeight(): number {
-    return this.viewBoxHeight * this.baseScale;
   }
 
   private spec(): FitSpec {

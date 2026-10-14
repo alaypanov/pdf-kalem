@@ -1,6 +1,9 @@
 import type { PageWidget } from '../Page';
 import type { RenderContext } from '../RenderContextInterface';
 import type { Widget } from '../Widget';
+import { SpacerWidget } from '../Spacer';
+import { FlexContainer } from '../FlexContainer';
+import { StackWidget } from '../Stack';
 import type { BreakUnit, Fragment, LayoutBox, PagePlan, Pagination } from './types';
 
 const EPS = 0.001;
@@ -141,10 +144,43 @@ export class Paginator {
     this.placeUnits(pageFrame, flowUnits, [pageFrame]);
     this.closePage([pageFrame]);
 
+    // Whitespace-only pages are never wanted: a trailing Spacer overflowing
+    // onto a fresh page would otherwise emit a fully blank page. Fixed
+    // furniture (footers) keeps every page alive — it paints on each output
+    // page — and an all-whitespace document keeps its original plans (a
+    // zero-page PDF would be degenerate). Indexes renumber after the drop:
+    // page numbering is doc-global.
+    if (fixedWidgets.length === 0) {
+      const kept = this.pagesAcc.filter((acc) =>
+        acc.roots.some((root) => !this.paintsNothing(root.widget)),
+      );
+      if (kept.length > 0) {
+        this.pagesAcc = kept;
+        this.pagesAcc.forEach((acc, index) => {
+          acc.index = index;
+        });
+      }
+    }
+
     const fixed = fixedWidgets.map((widget) => this.fixedFragment(widget));
     const pages = this.pagesAcc.map((acc) => this.freezePage(acc, fixed));
 
     return { pages, pageCount: pages.length, overflow: true };
+  }
+
+  /**
+   * Whitespace-only content: Spacers, and pure layout containers (Flex/
+   * Row/Column/Stack — no background, no border) whose entire subtree is
+   * whitespace. Walks the WIDGET tree, not the fragment tree: whole-placed
+   * fragments carry no fragment children, but the widget subtree is always
+   * complete.
+   */
+  private paintsNothing(widget: Widget): boolean {
+    if (widget instanceof SpacerWidget) return true;
+    if (widget instanceof FlexContainer || widget instanceof StackWidget) {
+      return widget.getChildWidgets().every((child) => this.paintsNothing(child));
+    }
+    return false;
   }
 
   /** Page-relative flow extent of the page's in-flow children (pass-1 geometry). */

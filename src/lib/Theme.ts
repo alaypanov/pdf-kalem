@@ -12,7 +12,10 @@ export interface ThemeTextStyle {
   fontWeight?: number | 'normal' | 'bold';
   /** CSS-like style. 'oblique' is intentionally absent — no synthetic slant yet. */
   fontStyle?: 'normal' | 'italic';
+  /** Line height in POINTS (not a CSS multiplier — see TextOptions.lineHeight). */
   lineHeight?: number;
+  /** Line height as a multiplier of the font size (CSS `line-height: 1.4`). Ignored when `lineHeight` is set. */
+  lineHeightMultiplier?: number;
   underline?: boolean;
 }
 

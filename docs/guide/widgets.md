@@ -83,7 +83,11 @@ Text([{ text: 'const x = 1', mono: true }]);
 
 Run fields: `fontWeight`, `fontStyle`, `strike`, `href`, `mono`, `font`, `color`. Weight follows CSS matching — 100–500 renders regular, 600–900 renders bold — and each axis replaces the base style (an explicit `fontWeight: 400` un-bolds a bold base). Faces resolve through the run's family with the usual fallback chain. Words that span run boundaries never break internally; wrapping, `maxLines`, and `ellipsis` all work across runs.
 
-Text options include `variant` (theme text variant), `size`, `color`, `align`, `fontWeight`, `fontStyle`, `lineHeight`, `maxLines`, and `overflow: 'ellipsis'`. Theme text variants accept the same `fontWeight`/`fontStyle`, so a variant can set its weight once: `heading: { fontWeight: 700 }`.
+Text options include `variant` (theme text variant), `size`, `color`, `align`, `fontWeight`, `fontStyle`, `lineHeight`, `lineHeightMultiplier`, `maxLines`, and `overflow: 'ellipsis'`. Theme text variants accept the same `fontWeight`/`fontStyle`, so a variant can set its weight once: `heading: { fontWeight: 700 }`.
+
+::: warning `lineHeight` is points, not a multiplier
+`lineHeight` is the vertical distance between baselines **in points**: `lineHeight: 16` at size 10 gives 16pt lines. It is **not** CSS's `line-height: 1.4` multiplier — `lineHeight: 1.4` means 1.4pt and piles lines on top of each other. For the CSS behavior use `lineHeightMultiplier` (`1.4` at size 10 → 14pt lines); explicit points win over the multiplier when both are set, and user values beat the theme variant's.
+:::
 
 ## Tables
 
@@ -141,7 +145,7 @@ Table({
 - `SVGPath(d, { viewBoxWidth, viewBoxHeight, fill, stroke, strokeWidth })` — draw vector paths. `strokeWidth` is in user units and scales with the shape.
 - `Icon({ path, size, color })` — Material-style icons from SVG path data, with a small built-in registry (`Icon.register`). Colors resolve theme tokens.
 
-Give media one of `width`/`height` and the other dimension derives from the aspect ratio; give neither and it sizes to its intrinsic size; give both and the fit/cover `sizing` places it in the box.
+Give media one of `width`/`height` and the other dimension derives from the aspect ratio; give neither and it sizes to its intrinsic size; give both and the fit/cover `sizing` places it in the box. Unsized media also **fits into a parent-provided box**: inside `Container({ width: 180, height: 50 })` a larger image scales down to fit (the drawn area stays centered). `Fit` never scales **up** on ambient space — a small logo in a full-width `Page` draws at its intrinsic size, not blown up to the column width; only an explicit `width`/`height` may enlarge it. Media shrink-wraps by default (`alignSelf: flex-start`); pass `width: '100%'` for a full-width box.
 
 ```ts
 import { Image, ImageSizing, SVGPath, Icon } from 'pdf-kalem/widgets';

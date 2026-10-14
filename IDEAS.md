@@ -697,3 +697,42 @@ either generate a larger registry from it at build time or document the
 ## I18 - SEO for docs, LLM.txt  file, agentic (mcp) methods
 
 ## I19 - Watermarks
+
+## I20 — Per-side borders on `TableCell`
+
+From external-agent feedback (2026-10-14): `TableCell.borderWidth` is a single number,
+so collapsed grids, top-only rules, and per-edge emphasis are out of reach from the
+public API. Accept `number | { top, right, bottom, left }` (the `Spacing` shape) and
+render per-side lines instead of one stroked rectangle when per-side values are given.
+`Container`'s border could take the same shape later.
+
+## I21 — `KeyValue` widget
+
+From external-agent feedback (2026-10-14): label/value rows (what the agent hand-rolled
+as a `fieldTable`) are extremely common in form/document PDFs. A built-in
+`KeyValue({ pairs, labelWidth })` with muted-label styling (theme `text.label` variant)
+would save every consumer the ceremony. Design alongside the template-helper layer
+(PLAN.md Priority 2).
+
+## I22 — Page footer / page-number callback
+
+From external-agent feedback (2026-10-14): `FixedContainer` gives per-page furniture,
+but the page count is only known after pagination — "Page 1 of 3" has no clean path.
+A `Page({ footer: ({ index, count }) => children })` callback evaluated per output
+page (the paginator knows `count` after planning; the render walk evaluates the
+callback per plan) would make it trivial. Same shape could serve `header`.
+
+## I23 — `Table.fromRows` cell descriptors
+
+From external-agent feedback (2026-10-14): beyond plain strings, `fromRows` users must
+drop to the verbose `Table/TableRow/TableCell` ceremony. Accept
+`{ value, align, variant, color }` cell objects (and per-column defaults) — covers
+right-aligned numbers and muted text, the 90% case.
+
+## I24 — `Container` clip option
+
+From external-agent feedback (2026-10-14), alongside the Image-fit fix: a
+`clip: true` option on `Container` as a safety valve for overflowing children.
+Implementation is PDF mechanics: push a clip rect (`W n`) around the children's
+drawing — a `pushClip`/`popClip` pair on the render surface (PDF-typed per ADR 0001,
+or neutral if clipping is considered generic drawing).

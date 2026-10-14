@@ -14,6 +14,7 @@ import {
   Page,
   Text,
   Column,
+  Container,
   Row,
   Flex,
   FixedContainer,
@@ -162,8 +163,10 @@ test('Stack with only positioned children and no explicit size throws with guida
 
 test('Stack is atomic: it moves whole to the next page, never splits', async () => {
   // 60pt of text (6 lines) + a 60pt stack on a 100pt content box: the stack
-  // straddles the boundary and must land whole on page 2.
-  const stack = Stack({ height: 60, children: [Flex({ width: 100, height: 60 })] });
+  // straddles the boundary and must land whole on page 2. The stack's child
+  // paints (a bg fill) — an invisible stack would be dropped as a
+  // whitespace-only page by the paginator.
+  const stack = Stack({ height: 60, children: [Container({ width: 100, height: 60, bgColor: '#e5e7eb' })] });
   const page = Page({
     dimensions: [200, 100],
     children: [Text(words(26), { size: 10, lineHeight: 10 }), stack],
@@ -214,6 +217,23 @@ test('VLine, Spacer, and Stack compose in a real PDF', async () => {
   });
   const bytes = await doc.save();
   assert.ok(bytes.length > 0, 'PDF bytes produced');
+});
+
+test('lineHeightMultiplier is the CSS-like multiplier of the size', async () => {
+  // 1.4 × size 10 = 14pt lines — identical to lineHeight: 14 (points),
+  // including the wrap count (same width, same metrics).
+  const text = words(30);
+  const inPoints = box(await layout(Text(text, { size: 10, lineHeight: 14 })));
+  const inMultiplier = box(await layout(Text(text, { size: 10, lineHeightMultiplier: 1.4 })));
+  assert.equal(inMultiplier.height, inPoints.height);
+  assert.ok(inMultiplier.height > 0);
+});
+
+test('lineHeight (points) wins over lineHeightMultiplier', async () => {
+  const text = words(10);
+  const both = box(await layout(Text(text, { size: 10, lineHeight: 20, lineHeightMultiplier: 1.4 })));
+  const reference = box(await layout(Text(text, { size: 10, lineHeight: 20 })));
+  assert.equal(both.height, reference.height);
 });
 
 for (const { name, fn } of tests) {

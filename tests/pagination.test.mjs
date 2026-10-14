@@ -12,12 +12,14 @@ import {
   Page,
   Text,
   Column,
+  Container,
   Table,
   TableHead,
   TableBody,
   TableRow,
   TableCell,
   FixedContainer,
+  Spacer,
 } from '../dist/widgets.js';
 
 const words = (count) => Array.from({ length: count }, () => 'word').join(' ');
@@ -253,6 +255,66 @@ test('end-to-end: saved PDF page count matches getPageCount()', async () => {
 
   assert.ok(plannedCount > 1, 'expected a multi-page document');
   assert.equal(pdf.getPages().length, plannedCount);
+});
+
+test('a whitespace-only trailing page is dropped', async () => {
+  // Content box 80pt: two 33.4 blocks fit (66.8); the 20pt Spacer overflows
+  // and moves whole to a fresh page — which would be pure white. Whitespace-
+  // only pages are never wanted: the plan drops it and renumbers.
+  const page = Page({
+    dimensions: [200, 100],
+    padding: 10,
+    children: [
+      Container({ height: 33.4, width: '100%' }),
+      Container({ height: 33.4, width: '100%' }),
+      Spacer({ size: 20 }),
+    ],
+  });
+
+  const pagination = await plan(page);
+
+  assert.equal(pagination.overflow, true);
+  assert.equal(pagination.pageCount, 1);
+  assert.equal(pagination.pages.length, 1);
+  assert.equal(pagination.pages[0].index, 0);
+});
+
+test('a whitespace-only page nested inside layout containers is dropped too', async () => {
+  const page = Page({
+    dimensions: [200, 100],
+    padding: 10,
+    children: [
+      Container({ height: 33.4, width: '100%' }),
+      Container({ height: 33.4, width: '100%' }),
+      Column({ children: [Spacer({ size: 10 }), Spacer({ size: 10 })] }),
+    ],
+  });
+
+  const pagination = await plan(page);
+
+  assert.equal(pagination.pageCount, 1);
+});
+
+test('a page with real content after the spacer is kept', async () => {
+  const page = Page({
+    dimensions: [200, 100],
+    padding: 10,
+    children: [
+      Container({ height: 33.4, width: '100%' }),
+      Container({ height: 33.4, width: '100%' }),
+      Spacer({ size: 20 }),
+      Text('END', { size: 10, lineHeight: 10 }),
+    ],
+  });
+
+  const pagination = await plan(page);
+
+  assert.equal(pagination.pageCount, 2);
+  const last = pagination.pages[1];
+  assert.equal(last.index, 1);
+  // The spacer fragment rides along (it paints nothing); the Text is the
+  // page's reason to exist.
+  assert.ok(last.roots.some((f) => f.widget.constructor.name === 'TextWidget'));
 });
 
 // --- Runner ---

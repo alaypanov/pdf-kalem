@@ -48,6 +48,10 @@ Page({ overflow: false, children: [...] });
 
 `doc.getPageCount()` returns the number of output pages (Σ per-Page plan pages, memoized) — the number the paginator will actually produce, not the number of `Page` widgets you declared.
 
+::: tip Whitespace-only pages are dropped
+A page whose content paints nothing — trailing `Spacer`s (or pure layout containers holding only them) that overflowed onto a fresh page — is discarded and the remaining pages renumber. Whitespace-only pages are never wanted. Pages carrying fixed furniture (a `FixedContainer` footer) always survive: the furniture paints on every output page.
+:::
+
 ## See it live
 
 The copyable [`examples/report/`](https://github.com/alaypanov/pdf-kalem/tree/main/examples/report) project exercises the whole engine: splitting text, repeating table headers, keep-together panels, and per-page furniture. Run it with `pnpm example report` in the repo, or copy the folder and `node src/main.ts`.

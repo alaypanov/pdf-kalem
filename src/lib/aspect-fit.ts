@@ -60,10 +60,10 @@ export function aspectFitMeasure(getSpec: () => FitSpec | null): YogaMeasureFunc
       return { width: 0, height: 0 };
     }
 
-    const widthConstrained =
-      widthMode === MeasureMode.Exactly || widthMode === MeasureMode.AtMost;
-    const heightConstrained =
-      heightMode === MeasureMode.Exactly || heightMode === MeasureMode.AtMost;
+    const widthExactly = widthMode === MeasureMode.Exactly;
+    const heightExactly = heightMode === MeasureMode.Exactly;
+    const widthConstrained = widthExactly || widthMode === MeasureMode.AtMost;
+    const heightConstrained = heightExactly || heightMode === MeasureMode.AtMost;
     const intrinsicW = spec.intrinsicWidth * spec.baseScale;
     const intrinsicH = spec.intrinsicHeight * spec.baseScale;
 
@@ -71,26 +71,29 @@ export function aspectFitMeasure(getSpec: () => FitSpec | null): YogaMeasureFunc
       return { width: intrinsicW, height: intrinsicH };
     }
 
-    const aspect = spec.intrinsicWidth / spec.intrinsicHeight;
-    let targetW = intrinsicW;
-    let targetH = intrinsicH;
+    let scale = 1;
 
     if (widthConstrained && heightConstrained) {
-      const scale =
+      scale =
         spec.sizing === ImageSizing.Cover
           ? Math.max(width / intrinsicW, height / intrinsicH)
           : Math.min(width / intrinsicW, height / intrinsicH);
-      targetW = intrinsicW * scale;
-      targetH = intrinsicH * scale;
     } else if (widthConstrained) {
-      targetW = width;
-      targetH = width / aspect;
+      scale = width / intrinsicW;
     } else if (heightConstrained) {
-      targetH = height;
-      targetW = height * aspect;
+      scale = height / intrinsicH;
     }
 
-    return { width: targetW, height: targetH };
+    // Fit shrinks to fit but never enlarges on an ambient (AtMost)
+    // constraint — a stretching parent must not blow a small logo up to the
+    // full column width. Only an explicitly demanded (Exactly) dimension —
+    // the user's own width/height — may scale the media up. Cover still
+    // fills: covering is its whole job.
+    if (spec.sizing === ImageSizing.Fit && !widthExactly && !heightExactly) {
+      scale = Math.min(scale, 1);
+    }
+
+    return { width: intrinsicW * scale, height: intrinsicH * scale };
   };
 }
 

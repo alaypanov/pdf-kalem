@@ -13,7 +13,7 @@ The design is heavily inspired by [Flutter](https://flutter.dev)'s widget-tree m
 ## What It Does
 
 - Builds page-based layouts with Yoga (flexbox: `Row`, `Column`, `gap`, `flexGrow`, `%` widths, absolute positioning).
-- **Pagination**: content taller than one page automatically flows onto additional pages. Text blocks split by line, table rows stay whole and headers repeat, and each `Page` re-renders its chrome per output page. Opt out per page with `Page({ overflow: false })` or keep a text block together with `Text(..., { breakable: false })`.
+- **Pagination**: content taller than one page automatically flows onto additional pages. Text blocks split by line, table rows stay whole and headers repeat, and each `Page` re-renders its chrome per output page; whitespace-only pages (an overflowing trailing `Spacer`) are dropped. Opt out per page with `Page({ overflow: false })` or keep a text block together with `Text(..., { breakable: false })`.
 - **Edits existing PDFs** via `pdf-kalem/edit`: load a PDF as Page widgets, overlay widgets on its pages, restructure/merge, save — original content, annotations, and form fields preserved.
 - **Builds fillable forms** via `pdf-kalem/forms`: text fields, checkboxes, dropdowns, radio groups, and buttons as widget-tree nodes — real AcroForm fields in the output, with `formData` data binding (template + data).
 - Exports PDFs through `pdf-lib` with metadata, custom fonts, link annotations, and SVG paths.

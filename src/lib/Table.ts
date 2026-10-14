@@ -325,7 +325,9 @@ export class TableWidget extends Widget {
   }
 
   getBorderColor(): RenderColor {
-    return resolveColor(this.context?.getTheme(), this.borderColor, this.context?.getTheme()?.table?.borderColor, fromHex('#000000'));
+    // Soft gray, not pure black: unthemed tables sit in slate-ish documents,
+    // and a full-black grid is harsh (the theme's table.borderColor overrides).
+    return resolveColor(this.context?.getTheme(), this.borderColor, this.context?.getTheme()?.table?.borderColor, fromHex('#d1d5db'));
   }
 
   getBorderWidth(): number {

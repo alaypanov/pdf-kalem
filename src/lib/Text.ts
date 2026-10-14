@@ -55,7 +55,19 @@ export interface TextOptions extends WidgetOptions {
   fontWeight?: FontWeightValue;
   /** Block-level style, overriding the theme variant's. Runs replace it per axis. */
   fontStyle?: FontStyleValue;
+  /**
+   * Line height in POINTS — the vertical distance between line baselines.
+   * This is not a CSS multiplier: `lineHeight: 1.4` means 1.4pt (lines pile
+   * on top of each other). For the CSS `line-height: 1.4` behavior use
+   * {@link lineHeightMultiplier}.
+   */
   lineHeight?: number;
+  /**
+   * Line height as a CSS-like multiplier of the font size — `1.4` at size 12
+   * gives a 16.8pt line height. Ignored when {@link lineHeight} (points) is
+   * set; the theme variant's value applies when neither is.
+   */
+  lineHeightMultiplier?: number;
   maxLines?: number;
   overflow?: TextOverflow;
   whiteSpace?: PrepareOptions['whiteSpace'];
@@ -111,6 +123,7 @@ export class TextWidget extends Widget {
   private readonly fontWeightOverride?: FontWeightValue;
   private readonly fontStyleOverride?: FontStyleValue;
   private readonly lineHeightOverride?: number;
+  private readonly lineHeightMultiplierOverride?: number;
   private readonly maxLines?: number;
   private readonly overflow: TextOverflow;
   private readonly whiteSpace: PrepareOptions['whiteSpace'];
@@ -132,6 +145,7 @@ export class TextWidget extends Widget {
     this.fontWeightOverride = options.fontWeight;
     this.fontStyleOverride = options.fontStyle;
     this.lineHeightOverride = options.lineHeight;
+    this.lineHeightMultiplierOverride = options.lineHeightMultiplier;
     this.maxLines = options.maxLines;
     this.overflow = options.overflow ?? 'visible';
     this.whiteSpace = options.whiteSpace ?? 'normal';
@@ -172,9 +186,20 @@ export class TextWidget extends Widget {
   }
 
   protected getLineHeight(): number {
-    const resolvedLineHeight = this.lineHeightOverride ?? this.getThemeTextStyle()?.lineHeight;
-    if (resolvedLineHeight !== undefined) {
-      return resolvedLineHeight;
+    const theme = this.getThemeTextStyle();
+    // User-level (either form) beats the theme variant; within a level,
+    // explicit points win over the multiplier.
+    if (this.lineHeightOverride !== undefined) {
+      return this.lineHeightOverride;
+    }
+    if (this.lineHeightMultiplierOverride !== undefined) {
+      return this.lineHeightMultiplierOverride * this.getSize();
+    }
+    if (theme?.lineHeight !== undefined) {
+      return theme.lineHeight;
+    }
+    if (theme?.lineHeightMultiplier !== undefined) {
+      return theme.lineHeightMultiplier * this.getSize();
     }
 
     if (this.context) {

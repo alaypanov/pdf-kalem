@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) — while in `0.x`, breaking changes bump the minor version.
 
+## [0.5.1] — 2026-10-14
+
+### Fixed
+
+- **`Image`/`SVGPath` fit into the parent-provided box** — the widgets pinned their intrinsic size onto the Yoga node when no width/height was given, and a node with definite dimensions never consults its measure function: a 360pt image inside `Container({ width: 180, height: 50 })` drew at natural size, overflowing the container. The pin is gone — the fit measure owns sizing — with two semantic rules: **Fit never scales up on ambient space** (an `AtMost` constraint only ever shrinks; a small logo in a full-width `Page` stays intrinsic instead of blowing up to the column width), and media widgets **shrink-wrap by default** (`alignSelf: flex-start` — a stretching parent no longer stretches their boxes). Explicit `width`/`height` still scale up freely (`Exactly` demand).
+- **Whitespace-only pages are dropped** — a trailing `Spacer` overflowing onto a fresh page emitted a fully blank page; the paginator now discards plans whose content paints nothing (Spacers, and pure layout containers whose whole subtree is whitespace) and renumbers, unless the page carries fixed furniture (a footer paints on every page) or the document would be left with no pages at all.
+- **`lineHeightMultiplier` — the CSS-like line height** — `lineHeight` is POINTS (the docs' "CSS line-box model" refers to the half-leading distribution, not the unit), so `lineHeight: 1.4` piled lines 1.4pt apart. `TextOptions` and theme text variants now accept `lineHeightMultiplier` (CSS `line-height: 1.4` — a multiplier of the font size); user-level values (either form) beat the theme variant, and explicit points win over the multiplier within a level. `lineHeight`'s unit is now documented loudly on the option.
+- **Unthemed table borders are soft gray** — the default border color was pure black (`#000000`), harsh against the slate-ish palettes most documents use; the fallback is now `#d1d5db`. Theme `table.borderColor` and per-table/cell overrides are unchanged.
+
+### Added
+
+- `renderToPng(bytes, { all: true })` — rasterizes every page, resolving to an array of PNGs in page order (the single-page signature is unchanged).
+
 ## [0.5.0] — 2026-10-12
 
 ### Fixed

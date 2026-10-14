@@ -22,8 +22,10 @@
  */
 
 export interface RenderToPngOptions {
-  /** 0-based page index. Default: 0 (the first page). */
+  /** 0-based page index. Default: 0 (the first page). Ignored when `all` is set. */
   page?: number;
+  /** Rasterize every page; resolves to an array of PNGs in page order. */
+  all?: boolean;
   /** Raster density in DPI — PDF space is 72/inch, so 144 doubles it. Default: 144. */
   dpi?: number;
 }
@@ -116,17 +118,27 @@ async function standardFontDataUrl(): Promise<string> {
 }
 
 /**
- * Rasterizes one page of a produced PDF to PNG bytes.
+ * Rasterizes pages of a produced PDF to PNG bytes.
  *
  * `pdfBytes` is what `doc.save()` returned — the exact bytes a consumer
- * receives, so the preview cannot lie. Throws with install guidance when
- * the optional peer dependencies are missing.
+ * receives, so the preview cannot lie. Default: page 0 as one PNG.
+ * `{ all: true }` rasterizes every page, resolving to an array in page
+ * order. Throws with install guidance when the optional peer dependencies
+ * are missing.
  */
 export async function renderToPng(
   pdfBytes: Uint8Array | ArrayBuffer,
+  options: RenderToPngOptions & { all: true },
+): Promise<Uint8Array[]>;
+export async function renderToPng(
+  pdfBytes: Uint8Array | ArrayBuffer,
+  options?: RenderToPngOptions,
+): Promise<Uint8Array>;
+export async function renderToPng(
+  pdfBytes: Uint8Array | ArrayBuffer,
   options: RenderToPngOptions = {},
-): Promise<Uint8Array> {
-  const { page = 0, dpi = 144 } = options;
+): Promise<Uint8Array | Uint8Array[]> {
+  const { all = false, page = 0, dpi = 144 } = options;
   const { getDocument, createCanvas } = await loadPreviewDeps();
 
   // pdfjs asks the host for canvases; @napi-rs/canvas provides them natively
@@ -156,6 +168,24 @@ export async function renderToPng(
   }).promise;
 
   try {
+    const renderPage = async (index: number): Promise<Uint8Array> => {
+      const pdfPage = await doc.getPage(index + 1);
+      const viewport = pdfPage.getViewport({ scale: dpi / 72 });
+      const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+      const context = canvas.getContext('2d');
+
+      await pdfPage.render({ canvasContext: context, viewport, canvasFactory }).promise;
+      return canvas.encode('png');
+    };
+
+    if (all) {
+      const pages: Uint8Array[] = [];
+      for (let index = 0; index < doc.numPages; index++) {
+        pages.push(await renderPage(index));
+      }
+      return pages;
+    }
+
     // pdfjs pages are 1-based; validate before pdfjs's bare "Invalid page
     // request" error (B20).
     if (!Number.isInteger(page) || page < 0 || page >= doc.numPages) {
@@ -163,14 +193,7 @@ export async function renderToPng(
         `pdf-kalem/preview: page index ${page} is out of range (document has ${doc.numPages} page${doc.numPages === 1 ? '' : 's'})`
       );
     }
-    const pdfPage = await doc.getPage(page + 1);
-    const viewport = pdfPage.getViewport({ scale: dpi / 72 });
-    const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
-    const context = canvas.getContext('2d');
-
-    await pdfPage.render({ canvasContext: context, viewport, canvasFactory }).promise;
-
-    return canvas.encode('png');
+    return await renderPage(page);
   } finally {
     await doc.destroy?.();
   }
