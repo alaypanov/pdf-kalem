@@ -393,7 +393,14 @@ export class TextWidget extends Widget {
   }
 
   protected layoutText(maxWidth: number, heightLineLimit?: number): TextLayoutResult {
-    return this.getEngine().layoutText(maxWidth, heightLineLimit, this.getCanvasFont());
+    // Yoga stores computed sizes as float32 while the measurements that
+    // produced them are float64 — a shrink-wrapped block's stored width can
+    // sit a ~1e-6pt hair UNDER its own measured text width, and re-wrapping
+    // at the stored width would phantom-wrap ('1.' → '1' / '.'). Tolerate
+    // sub-0.01pt overflow: invisible at any zoom, and exactly the noise
+    // floor of the float32 boundary. Zero stays the natural-width sentinel.
+    const effectiveMaxWidth = maxWidth > 0 ? maxWidth + 0.01 : maxWidth;
+    return this.getEngine().layoutText(effectiveMaxWidth, heightLineLimit, this.getCanvasFont());
   }
 
   protected getRenderedTextLayout(context: RenderContext): RenderedTextLayout {

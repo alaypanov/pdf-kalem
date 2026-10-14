@@ -130,6 +130,7 @@ doc.save()
 ## Runtime notes / gotchas
 
 - **Widget trees can't re-parent.** A widget instance belongs to one Page/doc; moving it into another tree aborts the Yoga WASM heap. Build fresh widgets instead.
+- **Yoga runs with `pointScaleFactor = 0` (no rounding).** Yoga's default rounds every node's computed box to integer points independently — abutting boxes with fractional sizes round their shared edges apart (doubled table borders were the symptom). PDF is a vector format; the shared config lives in `Widget.ts`. Boundary consequence: Yoga stores computed sizes as float32 while measurements are float64, so text re-wrapped at a stored width needs a sub-0.01pt tolerance (`TextWidget.layoutText`) or exact-fit blocks phantom-wrap.
 - **Container children shrink-wrap horizontally.** `Container` sets `alignItems: 'flex-start'`, so a child Row/Column sizes to content unless it sets `width: '100%'` (or an explicit width). A `justifyBetween` Row without `width: '100%'` inside a Container packs its children together instead of spreading them. Direct children of `Page`/`Column` stretch by default (Page sets `alignItems: stretch`).
 
 - **Text measurement needs a canvas.** pretext uses `OffscreenCanvas`/DOM canvas. In Node there's no canvas, so `TextLayoutEngine.canUsePretext()` returns false and it falls back to the built-in wrapper. Don't remove that canvas guard. Rich runs never use pretext — they measure through `measureRunWidth` (pdf-lib's embedded-font metrics, the same font that draws), so run layout is identical in Node and the browser.

@@ -7,10 +7,31 @@ import Yoga, {
   FlexDirection,
   Node,
   PositionType,
+  type Config,
 } from 'yoga-layout';
 
 export type { YogaStyle, YogaStyleValue, YogaDimensionValue } from './yoga-style';
 export type { Spacing } from './utils/spacing';
+
+/**
+ * Shared Yoga config for every widget node. PDF is a vector format, so
+ * Yoga's default pointScaleFactor = 1 (round each node's computed box to
+ * integer points) buys nothing here and actively harms abutting boxes:
+ * each node's edges round independently, so boxes with fractional sizes
+ * (table rows are the visible case) round their shared edges apart and the
+ * per-cell border strokes land ~1pt apart — doubled lines. pointScaleFactor
+ * 0 disables rounding; shared edges stay bit-identical floats and the
+ * strokes overlap exactly. Created lazily — src/ has no top-level side
+ * effects.
+ */
+let yogaConfig: Config | undefined;
+function widgetYogaConfig(): Config {
+  if (!yogaConfig) {
+    yogaConfig = Yoga.Config.create();
+    yogaConfig.setPointScaleFactor(0);
+  }
+  return yogaConfig;
+}
 
 export interface WidgetOptions {
   children?: Widget[];
@@ -37,7 +58,7 @@ export abstract class Widget {
 
   constructor(options: WidgetOptions = {}) {
     this.children = options.children || [];
-    this.node = Yoga.Node.create();
+    this.node = Yoga.Node.create(widgetYogaConfig());
     this.breakableOption = options.breakable;
 
     // Add child nodes to this node and wire parent pointers. A widget
