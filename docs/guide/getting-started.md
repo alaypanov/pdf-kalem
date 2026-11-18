@@ -6,6 +6,8 @@ pdf-kalem is a widget-tree UI library for document-style layout and generation. 
 
 ## Install
 
+Requires **Node.js 22.18.0 or newer** for Node usage and local development. The examples run TypeScript directly using Node's built-in type stripping.
+
 ```bash
 pnpm add pdf-kalem
 ```

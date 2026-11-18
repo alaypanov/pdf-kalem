@@ -32,9 +32,9 @@ cd examples/invoice
 node src/main.ts
 ```
 
-Running the TypeScript entry files directly needs Node ≥ 23.6 (native type
-stripping). On older Node, run them with `tsx` (`npx tsx src/main.ts`) or
-compile first.
+Requires Node ≥ 22.18.0, which enables native TypeScript type stripping by
+default. No `tsx` or compilation step is needed for the example entry files.
+Run `nvm use` from the repository root to select the Node 22 development baseline.
 
 ## Copy an example out
 

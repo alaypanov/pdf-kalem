@@ -5,7 +5,7 @@ export type FontSource = string | Uint8Array | ArrayBuffer;
 
 /** Explicit per-face sources for one family. */
 export interface FamilyFiles {
-  regular?: FontSource;
+  regular: FontSource;
   bold?: FontSource;
   italic?: FontSource;
   boldItalic?: FontSource;

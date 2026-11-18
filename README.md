@@ -17,7 +17,7 @@ The design is heavily inspired by [Flutter](https://flutter.dev)'s widget-tree m
 - **Edits existing PDFs** via `pdf-kalem/edit`: load a PDF as Page widgets, overlay widgets on its pages, restructure/merge, save - original content, annotations, and form fields preserved.
 - **Builds fillable forms** via `pdf-kalem/forms`: text fields, checkboxes, dropdowns, radio groups, and buttons as widget-tree nodes - real AcroForm fields in the output, with `formData` data binding (template + data).
 - Exports PDFs through `pdf-lib` with metadata, custom fonts, link annotations, and SVG paths.
-- Provides a shared text engine (powered by [`@chenglou/pretext`](https://github.com/chenglou/pretext)) with grapheme-aware wrapping, `maxLines`, and `ellipsis` overflow.
+- Provides a shared text engine that uses PDF font metrics for grapheme-aware wrapping, `maxLines`, and `ellipsis` overflow in both Node and browsers.
 - Supports document-scoped themes (color tokens, font aliases, text variants, table/container defaults) with per-widget overrides.
 - Runs in browser and Node (output helpers: `save`, `getBlob`, `download`, `getBuffer`, `writeToFile`).
 
@@ -33,10 +33,40 @@ The project is split into three layers:
 
 ## Install
 
+Requires **Node.js 22.18.0 or newer** for Node usage and local development. Node 22 is the development baseline (`nvm use` reads `.nvmrc`); the examples use its built-in TypeScript type stripping.
+
 From npm:
 
 ```bash
 pnpm add pdf-kalem
+```
+
+## Your first PDF
+
+Create `hello.mjs`:
+
+```js
+import { PdfDoc } from 'pdf-kalem';
+import { Page, Text } from 'pdf-kalem/widgets';
+
+const doc = new PdfDoc({
+  children: [
+    Page({
+      padding: 24,
+      children: [Text('Hello world', { size: 18 })],
+    }),
+  ],
+});
+
+await doc.writeToFile('hello.pdf');
+```
+
+Run `node hello.mjs`, then open `hello.pdf` in the same directory. No font files or extra configuration are required.
+
+In a browser app, use the same widget tree and replace the last line with:
+
+```js
+await doc.download('hello.pdf');
 ```
 
 For local development in this repository:
@@ -67,11 +97,15 @@ pnpm build
 
 ## Docs
 
+Browse the [hosted documentation](https://alaypanov.github.io/pdf-kalem/) for guides and live playgrounds.
+
+To run the documentation site locally:
+
 ```bash
-pnpm docs:dev
+pnpm dev
 ```
 
-`pnpm docs:dev` runs the VitePress documentation site (Vue 3 + UnoCSS, in `docs/`) with a guide and dedicated playground pages for the widget-tree API and the markdown converter (both playgrounds are live workbenches). `pnpm docs:build` emits the static site into `docs/.vitepress/dist/`.
+`pnpm dev` runs the VitePress documentation site (Vue 3 + UnoCSS, in `docs/`) with a guide and dedicated playground pages for the widget-tree API and the markdown converter (both playgrounds are live workbenches). `pnpm docs:build` emits the static site into `docs/.vitepress/dist/`.
 
 ## Example
 
@@ -225,7 +259,10 @@ const fonts = await useFonts(
   { body: 'inter' },
   {
     files: {
-      inter: { bold: '/fonts/MyInter-Bold.ttf' }, // one face as a URL
+      inter: {
+              regular: '/fonts/MyInter-Regular.ttf',
+              bold: '/fonts/MyInter-Bold.ttf',
+            },
       'my-serif': {
         regular: '/fonts/MySerif.ttf',
         italic: '/fonts/MySerif-Italic.ttf',
@@ -354,7 +391,7 @@ The `RenderContext` seam stays because it is load-bearing, not as a backend hook
 - `pnpm build` builds the npm package into `dist/`.
 - `pnpm example` builds the package and runs every example (each writes its PDF next to its code); pass names to run a subset: `pnpm example invoice report`.
 - `pnpm typecheck` runs TypeScript without emitting files.
-- `pnpm docs:dev` runs the documentation site.
+- `pnpm dev` runs the documentation site.
 
 ## Special Thanks
 
@@ -363,7 +400,7 @@ pdf-kalem stands on the shoulders of several excellent open-source projects:
 - [Flutter](https://flutter.dev) - the widget-tree mental model that inspired pdf-kalem's design.
 - [pdf-lib](https://github.com/Hopding/pdf-lib) - the PDF generation engine that powers the PDF backend.
 - [Yoga](https://github.com/facebook/yoga) - the flexbox layout engine (from Meta/Facebook) that handles all layout computation.
-- [`@chenglou/pretext`](https://github.com/chenglou/pretext) - the grapheme-aware text measurement and wrapping engine.
+- [`@chenglou/pretext`](https://github.com/chenglou/pretext) - powered grapheme-aware wrapping in earlier versions.
 - [@mdi/js](https://github.com/Templarian/MaterialDesign-JS) - Material Design Icons path data, used by the `Icon` widget.
 - [@pdf-lib/fontkit](https://github.com/Hopding/pdf-lib/tree/master/fontkit) - custom font subsetting and embedding for PDFs.
 
