@@ -1,6 +1,6 @@
 /**
  * The invoice as plain data. Layout code (document.ts + components/) never
- * hardcodes content — swap this object (or load it from an API/CSV/DB) and
+ * hardcodes content - swap this object (or load it from an API/CSV/DB) and
  * the same codebase renders a different invoice.
  */
 
@@ -68,7 +68,7 @@ export const invoice: InvoiceData = {
     email: 'billing@acmestudio.dev',
   },
   billTo: {
-    name: 'Northwind Labs — Attn: Finance Team',
+    name: 'Northwind Labs - Attn: Finance Team',
     address: '88 King Street, Toronto, ON M5V 1L7',
     email: 'accounts@northwindlabs.com',
   },

@@ -2,7 +2,7 @@
  * Output adapters: PDF bytes → runtime destination (ARCHITECTURE.md #7).
  *
  * Extracted from `PdfDoc` so the document model stays free of runtime
- * sniffing — these functions are the explicit seam where browser and Node
+ * sniffing - these functions are the explicit seam where browser and Node
  * differ. `PdfDoc`'s convenience methods delegate here; the public interface
  * is unchanged.
  *
@@ -72,7 +72,7 @@ export function downloadBytes(bytes: Uint8Array, fileName: string): void {
  * Browser-like runtimes only.
  *
  * Known limitation: Safari's PDF viewer doesn't support programmatic
- * printing — the dialog may print blank there. Downloading and printing
+ * printing - the dialog may print blank there. Downloading and printing
  * manually is the reliable fallback.
  */
 export function printBytes(bytes: Uint8Array): void {
@@ -98,7 +98,7 @@ export function printBytes(bytes: Uint8Array): void {
   // that never fire it fall back to the timeout below.
   iframe.addEventListener('load', () => {
     iframe.contentWindow?.addEventListener('afterprint', cleanup);
-    // A deferred call — some engines aren't ready to print inside the
+    // A deferred call - some engines aren't ready to print inside the
     // load event itself.
     setTimeout(() => iframe.contentWindow?.print(), 0);
     // Fallback cleanup if afterprint never fires.

@@ -17,7 +17,7 @@ export interface LoadPdfOptions {
 
 /**
  * An existing PDF opened for editing. `pages` is a plain mutable array of
- * {@link LoadedPage} widgets — the editing API *is* array manipulation:
+ * {@link LoadedPage} widgets - the editing API *is* array manipulation:
  *
  * - remove / reorder pages → `splice` / `sort` on `pages`
  * - blank or generated pages → `pages.push(new Page({ ... }))`
@@ -29,7 +29,7 @@ export interface LoadPdfOptions {
  * `PdfDoc` alongside generated pages.
  */
 export class LoadedPdf {
-  /** The loaded pages, in output order. Mutate freely — this is the edit surface. */
+  /** The loaded pages, in output order. Mutate freely - this is the edit surface. */
   readonly pages: LoadedPage[];
   private readonly source: PDFDocument;
   private readonly fonts?: FontSet;
@@ -43,7 +43,7 @@ export class LoadedPdf {
   }
 
   /**
-   * The underlying pdf-lib document — a read-write escape hatch for anything
+   * The underlying pdf-lib document - a read-write escape hatch for anything
    * the editing API doesn't cover (metadata, form fields, raw pdf-lib
    * drawing). Beyond `loadPdf`'s guarantees, you're on your own here.
    */
@@ -53,7 +53,7 @@ export class LoadedPdf {
 
   /**
    * Saves the edited document: builds a `PdfDoc` from the current `pages`
-   * with the load-time fonts/theme and renders it. Stateless — every call
+   * with the load-time fonts/theme and renders it. Stateless - every call
    * renders fresh, so the same `LoadedPdf` can be saved repeatedly (and its
    * pages can also be composed into other documents independently).
    */

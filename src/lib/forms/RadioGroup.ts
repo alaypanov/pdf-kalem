@@ -3,7 +3,7 @@ import type { Widget } from '../Widget';
 import { FormWidget, type FormFieldOptions } from './FormWidget';
 
 export interface RadioGroupOptions extends FormFieldOptions {
-  /** Initially selected option value — must match a Radio child's value. */
+  /** Initially selected option value - must match a Radio child's value. */
   value?: string;
   /** Layout direction of the options. Default: column. */
   direction?: 'row' | 'column';
@@ -14,7 +14,7 @@ export interface RadioGroupOptions extends FormFieldOptions {
 /**
  * One AcroForm radio group field spread over its children's boxes: the group
  * creates the field; each {@link Radio} descendant adds an option at its own
- * layout box. Radios may be nested in Rows/Columns (for labels) — they find
+ * layout box. Radios may be nested in Rows/Columns (for labels) - they find
  * the group through the parent chain.
  *
  * The group is always atomic (`breakable: false`): options stranded on
@@ -38,9 +38,9 @@ export class RadioGroupWidget extends FormWidget {
   }
 
   /**
-   * @internal — PdfDoc's formData walk applies values here. The value is
+   * @internal - PdfDoc's formData walk applies values here. The value is
    * validated at render (against the options the Radio children added), not
-   * here — validating early would need the Radio class, and Radio.ts imports
+   * here - validating early would need the Radio class, and Radio.ts imports
    * this module.
    */
   bindValue(value: string | boolean): void {
@@ -52,7 +52,7 @@ export class RadioGroupWidget extends FormWidget {
 
   /**
    * The group places nothing at its own box. Children render first (adding
-   * their options), then the initial selection is applied — pdf-lib's
+   * their options), then the initial selection is applied - pdf-lib's
    * `select` validates against the added options, so it must come after.
    */
   async render(context: RenderContext): Promise<void> {
@@ -61,7 +61,7 @@ export class RadioGroupWidget extends FormWidget {
     if (this.readOnly) field.enableReadOnly();
     await this.renderChildren(context);
     if (this.value !== undefined) {
-      // pdf-lib's select validates too, but its error would read cryptic —
+      // pdf-lib's select validates too, but its error would read cryptic -
       // name the actual mistake: the value must match a Radio child.
       const options = field.getOptions();
       if (!options.includes(this.value)) {
@@ -74,10 +74,10 @@ export class RadioGroupWidget extends FormWidget {
   }
 
   /**
-   * Places one option at `radio`'s layout box. Called by Radio.render — the
+   * Places one option at `radio`'s layout box. Called by Radio.render - the
    * field lookup goes through the group so nested Radios need no state.
    *
-   * @internal — package-internal: Radio renders through its group.
+   * @internal - package-internal: Radio renders through its group.
    */
   placeOption(value: string, radio: Widget, context: RenderContext): void {
     const { form, page } = this.requireSurface(context);

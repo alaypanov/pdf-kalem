@@ -131,7 +131,7 @@ test('B8: a custom font first requested on the second save embeds (fontkit re-re
   const doc = new PdfDoc({ fonts, children: [page] });
   await doc.save();
 
-  // A bold face is first requested on the second save — the fontkit flag
+  // A bold face is first requested on the second save - the fontkit flag
   // must have been reset with the document.
   page.appendWidgetChild(Text('bold now', { fontWeight: 700 }));
   const second = await doc.save();
@@ -158,7 +158,7 @@ test('B9: count-then-save renders identically to save-only', async () => {
   const directPages = (await PDFDocument.load(directBytes)).getPages().length;
 
   // Helvetica fits 66 words at 10pt on a 200x100 page; the 0.6em estimate
-  // does not — so the dry count differs, but the saved output must not.
+  // does not - so the dry count differs, but the saved output must not.
   assert.equal(directPages, 1);
   assert.notEqual(dryCount, directPages, 'the dry run is estimate-based (documented)');
   assert.equal(countedPages, directPages, 'the dry run must not poison the real save');
@@ -287,7 +287,7 @@ test('B13: SVGPath strokeWidth is not double-scaled by the CTM', async () => {
   }).save();
   const stream = await contentStream(bytes);
   // Scale is 2 (24 -> 48); the emitted line width must be the raw 2, which
-  // the ×2 CTM turns into an effective 4 — not a pre-multiplied 4 (→ 8).
+  // the ×2 CTM turns into an effective 4 - not a pre-multiplied 4 (→ 8).
   assert.match(stream, /2 w/);
   assert.doesNotMatch(stream, /4 w/);
 });
@@ -426,7 +426,7 @@ test('B20: run-href annotation rects cover the full line box', async () => {
   const rectArray = doc.context.lookup(annot.get(PDFName.of('Rect')));
   const [x0, y0, x1, y1] = rectArray.asArray().map((v) => v.asNumber());
 
-  // The block's top edge in PDF coords — the first line box's top.
+  // The block's top edge in PDF coords - the first line box's top.
   const box = text.getAbsoluteLayoutBox();
   const boxTop = 100 - box.y; // page height - layout y
   assert.equal(y1, boxTop, 'the rect top reaches the line box top (half-leading included)');
@@ -444,7 +444,7 @@ test('B20: run font override resolves through the override name\'s own face styl
     { files: { inter: { regular: inter, bold: interBold } } },
   );
 
-  // A run asking for the bold face with an explicit 400 un-bolds it — the
+  // A run asking for the bold face with an explicit 400 un-bolds it - the
   // override name's own style is the base its axes replace.
   const text = Text([{ text: 'unbold', font: 'inter-bold', fontWeight: 400 }], { size: 12 });
   const doc = new PdfDoc({ fonts, children: [Page({ dimensions: [300, 200], children: [text] })] });
@@ -479,7 +479,7 @@ test('B20: Container border.width 0 draws no border', async () => {
     ],
   }).save();
   const stream = await contentStream(bytes);
-  assert.doesNotMatch(stream, /RG/, 'no stroking color op — the 0-width border is not drawn');
+  assert.doesNotMatch(stream, /RG/, 'no stroking color op - the 0-width border is not drawn');
 });
 
 test('B20: unknown color tokens warn once per theme', async () => {
@@ -494,7 +494,7 @@ test('B20: unknown color tokens warn once per theme', async () => {
     const build = (theme) =>
       new PdfDoc({ theme, children: [Page({ dimensions: [200, 100], children: [Container({ width: 10, height: 10, bgColor: 'nope' })] })] });
     await build(createTheme({})).save();
-    await build(createTheme({})).save(); // a different theme object — warns again
+    await build(createTheme({})).save(); // a different theme object - warns again
     await build(createTheme({})).save(); // same-token third doc on theme 3
   } finally {
     console.warn = originalWarn;
@@ -552,7 +552,7 @@ test('B20: SVGPath with fill + strokeWidth but no stroke draws no outline', asyn
   }).save();
   const stream = await contentStream(bytes);
   assert.match(stream, /1 0 0 rg/, 'the fill is drawn');
-  assert.doesNotMatch(stream, /RG/, 'no stroking color op — no black outline');
+  assert.doesNotMatch(stream, /RG/, 'no stroking color op - no black outline');
 });
 
 test('B20: a repeated table head is clipped to the content box', async () => {

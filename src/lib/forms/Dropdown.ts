@@ -5,7 +5,7 @@ import { PlacedFormWidget, type FormFieldOptions } from './FormWidget';
 export interface DropdownOptions extends FormFieldOptions {
   /** Choices the reader offers. Must be a non-empty array of strings. */
   options: string[];
-  /** Initially selected value — must be one of `options` (pdf-lib enforces). */
+  /** Initially selected value - must be one of `options` (pdf-lib enforces). */
   value?: string;
 }
 
@@ -25,7 +25,7 @@ export class DropdownWidget extends PlacedFormWidget {
     this.options = options.options;
     this.value = options.value;
     // pdf-lib's select() silently turns a dropdown into an editable combo
-    // box for unknown values — validate instead (honest failures).
+    // box for unknown values - validate instead (honest failures).
     if (this.value !== undefined && !this.options.includes(this.value)) {
       throw new Error(
         `Dropdown "${name}": value "${this.value}" is not one of the declared options (${this.options.join(', ')}).`,
@@ -45,7 +45,7 @@ export class DropdownWidget extends PlacedFormWidget {
     return 'Dropdown';
   }
 
-  /** @internal — PdfDoc's formData walk applies values here. */
+  /** @internal - PdfDoc's formData walk applies values here. */
   bindValue(value: string | boolean): void {
     if (typeof value !== 'string') {
       throw new Error(`Dropdown "${this.name}" expects a string formData value, got ${typeof value}.`);

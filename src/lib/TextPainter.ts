@@ -44,7 +44,7 @@ export interface RenderedTextLayout {
  * Paints a {@link RenderedTextLayout} onto a {@link RenderContext}.
  *
  * This is the shared drawing concern that used to be duplicated between
- * `TextWidget` and `LinkWidget`. It knows nothing about themes or widgets —
+ * `TextWidget` and `LinkWidget`. It knows nothing about themes or widgets -
  * callers hand it concrete font name, size, color, and an optional underline.
  */
 export class TextPainter {
@@ -138,7 +138,7 @@ export class TextPainter {
    * Positions a {@link TextLayoutResult} inside a layout box.
    *
    * Lines are placed from the bottom of the box upward (PDF y grows upward).
-   * Each line's baseline sits `halfLeading + ascent` below the line's top —
+   * Each line's baseline sits `halfLeading + ascent` below the line's top -
    * the CSS line-box model: the extra leading (`lineHeight - fontHeight`)
    * splits half above and half below the text, so single-line text is
    * optically centered in its line box instead of hugging the top with all

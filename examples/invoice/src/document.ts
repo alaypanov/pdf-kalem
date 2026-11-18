@@ -9,7 +9,7 @@ import { totalsPanel } from './components/totals-panel.ts';
 
 /**
  * The invoice page: header, parties, project bar, line items, closing
- * panels, and footer bar — assembled from components, styled only through
+ * panels, and footer bar - assembled from components, styled only through
  * theme tokens.
  */
 export function invoicePages(data: InvoiceData) {

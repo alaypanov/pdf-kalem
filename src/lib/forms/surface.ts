@@ -5,8 +5,8 @@ import type { RenderContext } from '../RenderContextInterface';
  * The PDF-typed surface form widgets need (ADR 0001: PDF features get
  * PDF-typed modules, never interface widening).
  *
- * Form fields are pure PDF mechanics — an AcroForm field lives in the
- * document's catalog and its widget annotations live on pages — so the seam
+ * Form fields are pure PDF mechanics - an AcroForm field lives in the
+ * document's catalog and its widget annotations live on pages - so the seam
  * stays out of the backend-neutral `RenderContext`. `PdfRenderContext`
  * supplies both members; form widgets narrow to this surface at render time,
  * the same runtime narrowing `LoadedPage` uses for `PdfPageSurface`.

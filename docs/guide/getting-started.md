@@ -2,7 +2,7 @@
 
 > **Status: early alpha.** The API is not yet stable and may change between versions.
 
-pdf-kalem is a widget-tree UI library for document-style layout and generation. You describe content as a tree of widgets — pages, containers, rows, columns, text, images, links, tables, and SVG paths — run [Yoga](https://github.com/facebook/yoga) for flexbox layout, and render the tree through a backend-specific renderer. The PDF backend is [pdf-lib](https://pdf-lib.js.org). The design is heavily inspired by [Flutter](https://flutter.dev)'s widget-tree model, adapted to the document/PDF domain.
+pdf-kalem is a widget-tree UI library for document-style layout and generation. You describe content as a tree of widgets - pages, containers, rows, columns, text, images, links, tables, and SVG paths - run [Yoga](https://github.com/facebook/yoga) for flexbox layout, and render the tree through a backend-specific renderer. The PDF backend is [pdf-lib](https://pdf-lib.js.org). The design is heavily inspired by [Flutter](https://flutter.dev)'s widget-tree model, adapted to the document/PDF domain.
 
 ## Install
 
@@ -37,7 +37,7 @@ const doc = new PdfDoc({
 const pdfBytes = await doc.save();
 ```
 
-Widgets are created through plain factory functions (`Page(...)`, `Text(...)`) — no classes to instantiate, no `new` outside `PdfDoc`. Layout is Yoga flexbox: `Row`, `Column`, `gap`, `flexGrow`, `%` widths, and absolute positioning all work as you'd expect.
+Widgets are created through plain factory functions (`Page(...)`, `Text(...)`) - no classes to instantiate, no `new` outside `PdfDoc`. Layout is Yoga flexbox: `Row`, `Column`, `gap`, `flexGrow`, `%` widths, and absolute positioning all work as you'd expect.
 
 ## Output helpers
 
@@ -52,11 +52,11 @@ const buffer = await doc.getBuffer();         // Node Buffer
 await doc.writeToFile('invoice.pdf');         // Node fs
 ```
 
-`getBuffer()` and `writeToFile()` are intended for Node runtimes; `download()`, `getBlob()`, and `print()` for the browser. `print()` loads the PDF into a hidden iframe and opens the browser's print dialog — Safari's PDF viewer doesn't support programmatic printing, so download-and-print manually there.
+`getBuffer()` and `writeToFile()` are intended for Node runtimes; `download()`, `getBlob()`, and `print()` for the browser. `print()` loads the PDF into a hidden iframe and opens the browser's print dialog - Safari's PDF viewer doesn't support programmatic printing, so download-and-print manually there.
 
 ## Preview: PDF → PNG
 
-The `pdf-kalem/preview` subpath rasterizes the exact bytes `save()` produced — the pixels cannot lie about the output, which makes it the fast visual feedback loop for layout work:
+The `pdf-kalem/preview` subpath rasterizes the exact bytes `save()` produced - the pixels cannot lie about the output, which makes it the fast visual feedback loop for layout work:
 
 ```ts
 import { renderToPng } from 'pdf-kalem/preview';
@@ -66,7 +66,7 @@ const png = await renderToPng(bytes, { page: 0, dpi: 144 }); // → PNG Uint8Arr
 await writeFile('preview.png', png);
 ```
 
-Node-only; the adapters (`pdfjs-dist`, `@napi-rs/canvas`) are optional peer dependencies loaded on first use — install them with `pnpm add -D pdfjs-dist @napi-rs/canvas` when you want previews.
+Node-only; the adapters (`pdfjs-dist`, `@napi-rs/canvas`) are optional peer dependencies loaded on first use - install them with `pnpm add -D pdfjs-dist @napi-rs/canvas` when you want previews.
 
 ## Metadata
 
@@ -90,7 +90,7 @@ const doc = new PdfDoc({
 
 ## Next steps
 
-- Try the [widget playground](/playground/widgets) — edit a live document in your browser.
+- Try the [widget playground](/playground/widgets) - edit a live document in your browser.
 - Skim the [widgets](/guide/widgets) and [theming](/guide/theming) guides.
 - Converting markdown? Jump to the [markdown guide](/guide/markdown) or the [markdown playground](/playground/markdown).
-- Copy an [example](https://github.com/alaypanov/pdf-kalem/tree/main/examples) — self-contained projects (hello-world, invoice, report, markdown converter) structured to be adapted to your own documents.
+- Copy an [example](https://github.com/alaypanov/pdf-kalem/tree/main/examples) - self-contained projects (hello-world, invoice, report, markdown converter) structured to be adapted to your own documents.

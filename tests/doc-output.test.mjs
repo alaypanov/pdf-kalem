@@ -1,6 +1,6 @@
 /**
  * Output-adapter tests: the byte → destination seam (ARCHITECTURE.md #7),
- * exercised directly — no document model needed for the mechanics.
+ * exercised directly - no document model needed for the mechanics.
  *
  * Node covers the Node paths (buffer, file) and the browser paths' guards;
  * the browser mechanics themselves (download anchor, print iframe) need a

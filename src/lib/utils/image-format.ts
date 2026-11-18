@@ -1,5 +1,5 @@
 /**
- * Image-format sniffing from magic bytes — the shared home (I13). Used by
+ * Image-format sniffing from magic bytes - the shared home (I13). Used by
  * the markdown renderer for fetched images and by `Image` for file/byte
  * sources whose declared format can't be trusted.
  */

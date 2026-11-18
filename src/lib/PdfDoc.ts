@@ -45,7 +45,7 @@ export interface PdfDocOptions extends WidgetOptions {
   fonts?: FontSet;
   /**
    * Data binding: values applied to the tree's form widgets (`pdf-kalem/forms`)
-   * by AcroForm field name — the widgets' `name`. Applied in the constructor;
+   * by AcroForm field name - the widgets' `name`. Applied in the constructor;
    * wins over per-widget `value`/`checked` options. Type mismatches throw
    * (text wants a string, checkbox a boolean, dropdown/radio a declared
    * option); keys matching no field warn. The same tree-builder with
@@ -86,7 +86,7 @@ export interface PdfDocAfterSaveArgs {
 
 /**
  * PdfDoc is the document model: it owns the page tree, theme, metadata, and
- * lifecycle hooks. It is intentionally not a Widget — a document is not a
+ * lifecycle hooks. It is intentionally not a Widget - a document is not a
  * layout node. Rendering is the save-time walk over the page tree; output
  * mechanics (blob/download/buffer/file) delegate to the runtime adapters in
  * `doc-output.ts`.
@@ -178,10 +178,10 @@ export class PdfDoc {
     }
 
     // A pageless document would save as a degenerate PDF that loads back as
-    // one phantom page — fail fast instead (B20).
+    // one phantom page - fail fast instead (B20).
     if (this.children.length === 0) {
       throw new Error(
-        'PdfDoc requires at least one Page child — pass Page({ ... }) widgets in children.'
+        'PdfDoc requires at least one Page child - pass Page({ ... }) widgets in children.'
       );
     }
 
@@ -199,7 +199,7 @@ export class PdfDoc {
   /**
    * Total number of output pages, computed by running the pagination plan
    * for every Page widget (a dry run: no drawing, no pages added).
-   * Memoized — plans are pure, so the count is stable for an unchanged tree.
+   * Memoized - plans are pure, so the count is stable for an unchanged tree.
    *
    * Text metrics are exact once fonts have been embedded by {@link save};
    * before that, un-embedded fonts fall back to estimated widths. Trees
@@ -238,7 +238,7 @@ export class PdfDoc {
 
   /**
    * The doc's effective theme: the user's theme with the FontSet's font
-   * tokens applied over it (doc-level wins). Returns a NEW object — the
+   * tokens applied over it (doc-level wins). Returns a NEW object - the
    * user's theme value is never mutated, so theme objects can be shared
    * across documents safely.
    */
@@ -276,10 +276,10 @@ export class PdfDoc {
     this.context.setDocument(pdfDoc);
 
     // Any dry run before this save measured with un-embedded fonts; the real
-    // count — and any later dry run — must recompute with embedded metrics (B9).
+    // count - and any later dry run - must recompute with embedded metrics (B9).
     this.cachedPageCount = undefined;
 
-    // The render walk is the save-time strategy itself — the constructor
+    // The render walk is the save-time strategy itself - the constructor
     // enforces that every child is a PageWidget, so there is nothing here
     // worth a separate module (I5: the former PdfRenderer was a pass-through).
     for (const page of this.children) {

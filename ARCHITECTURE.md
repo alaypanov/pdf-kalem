@@ -1,4 +1,4 @@
-# Architecture — deepening opportunities
+# Architecture - deepening opportunities
 
 > From the 2026-10-02 architecture review, updated after the RenderContext seam landed.
 >
@@ -10,64 +10,64 @@
 
 | # | Candidate | Strength | Status |
 |---|---|---|---|
-| 1 | Finish the RenderContext seam | Strong | ✅ Done — `2638966` |
-| 2 | Give pagination one home | Strong | ✅ Done — `src/lib/pagination/` landed; template layer pending |
-| 3 | Stand up the verification seam | Strong | ✅ Done — `tests/` suite runs in `pnpm test`; FontRegistry test-isolation hook still open (I3) |
-| 4 | Collapse the aspect-fit triplication | Strong | ✅ Done — `src/lib/aspect-fit.ts`; B1 fixed, Image measure no longer logs |
-| 5 | Retire the string-keyed `setProperty` interpreter | Strong | ✅ Done — `setYogaStyle` is the only styling entry; dead accessors dropped |
-| 6 | Extract the theme-resolution policy | Strong | ✅ Done — `src/lib/theme-resolve.ts`; 18 call sites collapsed |
-| 7 | Un-glue `PdfDoc` | Worth exploring | ✅ Done — hooks removed (instance options are the channel); IO → `src/lib/doc-output.ts` |
-| 8 | Extract the Yoga style interpreter from `Widget` | Worth exploring | ✅ Done — `src/lib/yoga-style.ts`; `Widget.ts` 424 → 201 lines |
-| 9 | Deduplicate the test `FakeContext` | Strong | ✅ Done — `tests/fake-context.mjs`; −167 lines across two suites |
-| 10 | Move `adoptPage` off the neutral `RenderContext` interface | Worth exploring | ✅ Done — `PdfPageSurface` + runtime narrowing; neutral interface no longer declares page lifecycle |
-| 11 | PDF-typed form surface (the #10 pattern's second application) | Strong | ✅ Done — `PdfFormSurface` (`src/lib/forms/surface.ts`) + runtime narrowing; `PageScope` forwards the members so fields render through paginated scopes |
+| 1 | Finish the RenderContext seam | Strong | ✅ Done - `2638966` |
+| 2 | Give pagination one home | Strong | ✅ Done - `src/lib/pagination/` landed; template layer pending |
+| 3 | Stand up the verification seam | Strong | ✅ Done - `tests/` suite runs in `pnpm test`; FontRegistry test-isolation hook still open (I3) |
+| 4 | Collapse the aspect-fit triplication | Strong | ✅ Done - `src/lib/aspect-fit.ts`; B1 fixed, Image measure no longer logs |
+| 5 | Retire the string-keyed `setProperty` interpreter | Strong | ✅ Done - `setYogaStyle` is the only styling entry; dead accessors dropped |
+| 6 | Extract the theme-resolution policy | Strong | ✅ Done - `src/lib/theme-resolve.ts`; 18 call sites collapsed |
+| 7 | Un-glue `PdfDoc` | Worth exploring | ✅ Done - hooks removed (instance options are the channel); IO → `src/lib/doc-output.ts` |
+| 8 | Extract the Yoga style interpreter from `Widget` | Worth exploring | ✅ Done - `src/lib/yoga-style.ts`; `Widget.ts` 424 → 201 lines |
+| 9 | Deduplicate the test `FakeContext` | Strong | ✅ Done - `tests/fake-context.mjs`; −167 lines across two suites |
+| 10 | Move `adoptPage` off the neutral `RenderContext` interface | Worth exploring | ✅ Done - `PdfPageSurface` + runtime narrowing; neutral interface no longer declares page lifecycle |
+| 11 | PDF-typed form surface (the #10 pattern's second application) | Strong | ✅ Done - `PdfFormSurface` (`src/lib/forms/surface.ts`) + runtime narrowing; `PageScope` forwards the members so fields render through paginated scopes |
 
 All candidates 1–11 landed.
 
-> **Direction (2026-10-09): PDF-only focus** — [ADR 0001](./docs/adr/0001-pdf-only-focus.md).
+> **Direction (2026-10-09): PDF-only focus** - [ADR 0001](./docs/adr/0001-pdf-only-focus.md).
 > No image/HTML backends will be built; the RenderContext seam is retained because pagination's
-> `PageScope` composes through it — not as a backend hook. New PDF-specific features get
+> `PageScope` composes through it - not as a backend hook. New PDF-specific features get
 > PDF-typed modules (see `src/lib/edit/`), never interface widening. Candidates this unblocks
 > are recorded in [PLAN.md](./PLAN.md).
 
 ---
 
-## Rejected — merging `PdfRenderContext` into the `RenderContext` seam (2026-10-11)
+## Rejected - merging `PdfRenderContext` into the `RenderContext` seam (2026-10-11)
 
 **Proposal.** With PDF-only focus (ADR 0001), collapse the backend-neutral interface and
-the PDF implementation into one concrete `RenderContext` class — one less file, one less
+the PDF implementation into one concrete `RenderContext` class - one less file, one less
 concept.
 
 **Why rejected.** The seam has **two real adapters**, and both are load-bearing:
 
-1. `PdfRenderContext` — the PDF backend (pdf-lib document, font embedding, the Y-flip).
-2. `PageScope` — one output page's view during pagination: answers geometry from the
+1. `PdfRenderContext` - the PDF backend (pdf-lib document, font embedding, the Y-flip).
+2. `PageScope` - one output page's view during pagination: answers geometry from the
    page's plan, delegates everything else to the backend.
 
 Pagination's design rests on the second adapter: widgets keep calling
 `render(context)` + `getLayoutBox(this)` unchanged, and the scope is a second answer at
 the seam they already trust. Merging forces `PageScope` into one of two dead ends:
 
-- **Extend `PdfRenderContext`** — every paginated render drags pdf-lib document
+- **Extend `PdfRenderContext`** - every paginated render drags pdf-lib document
   internals, embedded font state, and page handles into a scope that uses none of them.
-- **Union types** — `render(context: PdfRenderContext | PageScope)` in every widget
+- **Union types** - `render(context: PdfRenderContext | PageScope)` in every widget
   signature (~30 sites), permanently.
 
-The deletion test agrees: delete the interface and the complexity doesn't vanish — it
+The deletion test agrees: delete the interface and the complexity doesn't vanish - it
 reappears in `PageScope` and every widget signature. ADR 0001 already adjudicated the
 underlying question (PDF-only focus, seam retained because `PageScope` composes through
-it); PDF-only is not new evidence for the merge, and the naming is already honest —
+it); PDF-only is not new evidence for the merge, and the naming is already honest -
 `PdfRenderContext` was renamed *from* `RenderContext` precisely to free the name for the
 neutral interface.
 
 **What the proposal got right.** The interface carries PDF-specific members typed
-`unknown` — `adoptPage` (a pdf-lib `copyPages` concept, sole caller `LoadedPage` in the
+`unknown` - `adoptPage` (a pdf-lib `copyPages` concept, sole caller `LoadedPage` in the
 edit module) violates ADR 0001's own "never interface widening" rule. Narrowing that is
 board candidate **#10**.
 
 ---
 
-## 1 ✅ Finish the RenderContext seam — done (`2638966`)
+## 1 ✅ Finish the RenderContext seam - done (`2638966`)
 
 The backend-neutral seam existed only on paper: every widget and `PdfDoc` bound to a stale
 pre-refactor concrete class, the real adapter `PdfRenderContext` was dead code, and font
@@ -82,7 +82,7 @@ deprecated `getLayoutBoxInPdfCoords` dropped; hub exported from both entries;
 
 ---
 
-## 2 — Give pagination one home `Strong` · ✅ landed 2026-10-02
+## 2 - Give pagination one home `Strong` · ✅ landed 2026-10-02
 
 **Files:** `CONTEXT.md` §Pagination · `stash@{0}` (`Page`, `Widget`, `Text`, `Table`, …) ·
 HEAD fossils: `src/lib/Icon.ts` `renderAt`, `src/lib/utils/debug.ts` (0 call sites)
@@ -90,21 +90,21 @@ HEAD fossils: `src/lib/Icon.ts` `renderAt`, `src/lib/utils/debug.ts` (0 call sit
 **Problem.** The roadmap's priority-1 feature exists as a glossary describing one design
 (fragments + `widget.paginate` + `renderPageIndex/Shift/Clip` fields), a stash containing a
 different design (`Placement` / `computePlacements` / `renderAt`, no fragments), and HEAD
-fossils of the stash design — while HEAD itself has zero pagination code
+fossils of the stash design - while HEAD itself has zero pagination code
 (`grep paginate|WidgetFragment|breakable src/` → 0 matches). Every trace of "the Text
 pagination contract" dead-ends three times.
 
-**Decision — 2026-10-02.** Chosen after a four-way interface review (minimal contract /
+**Decision - 2026-10-02.** Chosen after a four-way interface review (minimal contract /
 flexible seam / common-case-first / pure tree transformation). Pagination is a **pure tree
 transformation**: layout produces a flow tree; a pure `Paginator` transforms it into a
-`PagePlan` forest; each plan is painted through a per-page `PageScope` — a `RenderContext`
+`PagePlan` forest; each plan is painted through a per-page `PageScope` - a `RenderContext`
 decorator answering the queries widgets already ask. The render path (`render(context)` +
 `getLayoutBox(this)`) is untouched: no `renderAt`, no fragments on widgets, no mutable
 render-state fields.
 
-- **`Paginator`** (internal, `src/lib/pagination/`): runs `prepareLayout`, lays out —
+- **`Paginator`** (internal, `src/lib/pagination/`): runs `prepareLayout`, lays out -
   pass 1 at the real page height (today's semantics; byte-identical when content fits),
-  pass 2 at height auto only on overflow — then walks **computed geometry only**: no Yoga
+  pass 2 at height auto only on overflow - then walks **computed geometry only**: no Yoga
   during the walk, no drawing, no pagination state on widgets.
 - **`PageScope`** (one per output page): `getLayoutBox` (plan box →
   `backend.mapContentBox`), `getFlowOffset` (slice top, for self-slicing widgets),
@@ -113,7 +113,7 @@ render-state fields.
 - **Break structure is data.** `Widget.getBreakUnits(): BreakUnit[] | null`; generic
   default: vertical-flow container → one unit per child; row-direction, absolute, or
   `breakable: false` → `null` (atomic). Only `Text` (lines) and `Table` (rows; head marked
-  `repeat`) override — 2 of 15 widget classes. `repeat`/`keepWithNext` are data flags the
+  `repeat`) override - 2 of 15 widget classes. `repeat`/`keepWithNext` are data flags the
   engine honors generically; widows/orphans land later as the same kind of flag.
 - **Web grow rule.** Free space is distributed only inside **definite** heights (CSS).
   Flow content is auto-height → grow no-ops there; page-filling furniture (footer pinned
@@ -126,18 +126,18 @@ render-state fields.
 - **`Page({ overflow: false })`** keeps the legacy single-page path byte-identical.
 
 Superseded when this lands: the fragments glossary (mutable `renderPageIndex/Shift/Clip*`
-fields) and the placement stash (`computePlacements` + `renderAt`, PDF math in `Page`) —
+fields) and the placement stash (`computePlacements` + `renderAt`, PDF math in `Page`) -
 drop `stash@{0}` at implementation time. Unblocks IDEAS.md B2 (`getPageCount`) and I5
 (`PdfRenderer`'s fate).
 
 **Interface (implementation target).**
 
 ```ts
-// ── src/lib/pagination/types.ts (internal — not in package.json exports) ──
+// ── src/lib/pagination/types.ts (internal - not in package.json exports) ──
 
 export interface LayoutBox { x: number; y: number; width: number; height: number }
 
-/** A breakable unit inside a widget's own box. Data only — never renders. */
+/** A breakable unit inside a widget's own box. Data only - never renders. */
 export interface BreakUnit {
   /** Unit top relative to the widget's flow-box top (points, y down). */
   readonly offset: number;
@@ -154,7 +154,7 @@ export interface BreakUnit {
 /** One widget occurrence on one output page: a vertical slice of its flow box. */
 export interface Fragment {
   readonly widget: Widget;
-  /** Box on this page — top-left origin, page-relative points. */
+  /** Box on this page - top-left origin, page-relative points. */
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -224,7 +224,7 @@ export class PageScope implements RenderContext {
 ```
 
 ```ts
-// ── RenderContextInterface.ts — three additions ──
+// ── RenderContextInterface.ts - three additions ──
 
 /** Map a top-left-origin, page-relative box into the backend's coordinate system. */
 mapContentBox(box: LayoutBox): LayoutBox;
@@ -239,7 +239,7 @@ getRenderChildren?(widget: Widget): Widget[];
 ```
 
 ```ts
-// ── Widget.ts — the entire widget-side surface ──
+// ── Widget.ts - the entire widget-side surface ──
 
 export interface WidgetOptions {
   children?: Widget[];
@@ -259,7 +259,7 @@ export abstract class Widget {
 ```
 
 ```ts
-// ── Text.ts — ~10 data lines + one render query (Link inherits both) ──
+// ── Text.ts - ~10 data lines + one render query (Link inherits both) ──
 
 getBreakUnits(): BreakUnit[] | null {
   if (this.breakable === false) return null;
@@ -279,7 +279,7 @@ protected getRenderedTextLayout(context: RenderContext): RenderedTextLayout {
 ```
 
 ```ts
-// ── Table.ts — one data method; render side untouched (pieces are real widgets) ──
+// ── Table.ts - one data method; render side untouched (pieces are real widgets) ──
 
 getBreakUnits(): BreakUnit[] | null {
   const units: BreakUnit[] = [];
@@ -297,7 +297,7 @@ getBreakUnits(): BreakUnit[] | null {
 ```
 
 ```ts
-// ── Page.ts — the driver ──
+// ── Page.ts - the driver ──
 
 export interface PageOptions {
   overflow?: boolean;       // default true; false = legacy single-page path
@@ -317,7 +317,7 @@ override async render(context: RenderContext): Promise<void> {
 ```
 
 ```ts
-// ── Page template (minimal v1 — headers/footers/page numbers) ──
+// ── Page template (minimal v1 - headers/footers/page numbers) ──
 
 export interface PageInfo {
   readonly pageIndex: number;   // doc-global, 0-based
@@ -329,7 +329,7 @@ export interface PageTemplate {
   inset?: { top?: number; bottom?: number; left?: number; right?: number };
   /**
    * Called once per output page after all runs are planned (pageCount known).
-   * Chrome widgets are laid out at the real page box — definite height, so
+   * Chrome widgets are laid out at the real page box - definite height, so
    * grow works here. Painted before flow content.
    */
   chrome(info: PageInfo): Widget[];
@@ -350,7 +350,7 @@ class PdfDoc {
 ```
 
 **Rollout.** Land `src/lib/pagination/` + the three `RenderContext` additions → switch
-`PageWidget.render` → golden tests over `Pagination` data (pure — no pdf-lib; injectable
+`PageWidget.render` → golden tests over `Pagination` data (pure - no pdf-lib; injectable
 `measureTextWidth`) → drop `stash@{0}` → `CONTEXT.md` §Pagination already describes the
 model.
 
@@ -358,27 +358,27 @@ model.
 golden plan tests + one end-to-end page-count invariant). Deltas from the interface above,
 all justified during implementation:
 
-- `Pagination` carries `overflow: boolean` — false when the content fits, so the driver
+- `Pagination` carries `overflow: boolean` - false when the content fits, so the driver
   renders the legacy path (byte-identical) instead of routing through scopes.
 - `Fragment` boxes are `box: LayoutBox` (one field) rather than loose x/y/width/height.
-- `paginate(page, context)` takes no options — `firstPageIndex` arrives with the template
+- `paginate(page, context)` takes no options - `firstPageIndex` arrives with the template
   layer (doc-global page numbers).
 - Package-internal accessors back the walker: `Widget.getBreakUnits()` (generic default),
   `getFlowGeometry()`, `getParent()`, `getChildWidgets()`; `PageWidget.runFlowLayout()`,
   `getContentBox()`.
-- `src/internals.ts` builds `dist/internals.js` — a test-only surface (Paginator/PageScope/
+- `src/internals.ts` builds `dist/internals.js` - a test-only surface (Paginator/PageScope/
   plan types) shipped in dist but NOT in package.json `exports`, so consumers can't import
   it while tests assert plans without pdf-lib.
 - `PdfRenderContext.preloadFont` no-ops without a document (dry-run measurement);
   `PdfDoc.getPageCount()` is exact after `save()`, estimated before, and trees with images
   need a created document (image embedding requires one).
 
-Remaining from the rollout: drop `stash@{0}` (bookkeeping, destructive — owner's call);
+Remaining from the rollout: drop `stash@{0}` (bookkeeping, destructive - owner's call);
 template layer (`PageTemplate`) is the next increment, not part of #2's core.
 
 ---
 
-## 3 ✅ Stand up the verification seam — landed (the `tests/` suite)
+## 3 ✅ Stand up the verification seam - landed (the `tests/` suite)
 
 **Files:** `package.json` (test script) · `tsup.config.ts` · `tests/*.test.mjs`
 
@@ -407,7 +407,7 @@ and snapshot-style PDF assertions (a P3 item).
 **Landed as:** one `aspect-fit` module owning the shared Yoga measure function
 (`aspectFitMeasure`, spec re-read per call so Image's late-embedding intrinsic
 size fits in) and the fit/cover placement math (`aspectFitPlacement`, returning
-drawn size + left/bottom/**top** edges in PDF coords — `top` is the drawSvgPath
+drawn size + left/bottom/**top** edges in PDF coords - `top` is the drawSvgPath
 origin because pdf-lib flips y, which fixes B1). `IconWidget` is now a thin
 subclass of `SVGPathWidget` (registry + square default box + black fill
 fallback); `SVGPath` fill/stroke widened to `ThemeColorValue` (hex strings still
@@ -425,16 +425,16 @@ via `internals.ts`).
 `src/lib/FixedContainer.ts`, `src/lib/HLine.ts`, `src/lib/Page.ts`, `src/lib/Table.ts`,
 `src/lib/markdown/types.ts`, `src/lib/markdown/styles.ts`
 
-**Landed as:** `setYogaStyle(style: YogaStyle)` is the only styling entry — typed dispatch
+**Landed as:** `setYogaStyle(style: YogaStyle)` is the only styling entry - typed dispatch
 (`applyStyle`) with one shared dimension parser (`setDimension`: number / percent / auto
 for width, height, flexBasis; Yoga's min/max setters take percent natively so their type
 widened to `YogaDimensionValue`). No context parameter, no string-keyed switch, no silent
-unknown keys — typos fail at compile time. `drawAt`, FlexContainer's dead `drawWithOffset`,
+unknown keys - typos fail at compile time. `drawAt`, FlexContainer's dead `drawWithOffset`,
 and the `as any` casts are gone; option `width`/`height` types tightened to
 `YogaStyleValue` across Container/FlexContainer/Image/MarkdownStyles.
 
 **Adaptation:** the "drop the abstract `getWidth`/`getHeight` pair" half of this candidate
-collided with reality — pagination gave them real callers (Table break units read
+collided with reality - pagination gave them real callers (Table break units read
 `head.getHeight()`/`row.getHeight()`; Text falls back to them for flow slicing). They are
 now concrete base methods returning the post-layout computed size, so the widgets that
 only implemented them to satisfy `abstract` (Container, FlexContainer, FixedContainer,
@@ -443,7 +443,7 @@ their overrides; Text and the Table family keep the overrides with real fallback
 
 ---
 
-## 6 ✅ Extract the theme-resolution policy — done (`theme-resolve.ts`)
+## 6 ✅ Extract the theme-resolution policy - done (`theme-resolve.ts`)
 
 **Files:** `src/lib/Container.ts` L58–81 · `src/lib/Text.ts` L82–128 · `src/lib/Table.ts`
 L117–139, L211–224, L322–356 · `src/lib/HLine.ts` L41–43 · `src/lib/Icon.ts` L183–192 ·
@@ -451,12 +451,12 @@ L117–139, L211–224, L322–356 · `src/lib/HLine.ts` L41–43 · `src/lib/Ic
 
 **Problem.** The same `override ?? theme ?? fallback` policy is re-implemented as private
 methods in seven-plus places with ad-hoc fallback colors (`#000000` vs `#FFFFFF` vs
-`#0000EE` chosen per widget). Precedence drifts and is verified by nothing — every resolver
+`#0000EE` chosen per widget). Precedence drifts and is verified by nothing - every resolver
 is private, so testing it means instantiating widgets with a wired context.
 
 **Measured (2026-10-11).** 18 call sites across `Container`, `HLine`, `VLine` (a fresh
 copy of `HLine`'s resolver, added with the widget), `SVGPath`, `Table` (×6), `Text` (×5),
-`Icon`. Every new widget adds another copy — the policy is one `VLine` away from 19.
+`Icon`. Every new widget adds another copy - the policy is one `VLine` away from 19.
 
 **Direction.** Pure resolver functions returning plain style objects; widgets consume them
 in `render`. Testable with no widget, no context, no Yoga.
@@ -468,18 +468,18 @@ in `render`. Testable with no widget, no context, no Yoga.
 
 ---
 
-## 7 ✅ Un-glue `PdfDoc` — done (`doc-output.ts`)
+## 7 ✅ Un-glue `PdfDoc` - done (`doc-output.ts`)
 
 **Files:** `src/lib/PdfDoc.ts` (statics L103–146, IO L258–348)
 
 **Problem.** Three modules under one name, each with a different lifetime: the document
 model (per-instance), lifecycle hooks (process-global statics with a `clearHooks()` escape
-hatch — the tell that isolation was already needed), and runtime IO (~60 lines of
+hatch - the tell that isolation was already needed), and runtime IO (~60 lines of
 browser/Node sniffing). Two documents in one process share hooks. The font façade part of
 this candidate is already fixed (`2638966`).
 
 **Direction.** Hooks become per-instance options (the constructor already accepts
-`beforeCreate`/`afterSave` — the statics are a redundant second channel). IO becomes a small
+`beforeCreate`/`afterSave` - the statics are a redundant second channel). IO becomes a small
 standalone output module.
 
 **Wins.**
@@ -489,7 +489,7 @@ standalone output module.
 
 ---
 
-## 8 ✅ Extract the Yoga style interpreter from `Widget` — done (`yoga-style.ts`)
+## 8 ✅ Extract the Yoga style interpreter from `Widget` - done (`yoga-style.ts`)
 
 **Files:** `src/lib/Widget.ts` (`setYogaStyle`/`applyStyle`/`setDimension`, ~150 lines of
 the 424)
@@ -498,12 +498,12 @@ the 424)
 style interpreter, layout lifecycle, pagination hooks (`getBreakUnits`,
 `getFlowGeometry`, `getPositionEdges`), and package-internal escape hatches
 (`appendWidgetChild`, `positionAbsolute`). Each cross-cutting feature (pagination, then
-Stack) widens the interface **all** widgets inherit — interface creep at the widest seam
+Stack) widens the interface **all** widgets inherit - interface creep at the widest seam
 in the library.
 
 **Direction.** The style interpreter is a deep module in waiting: typed dispatch, one
 entry, no widget state. Extract `applyStyle(node, style)` into a standalone module;
-`Widget.setYogaStyle` becomes a thin delegation. The pagination hooks stay — only
+`Widget.setYogaStyle` becomes a thin delegation. The pagination hooks stay - only
 `Text`/`Table`/`FixedContainer` override them, and moving them is a redesign with
 unclear payoff.
 
@@ -513,7 +513,7 @@ unclear payoff.
 
 ---
 
-## 9 ✅ Deduplicate the test `FakeContext` — done (`tests/fake-context.mjs`)
+## 9 ✅ Deduplicate the test `FakeContext` - done (`tests/fake-context.mjs`)
 
 **Files:** `tests/pagination.test.mjs` · `tests/widgets.test.mjs`
 
@@ -523,7 +523,7 @@ that plans pages will copy it again. The verification seam is supposed to concen
 complexity, not spread it.
 
 **Direction.** `tests/fake-context.mjs` exports the class (and the `plan(page)` helper);
-test files import it. Deliberately *not* under `src/` — it exists only for the tests.
+test files import it. Deliberately *not* under `src/` - it exists only for the tests.
 
 **Wins.**
 - metric changes (the 0.6·size char width, 1.2·size line height) land in one place
@@ -531,17 +531,17 @@ test files import it. Deliberately *not* under `src/` — it exists only for the
 
 ---
 
-## 10 ✅ Move `adoptPage` off the neutral `RenderContext` interface — done (`PdfPageSurface.ts`)
+## 10 ✅ Move `adoptPage` off the neutral `RenderContext` interface - done (`PdfPageSurface.ts`)
 
 **Landed 2026-10-11.** `src/lib/PdfPageSurface.ts` defines the PDF-typed page-lifecycle
-surface (`addPage`/`getCurrentPage`/`setCurrentPage`/`adoptPage`, all `PDFPage`-typed —
+surface (`addPage`/`getCurrentPage`/`setCurrentPage`/`adoptPage`, all `PDFPage`-typed -
 no more `unknown`) plus two structural guards: `canAddPages` (what `Page` needs) and
 `isPdfPageSurface` (what `LoadedPage` needs, adoption included). `PdfRenderContext`
-implements both interfaces — zero behavior change. The neutral `RenderContext` no longer
+implements both interfaces - zero behavior change. The neutral `RenderContext` no longer
 declares any page lifecycle; `PageScope` drops its four delegation stubs.
 
 **Design note.** `Page.render`/`LoadedPage.render` keep the paginator's
-`render(context: RenderContext)` contract and narrow at runtime via the guards — the
+`render(context: RenderContext)` contract and narrow at runtime via the guards - the
 guards can only fail for a non-PDF backend, which ADR 0001 rules out. Splitting the
 guard in two mattered: demanding the full surface in `Page` would have over-constrained
 test fakes (they implement `addPage` but never `adoptPage`).

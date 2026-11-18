@@ -9,7 +9,7 @@ export interface LayoutBox {
 }
 
 /**
- * A breakable unit inside a widget's own box. Data only — never renders.
+ * A breakable unit inside a widget's own box. Data only - never renders.
  *
  * Offsets are relative to the widget's flow-box (border-box) top; for
  * container children that is Yoga's computed top, which includes the
@@ -31,12 +31,12 @@ export interface BreakUnit {
 /**
  * One widget occurrence on one output page: a vertical slice of its flow box.
  *
- * Descendants of a whole-placed widget are not expanded into fragments — the
+ * Descendants of a whole-placed widget are not expanded into fragments - the
  * scope translates their flow boxes by the placed ancestor's delta.
  */
 export interface Fragment {
   readonly widget: Widget;
-  /** Box on this page — top-left origin, page-relative points. */
+  /** Box on this page - top-left origin, page-relative points. */
   readonly box: LayoutBox;
   /** Where this slice starts inside the widget's own flow box (0 = whole widget). */
   readonly sliceTop: number;
@@ -55,7 +55,7 @@ export interface PagePlan {
   readonly pageSize: [number, number];
   /** In-flow fragment trees, in paint order. */
   readonly roots: Fragment[];
-  /** Page-root fixed (absolute) widgets — re-emitted on every page. */
+  /** Page-root fixed (absolute) widgets - re-emitted on every page. */
   readonly fixed: Fragment[];
   /** An atomic unit taller than one page was clipped. */
   readonly clipped: boolean;

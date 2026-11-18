@@ -28,7 +28,7 @@ interface ContainerOptions extends WidgetOptions {
   border?: BorderOptions;
   child?: Widget; // Accept single child for convenience
   /**
-   * Per-key override of the Container's built-in Yoga style — the same
+   * Per-key override of the Container's built-in Yoga style - the same
    * escape hatch FlexContainer has (I11). Applied after the defaults.
    */
   style?: YogaStyle;
@@ -52,7 +52,7 @@ export class ContainerWidget extends Widget {
     this.bgColor = options.bgColor;
     this.padding = options.padding;
 
-    // Size to content unless told otherwise — a fixed default box silently
+    // Size to content unless told otherwise - a fixed default box silently
     // overflows (or pads) whenever content differs from the default.
     // No alignSelf hardcode (I11): the container respects its parent's
     // alignItems like any other box; shrink-wrap explicitly via style.
@@ -100,7 +100,7 @@ export class ContainerWidget extends Widget {
     this.node.setPadding(Edge.Left, padding.left);
     // The style escape hatch is the last word (B14 contract): re-apply any
     // padding keys it sets, or the resolved edges above would clobber them
-    // at layout time (B20). Per-edge sets, not the `All` slot — Yoga gives
+    // at layout time (B20). Per-edge sets, not the `All` slot - Yoga gives
     // explicit per-edge values precedence over `All`.
     const style = this.styleOptions;
     if (style) {
@@ -133,7 +133,7 @@ export class ContainerWidget extends Widget {
     // Draw border if specified
     const border = this.getResolvedBorder();
     if (border) {
-      // `??` not `||`: an explicit width of 0 means no border (B20) — skip
+      // `??` not `||`: an explicit width of 0 means no border (B20) - skip
       // the draw entirely, pdf-lib would still emit a zero-width stroke op.
       const borderWidth = border.width ?? borderDefaults.width;
       const borderColor = border.color ?? fromHex('#000000');

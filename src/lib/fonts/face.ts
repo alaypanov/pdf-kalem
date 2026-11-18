@@ -4,7 +4,7 @@
  * A face id names one face of a family using the same style-suffix
  * convention as the builtin fonts (`sans`, `sans-bold`, `mono-bold-italic`):
  * `inter`, `inter-bold`, `inter-italic`, `inter-bold-italic`. Exact family
- * names always win — a family literally named `inter-bold` embeds as itself,
+ * names always win - a family literally named `inter-bold` embeds as itself,
  * never as the bold face of `inter`.
  */
 import type { FontVariants, FontStyle, FontStyleValue, FontWeightValue } from './types';
@@ -30,7 +30,7 @@ export function faceStyleFromBits(bold: boolean, italic: boolean): FontStyle {
 /**
  * CSS weight matching against the two-weight family model: 100–500 (and
  * 'normal') render regular, 600–900 (and 'bold') render bold. This is the
- * standard snap a browser applies to a family with only 400 and 700 — when
+ * standard snap a browser applies to a family with only 400 and 700 - when
  * the font model grows real per-weight faces, matching weights hit them
  * with no call-site change.
  */

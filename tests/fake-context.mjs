@@ -4,7 +4,7 @@
  * against it. One home for the metrics every planning test's arithmetic
  * depends on (ARCHITECTURE.md #9).
  *
- * Metrics: char width = 0.6 * size, line height = 1.2 * size, ascent = size —
+ * Metrics: char width = 0.6 * size, line height = 1.2 * size, ascent = size -
  * so Text(size: 10, lineHeight: 10) wraps 6 "word" tokens (29 chars = 174pt)
  * per 200pt line.
  *

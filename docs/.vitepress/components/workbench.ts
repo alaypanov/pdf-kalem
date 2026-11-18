@@ -1,5 +1,5 @@
 /**
- * Shared playground plumbing — extracted when the forms playground became
+ * Shared playground plumbing - extracted when the forms playground became
  * the third copy of the same shell. The CodeMirror themes, the docs theme
  * object injected into sandbox code, and the Inter font loader.
  */
@@ -64,7 +64,7 @@ export const playgroundEditorTheme = EditorView.theme({
 
 /**
  * The theme object injected into sandbox code as `theme` (and used to build
- * the playground PDFs) — the same tokens the sample code paints with.
+ * the playground PDFs) - the same tokens the sample code paints with.
  */
 export const playgroundTheme = createTheme({
   fonts: {

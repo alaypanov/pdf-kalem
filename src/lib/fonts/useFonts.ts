@@ -15,7 +15,7 @@ export interface UseFontsOptions {
   /**
    * Explicit font sources per family. A family entry is either a single
    * source (its regular face) or an object of per-face sources. A string is
-   * fetched (browser/http URL — pass bytes for Node filesystem loading).
+   * fetched (browser/http URL - pass bytes for Node filesystem loading).
    */
   files?: Record<string, FontSource | FamilyFiles>;
 }
@@ -66,7 +66,7 @@ async function loadFamily(family: string, files: UseFontsOptions['files']): Prom
     if (provided === undefined) {
       throw new Error(
         `useFonts: family '${family}' has no font files. Provide at least a regular face via ` +
-          `useFonts(families, { files: { '${family}': bytes } }) — the builtin aliases ` +
+          `useFonts(families, { files: { '${family}': bytes } }) - the builtin aliases ` +
           `('sans', 'serif', 'mono', …) need no files.`,
       );
     }
@@ -104,13 +104,13 @@ async function loadFamily(family: string, files: UseFontsOptions['files']): Prom
  * applies the FontSet's tokens over the theme's font mapping (doc-level
  * wins; the theme object is never mutated) and resolves family bytes
  * doc-scoped, so several documents can share one FontSet or use different
- * ones. Call before creating the doc — never after.
+ * ones. Call before creating the doc - never after.
  *
  * A family carries a regular face plus optional bold/italic/bold-italic
  * faces from `files`. Missing faces fall back at embed time with a warning,
  * so a family can ship incrementally. Only families referenced by tokens
  * are loaded; extra `files` entries are ignored. The builtin aliases
- * (`sans`, `serif`, `mono`, … — pdf-lib's standard fonts) need no files at
+ * (`sans`, `serif`, `mono`, … - pdf-lib's standard fonts) need no files at
  * all.
  */
 export async function useFonts(

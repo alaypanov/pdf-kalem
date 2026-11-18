@@ -1,4 +1,4 @@
-# pdf-kalem — LLM Context
+# pdf-kalem - LLM Context
 
 > Compact orientation for AI assistants. Read this first; open specific files only when you need implementation detail. Status: **early alpha**, API not stable.
 >
@@ -6,15 +6,15 @@
 
 ## What it is
 
-pdf-kalem is a **widget-tree UI library for document/PDF generation** (TypeScript). You describe a document as a tree of widgets (pages, containers, text, images, tables, links, SVG), lay it out with **Yoga (flexbox)**, and render through the **PDF backend (pdf-lib)**. **PDF is the only backend, deliberately** — no image/HTML backends are planned ([ADR 0001](./docs/adr/0001-pdf-only-focus.md)). The `RenderContext` seam stays because pagination composes through it (`PageScope`), not as a backend hook; PDF-only features get PDF-typed modules (e.g. `edit/`), never interface widening.
+pdf-kalem is a **widget-tree UI library for document/PDF generation** (TypeScript). You describe a document as a tree of widgets (pages, containers, text, images, tables, links, SVG), lay it out with **Yoga (flexbox)**, and render through the **PDF backend (pdf-lib)**. **PDF is the only backend, deliberately** - no image/HTML backends are planned ([ADR 0001](./docs/adr/0001-pdf-only-focus.md)). The `RenderContext` seam stays because pagination composes through it (`PageScope`), not as a backend hook; PDF-only features get PDF-typed modules (e.g. `edit/`), never interface widening.
 
 Mental model is borrowed from **Flutter**: declarative widget trees, theme tokens + per-widget overrides, flexbox layout.
 
 ## Three-layer architecture
 
-1. **Widget tree** (`src/lib/*.ts`) — `Page`, `Container`, `Text`, `Row`, `Column`, `Image`, `Link`, `FixedContainer`, `SVGPath`, `Table`, `HLine`, `Icon`. Widgets depend only on the backend-neutral **`RenderContext` interface**, never on a concrete backend. The exception is deliberate and patterned: form widgets (`src/lib/forms/`, `pdf-kalem/forms`) are PDF-typed (ADR 0001) and narrow the context to `PdfFormSurface` at render time, exactly like `LoadedPage` narrows to `PdfPageSurface`.
-2. **Render layer** — `PdfRenderContext` implements `RenderContext` and drives `pdf-lib`. The save-time render walk lives in `PdfDoc.savePdf` (the former `PdfRenderer` was folded in — I5). **The PDF Y-flip (y grows up from bottom-left) lives inside `PdfRenderContext.getLayoutBox`** — widgets work in top-left-origin layout boxes, not PDF math.
-3. **Shared services** — `FontRegistry` (singleton: font bytes + fontkit + browser `FontFace` loading), `TextLayoutEngine` (pure measure/wrap/truncate), `TextPainter` (draws a laid-out block via `RenderContext`). `TextLayoutEngine`/`TextPainter` are shared by `Text` and `Link`.
+1. **Widget tree** (`src/lib/*.ts`) - `Page`, `Container`, `Text`, `Row`, `Column`, `Image`, `Link`, `FixedContainer`, `SVGPath`, `Table`, `HLine`, `Icon`. Widgets depend only on the backend-neutral **`RenderContext` interface**, never on a concrete backend. The exception is deliberate and patterned: form widgets (`src/lib/forms/`, `pdf-kalem/forms`) are PDF-typed (ADR 0001) and narrow the context to `PdfFormSurface` at render time, exactly like `LoadedPage` narrows to `PdfPageSurface`.
+2. **Render layer** - `PdfRenderContext` implements `RenderContext` and drives `pdf-lib`. The save-time render walk lives in `PdfDoc.savePdf` (the former `PdfRenderer` was folded in - I5). **The PDF Y-flip (y grows up from bottom-left) lives inside `PdfRenderContext.getLayoutBox`** - widgets work in top-left-origin layout boxes, not PDF math.
+3. **Shared services** - `FontRegistry` (singleton: font bytes + fontkit + browser `FontFace` loading), `TextLayoutEngine` (pure measure/wrap/truncate), `TextPainter` (draws a laid-out block via `RenderContext`). `TextLayoutEngine`/`TextPainter` are shared by `Text` and `Link`.
 
 ## Key rules / invariants
 
@@ -24,15 +24,15 @@ Mental model is borrowed from **Flutter**: declarative widget trees, theme token
 
 ## Pagination
 
-> Implemented 2026-10-02 — `src/lib/pagination/`. Rationale + full interface:
+> Implemented 2026-10-02 - `src/lib/pagination/`. Rationale + full interface:
 > [ARCHITECTURE.md](./ARCHITECTURE.md) §2.
 
-**Model.** A **Page widget** is a unit of flow — an encapsulated widget tree with a page
-size — not a visual rectangle. An **output page** is a plan artifact. Pagination is a pure
+**Model.** A **Page widget** is a unit of flow - an encapsulated widget tree with a page
+size - not a visual rectangle. An **output page** is a plan artifact. Pagination is a pure
 transformation: layout produces a flow tree → the internal `Paginator` windows it into
 content-height pages, decomposing widgets at break points → a forest of `PagePlan`s → each
 plan is painted through a per-page `PageScope` (a `RenderContext` decorator). Widgets keep
-`render(context)` + `getLayoutBox(this)` — the render path is unchanged; no fragments on
+`render(context)` + `getLayoutBox(this)` - the render path is unchanged; no fragments on
 widgets, no `renderAt`, no mutable render state.
 
 - **Break structure is data:** `Widget.getBreakUnits(): BreakUnit[] | null` (box-relative
@@ -43,12 +43,12 @@ widgets, no `renderAt`, no mutable render state.
 - **Break policy:** splittable fills the page then splits at a unit boundary; atomic moves
   whole to the next page; atomic taller than a full page is clipped (`plan.clipped`).
   Whitespace-only plans are dropped after planning (Spacers, and pure layout containers
-  whose whole subtree is whitespace — a trailing Spacer overflowing onto a fresh page
+  whose whole subtree is whitespace - a trailing Spacer overflowing onto a fresh page
   must not emit a blank page), with fixed furniture keeping every page alive.
 - **Grow follows CSS:** free space is distributed only inside definite heights. Flow
   content is auto-height (grow no-ops); page-filling furniture (footers, full-height bands)
   belongs in the page template, laid out per page at the real page box.
-- **Two layout passes, lazily:** pass 1 at the real page height — byte-identical to today
+- **Two layout passes, lazily:** pass 1 at the real page height - byte-identical to today
   when content fits; pass 2 (height auto → fragmentation) only on overflow.
 - **Page count** is `plan.pages.length`; `doc.getPageCount()` is a memoized dry run (no
   drawing). Continuation pages inherit the Page widget's size + template; page numbering is
@@ -56,7 +56,7 @@ widgets, no `renderAt`, no mutable render state.
 - **Opt out per page:** `Page({ overflow: false })` = legacy single-page path,
   byte-identical to today. Per text block: `Text(..., { breakable: false })`.
 - **`prepareLayout(context)`** is the async hook to load assets / set intrinsic sizes (images, fonts) and install Yoga measure functions *before* layout.
-- **Widget constructors must NOT use `this.context`** — context isn't wired until `setContext()` runs after the whole tree is built. Set Yoga styles directly on `this.node` or via `setYogaStyle`/`setProperty` (which tolerate a missing context).
+- **Widget constructors must NOT use `this.context`** - context isn't wired until `setContext()` runs after the whole tree is built. Set Yoga styles directly on `this.node` or via `setYogaStyle`/`setProperty` (which tolerate a missing context).
 - **Coordinate systems:** Yoga = top-left origin, y down. PDF = bottom-left origin, y up. The flip lives in `PdfRenderContext.mapContentBox` (extracted from `getLayoutBox`); `PageScope` composes plan boxes with the backend mapping. `getLayoutBox(widget)` still returns the box in the *backend's* coordinate system.
 
 ## File map (src/lib)
@@ -67,27 +67,27 @@ widgets, no `renderAt`, no mutable render state.
 | `PdfDoc.ts` | Document model + lifecycle hooks + runtime output helpers. Static font-registration delegates to `FontRegistry`. |
 | `PdfRenderContext.ts` | PDF backend: embeds fonts (fontkit), draws primitives on `PDFPage`, applies Y-flip in `getLayoutBox`. Font/text-width caches. |
 | `RenderContextInterface.ts` | The backend-neutral interface widgets depend on. 3 concerns: theme/debug, measurement, drawing+page lifecycle. |
-| `RenderContext.ts` | Re-exports `RenderContextTypes` + the interface + `PdfRenderContext`. Import hub for public entries — internal modules import from `RenderContextInterface`/`RenderContextTypes` directly (importing the type through this hub creates a circular chunk in the DTS build). |
+| `RenderContext.ts` | Re-exports `RenderContextTypes` + the interface + `PdfRenderContext`. Import hub for public entries - internal modules import from `RenderContextInterface`/`RenderContextTypes` directly (importing the type through this hub creates a circular chunk in the DTS build). |
 | `RenderContextTypes.ts` | Shared arg/option types (`DrawTextArgs`, `RenderColor`, etc.). `RenderImage = PDFImage` (still PDF-typed; v2 will neutralize). |
-| `pagination/types.ts` | `BreakUnit`, `Fragment`, `PagePlan`, `Pagination`, `LayoutBox` — the plan data vocabulary. |
+| `pagination/types.ts` | `BreakUnit`, `Fragment`, `PagePlan`, `Pagination`, `LayoutBox` - the plan data vocabulary. |
 | `pagination/Paginator.ts` | The pure transformation: flow tree → `PagePlan` forest. Owns all break rules (fill-then-split / move-whole / clip, `repeat`, `keepWithNext`). |
 | `pagination/PageScope.ts` | Per-output-page `RenderContext` decorator: answers `getLayoutBox`/`getFlowOffset`/`getRenderChildren` from the plan, delegates the rest. |
-| `FontRegistry.ts` | Singleton: registered font bytes, fontkit, browser `FontFace` loading, `isStandardFontName`. Global fallback — doc-scoped families live on the doc's `FontSet`. |
+| `FontRegistry.ts` | Singleton: registered font bytes, fontkit, browser `FontFace` loading, `isStandardFontName`. Global fallback - doc-scoped families live on the doc's `FontSet`. |
 | `fonts/types.ts` | `FontSet` (tokens + `families: Map<family, FontVariants>`) and `FontVariants` (regular + optional bold/italic/boldItalic faces). Created by `useFonts`, consumed via `new PdfDoc({ fonts })`. |
-| `fonts/face.ts` | Face ids (`inter`, `inter-bold`, `inter-italic`, `inter-bold-italic` — same suffix convention as the builtins), the fallback chain (bold-italic → bold → italic → regular), and CSS-like typography resolution: `snapFontWeight` (100–500 → regular, 600–900 → bold) + `resolveFaceStyle` (per-axis replace over a base style). |
-| `fonts/useFonts.ts` | `useFonts(families, options?)` — loads families once from `files` per-face sources (bytes, or URLs fetched in the browser), returns a reusable `FontSet`. Loading is async; configuration is sync at doc construction. |
+| `fonts/face.ts` | Face ids (`inter`, `inter-bold`, `inter-italic`, `inter-bold-italic` - same suffix convention as the builtins), the fallback chain (bold-italic → bold → italic → regular), and CSS-like typography resolution: `snapFontWeight` (100–500 → regular, 600–900 → bold) + `resolveFaceStyle` (per-axis replace over a base style). |
+| `fonts/useFonts.ts` | `useFonts(families, options?)` - loads families once from `files` per-face sources (bytes, or URLs fetched in the browser), returns a reusable `FontSet`. Loading is async; configuration is sync at doc construction. |
 | `TextLayoutEngine.ts` | Pure text measure/wrap/truncate (grapheme-aware via `@chenglou/pretext`, with a no-canvas fallback). Also lays out rich **runs**: tokenizes runs into words that may span run boundaries, wraps greedily per-run font, emits lines with `fragments` (`runIndex` → run). Runs measure via `measureRunWidth` (the embedded font that draws), not pretext. No widget/theme/context knowledge. |
 | `TextPainter.ts` | Positions + paints a laid-out text block via `RenderContext`. |
 | `Theme.ts` | `Theme`, `createTheme`, `resolveThemeColor/Font/TextStyle`. Tokens: colors, fonts, text variants, table/container defaults. |
-| `Page.ts` | `PageWidget` — page root; runs layout once; `addPage` on context. |
+| `Page.ts` | `PageWidget` - page root; runs layout once; `addPage` on context. |
 | `Container.ts` / `FlexContainer.ts` / `Row.ts` / `Column.ts` | Layout primitives. `Row`/`Column` = `FlexContainer` + flexDirection + alignment statics. |
 | `Table.ts` | `Table`/`TableHead`/`TableBody`/`TableRow`/`TableCell` + `Table.fromRows` helper. |
-| `Text.ts` / `Link.ts` | `TextWidget` (theme variants, block `fontWeight`/`fontStyle`, maxLines/ellipsis, rich **runs**: `Text(string \| Run[])` — per-run typography/color/strike/href resolved against the base family); `LinkWidget` extends it (whole-box annotation for plain text, per-fragment annotations for runs). |
-| `Image.ts` / `SVGPath.ts` / `Icon.ts` / `HLine.ts` / `FixedContainer.ts` | Leaf widgets. `Image`/`SVGPath`/`Icon` share aspect-fit measure logic — the node's size is the measure function's job (never a pinned intrinsic size: a pinned node ignores its parent's box and overflows it); Fit shrinks to fit but never enlarges on ambient (AtMost) space — only an explicit user dimension (Exactly) may scale up; media shrink-wraps (`alignSelf: flex-start`). `Icon` has a `materialIcons` registry + `Icon.register`. |
+| `Text.ts` / `Link.ts` | `TextWidget` (theme variants, block `fontWeight`/`fontStyle`, maxLines/ellipsis, rich **runs**: `Text(string \| Run[])` - per-run typography/color/strike/href resolved against the base family); `LinkWidget` extends it (whole-box annotation for plain text, per-fragment annotations for runs). |
+| `Image.ts` / `SVGPath.ts` / `Icon.ts` / `HLine.ts` / `FixedContainer.ts` | Leaf widgets. `Image`/`SVGPath`/`Icon` share aspect-fit measure logic - the node's size is the measure function's job (never a pinned intrinsic size: a pinned node ignores its parent's box and overflows it); Fit shrinks to fit but never enlarges on ambient (AtMost) space - only an explicit user dimension (Exactly) may scale up; media shrink-wraps (`alignSelf: flex-start`). `Icon` has a `materialIcons` registry + `Icon.register`. |
 | `types/doc-fonts.ts` | `BuiltinPdfFonts` aliases (`sans`, `serif`, `mono`, +bold/italic) → pdf-lib StandardFonts + canvas font stacks. Reverse lookup (`builtinPdfNameFace`) decomposes a pdf name back into family + style. |
 | `markdown/` | Markdown → widgets (`pdf-kalem/markdown` subpath). `convert.ts` holds the entry points (`markdownToWidgets` deep seam, `markdownToPdf` sugar); `render.ts` walks marked's block tokens; `inline.ts` folds inline tokens into `Run`s (images hoisted out); `styles.ts` resolves `MarkdownStyles` defaults; `types.ts` styles + `markdownThemeDefaults` fragment; `format.ts` sniffs png/jpeg magic bytes. |
-| `edit/` | Existing-PDF editing (`pdf-kalem/edit` subpath). `loadPdf` opens bytes into a `LoadedPdf` whose `pages` are `LoadedPage` widgets (`PageWidget` subclass, dimensions preset from the file) — editing is array manipulation + `page.add([...])` overlays; `save()` sugar builds a `PdfDoc`. Loaded pages are **adopted** into the output at render time via `RenderContext.adoptPage` (pdf-lib `copyPages`), preserving annotations/links/form fields. |
-| `forms/` | Form widgets (`pdf-kalem/forms` subpath): `TextField`, `CheckBox`, `Dropdown`, `RadioGroup`+`Radio`, `Button` (visual only — no action API in pdf-lib), `Signature` (drawn placeholder — pdf-lib can't create signature fields). PDF-typed per ADR 0001: widgets narrow to `PdfFormSurface` (`getForm` + `getCurrentPage`, structural guard) at render time; fields are created fresh each render walk and placed at `getLayoutBox(widget)` (already Y-flipped — pagination's `PageScope` answers it, so fields compose with pagination and `FixedContainer`). `FormWidget` is the base (name, readOnly, appearance); `PlacedFormWidget` places a field at its own box; `RadioGroup` extends the base directly (its box holds children). `bind.ts` is the `formData` walk (PdfDoc constructor → `bindValue` by field name; `formData` wins over widget values; unknown keys warn; per-type validation — pdf-lib's dropdown `select` silently enables editing for unknown values, so Dropdown validates early). |
+| `edit/` | Existing-PDF editing (`pdf-kalem/edit` subpath). `loadPdf` opens bytes into a `LoadedPdf` whose `pages` are `LoadedPage` widgets (`PageWidget` subclass, dimensions preset from the file) - editing is array manipulation + `page.add([...])` overlays; `save()` sugar builds a `PdfDoc`. Loaded pages are **adopted** into the output at render time via `RenderContext.adoptPage` (pdf-lib `copyPages`), preserving annotations/links/form fields. |
+| `forms/` | Form widgets (`pdf-kalem/forms` subpath): `TextField`, `CheckBox`, `Dropdown`, `RadioGroup`+`Radio`, `Button` (visual only - no action API in pdf-lib), `Signature` (drawn placeholder - pdf-lib can't create signature fields). PDF-typed per ADR 0001: widgets narrow to `PdfFormSurface` (`getForm` + `getCurrentPage`, structural guard) at render time; fields are created fresh each render walk and placed at `getLayoutBox(widget)` (already Y-flipped - pagination's `PageScope` answers it, so fields compose with pagination and `FixedContainer`). `FormWidget` is the base (name, readOnly, appearance); `PlacedFormWidget` places a field at its own box; `RadioGroup` extends the base directly (its box holds children). `bind.ts` is the `formData` walk (PdfDoc constructor → `bindValue` by field name; `formData` wins over widget values; unknown keys warn; per-type validation - pdf-lib's dropdown `select` silently enables editing for unknown values, so Dropdown validates early). |
 | `types/doc-sizes.ts` | `PageSize` enum + `PDFDocSize` point dimensions (A4/A3/A5/LETTER). |
 | `types/styles.ts` | Flex/alignment string constants (`justifyBetween`, `alignCenter`, …) + `Row.justifyBetween` statics source. |
 | `utils/color-utils.ts` | `ColorValue` (rgb), `fromHex`, `fromRGB`, `toPdfLibColor`. |
@@ -102,7 +102,7 @@ widgets, no `renderAt`, no mutable render state.
 - `src/forms.ts` → `src/lib/forms/` → the form widgets + `PdfFormSurface`.
 - `src/lib/utils/color-utils.ts` → published as `pdf-kalem/utils/color-utils`.
 
-Built by **tsup** (ESM only) into `dist/`. **`splitting: true` is required** — with multiple entries and no shared chunks, classes get duplicated per entry and `instanceof` breaks across entry points (this was a real shipped bug).
+Built by **tsup** (ESM only) into `dist/`. **`splitting: true` is required** - with multiple entries and no shared chunks, classes get duplicated per entry and `instanceof` breaks across entry points (this was a real shipped bug).
 
 ## Data flow (render)
 
@@ -125,21 +125,21 @@ doc.save()
 - **Options interfaces** named `XOptions`, extend `WidgetOptions` (`{ children?: Widget[] }`).
 - **Theme overrides:** widget props override theme defaults; theme tokens resolved via `resolveThemeColor/Font/TextStyle` against `context.getTheme()`.
 - **Colors** are `ColorValue` objects; use `fromHex('#RRGGBB')`. Theme colors can be token strings.
-- **Fonts:** builtin aliases (`sans`/`serif`/`mono` + bold/italic) work unregistered. For custom families, load once and pass to the doc: `const fonts = await useFonts({ body: 'inter' }); new PdfDoc({ fonts, ... })` — the FontSet's tokens override `theme.fonts` (the theme object is never mutated) and family bytes resolve doc-scoped before the global registry. A family carries faces (`regular` + optional `bold`/`italic`/`boldItalic`); a face is named by suffixing the family (`inter-bold`) and missing faces fall back at embed time with a warning (bold-italic → bold → italic → regular). Exact family names always win over suffix parsing. Fontkit loads lazily on first embed — no `registerFontkit` call. Legacy paths (`PdfDoc.registerFont`/`registerFontkit`/`registerFonts`) still work as global fallbacks.
-- **Runs:** `Text([{ text, fontWeight?, fontStyle?, strike?, href?, mono?, font?, color?, underline? }])` — CSS-like typography: `fontWeight` (100–900, 'normal', 'bold'; snaps 100–500 → regular, 600–900 → bold) and `fontStyle` ('normal'/'italic') replace their axis over the base style (an explicit 400 un-bolds a bold base). The same two fields exist on `TextOptions` (block level) and theme text variants; precedence is run value → block option → theme variant → the base name's own style, and block typography carries into `font`/`mono` family overrides. `mono` switches to the builtin `mono` family; `font` overrides the family (theme token or name). A word may span run boundaries (no break inserted between `he` + `**llo**`); whitespace collapses across runs to one space owned by the first run contributing it. Runs with `href` get one link annotation per line fragment (a run can wrap); `Link` passes its href as the default for runs without one. **`lineHeight` is POINTS** (baseline-to-baseline distance — `1.4` means 1.4pt, lines pile up); the CSS multiplier is `lineHeightMultiplier` (× font size), on `TextOptions` and theme variants; user-level (either form) beats the theme variant, explicit points win over the multiplier.
-- **Markdown:** `markdownToWidgets(md)` returns bare blocks (no spacing wrapper — wrap in `Column({ gap })` when embedding); `markdownToPdf(md)` wraps them in a paginated Page (48pt padding) and merges `markdownThemeDefaults` (h1–h6 sizes, `link` color, table `cellPadding: 6`) under the user theme — user keys win, neither input mutates. Headings emit `h1`..`h6` variants with weight-700 runs; links emit runs with `href` + the `link` color token + underline; code emits `mono`-family runs/blocks. Images are fetched once at conversion time to sniff the format (png/jpeg only; others warn + skip), then render from bytes via `Image.fromBytes` (no re-fetch). Task-list markers are ✓/□ (U+2713/U+25A1) — real (embedded) fonts have these glyphs, builtin WinAnsi aliases do not (they throw at encode; see gotchas).
-- **Text line boxes follow the CSS model:** the baseline sits `halfLeading + ascent` below the line top, where `halfLeading = (lineHeight - fontHeight) / 2` — extra leading splits half above / half below the text, so single-line text is optically centered in its line box (this is what keeps table cells and code blocks visually even). Custom-font ascent/descent come from the font's `hhea` table (pdf-lib's `heightAtSize(descender: false)` returns the bbox yMax, which is not the typographic ascender — for Inter it sits ~0.25em below it); standard fonts use their AFM metrics, which are already typographic.
+- **Fonts:** builtin aliases (`sans`/`serif`/`mono` + bold/italic) work unregistered. For custom families, load once and pass to the doc: `const fonts = await useFonts({ body: 'inter' }); new PdfDoc({ fonts, ... })` - the FontSet's tokens override `theme.fonts` (the theme object is never mutated) and family bytes resolve doc-scoped before the global registry. A family carries faces (`regular` + optional `bold`/`italic`/`boldItalic`); a face is named by suffixing the family (`inter-bold`) and missing faces fall back at embed time with a warning (bold-italic → bold → italic → regular). Exact family names always win over suffix parsing. Fontkit loads lazily on first embed - no `registerFontkit` call. Legacy paths (`PdfDoc.registerFont`/`registerFontkit`/`registerFonts`) still work as global fallbacks.
+- **Runs:** `Text([{ text, fontWeight?, fontStyle?, strike?, href?, mono?, font?, color?, underline? }])` - CSS-like typography: `fontWeight` (100–900, 'normal', 'bold'; snaps 100–500 → regular, 600–900 → bold) and `fontStyle` ('normal'/'italic') replace their axis over the base style (an explicit 400 un-bolds a bold base). The same two fields exist on `TextOptions` (block level) and theme text variants; precedence is run value → block option → theme variant → the base name's own style, and block typography carries into `font`/`mono` family overrides. `mono` switches to the builtin `mono` family; `font` overrides the family (theme token or name). A word may span run boundaries (no break inserted between `he` + `**llo**`); whitespace collapses across runs to one space owned by the first run contributing it. Runs with `href` get one link annotation per line fragment (a run can wrap); `Link` passes its href as the default for runs without one. **`lineHeight` is POINTS** (baseline-to-baseline distance - `1.4` means 1.4pt, lines pile up); the CSS multiplier is `lineHeightMultiplier` (× font size), on `TextOptions` and theme variants; user-level (either form) beats the theme variant, explicit points win over the multiplier.
+- **Markdown:** `markdownToWidgets(md)` returns bare blocks (no spacing wrapper - wrap in `Column({ gap })` when embedding); `markdownToPdf(md)` wraps them in a paginated Page (48pt padding) and merges `markdownThemeDefaults` (h1–h6 sizes, `link` color, table `cellPadding: 6`) under the user theme - user keys win, neither input mutates. Headings emit `h1`..`h6` variants with weight-700 runs; links emit runs with `href` + the `link` color token + underline; code emits `mono`-family runs/blocks. Images are fetched once at conversion time to sniff the format (png/jpeg only; others warn + skip), then render from bytes via `Image.fromBytes` (no re-fetch). Task-list markers are ✓/□ (U+2713/U+25A1) - real (embedded) fonts have these glyphs, builtin WinAnsi aliases do not (they throw at encode; see gotchas).
+- **Text line boxes follow the CSS model:** the baseline sits `halfLeading + ascent` below the line top, where `halfLeading = (lineHeight - fontHeight) / 2` - extra leading splits half above / half below the text, so single-line text is optically centered in its line box (this is what keeps table cells and code blocks visually even). Custom-font ascent/descent come from the font's `hhea` table (pdf-lib's `heightAtSize(descender: false)` returns the bbox yMax, which is not the typographic ascender - for Inter it sits ~0.25em below it); standard fonts use their AFM metrics, which are already typographic.
 
 ## Runtime notes / gotchas
 
 - **Widget trees can't re-parent.** A widget instance belongs to one Page/doc; moving it into another tree aborts the Yoga WASM heap. Build fresh widgets instead.
-- **Yoga runs with `pointScaleFactor = 0` (no rounding).** Yoga's default rounds every node's computed box to integer points independently — abutting boxes with fractional sizes round their shared edges apart (doubled table borders were the symptom). PDF is a vector format; the shared config lives in `Widget.ts`. Boundary consequence: Yoga stores computed sizes as float32 while measurements are float64, so text re-wrapped at a stored width needs a sub-0.01pt tolerance (`TextWidget.layoutText`) or exact-fit blocks phantom-wrap.
+- **Yoga runs with `pointScaleFactor = 0` (no rounding).** Yoga's default rounds every node's computed box to integer points independently - abutting boxes with fractional sizes round their shared edges apart (doubled table borders were the symptom). PDF is a vector format; the shared config lives in `Widget.ts`. Boundary consequence: Yoga stores computed sizes as float32 while measurements are float64, so text re-wrapped at a stored width needs a sub-0.01pt tolerance (`TextWidget.layoutText`) or exact-fit blocks phantom-wrap.
 - **Container children shrink-wrap horizontally.** `Container` sets `alignItems: 'flex-start'`, so a child Row/Column sizes to content unless it sets `width: '100%'` (or an explicit width). A `justifyBetween` Row without `width: '100%'` inside a Container packs its children together instead of spreading them. Direct children of `Page`/`Column` stretch by default (Page sets `alignItems: stretch`).
 
-- **Text measurement needs a canvas.** pretext uses `OffscreenCanvas`/DOM canvas. In Node there's no canvas, so `TextLayoutEngine.canUsePretext()` returns false and it falls back to the built-in wrapper. Don't remove that canvas guard. Rich runs never use pretext — they measure through `measureRunWidth` (pdf-lib's embedded-font metrics, the same font that draws), so run layout is identical in Node and the browser.
-- **Builtin font aliases are WinAnsi-only.** `sans`/`serif`/`mono` (pdf-lib standard fonts) cannot encode characters outside WinAnsi — pdf-lib throws at draw (e.g. ✓, □, →, emoji). Real fonts (user-loaded via `useFonts` `files`) have full coverage via fontkit. Code blocks default to the `mono` alias (Courier), so non-WinAnsi characters inside fenced code throw too — load a custom mono family for such content. Markdown task-list markers use ✓/□, so converting task lists with only builtin aliases will throw — load a font set for symbol-heavy documents.
+- **Text measurement needs a canvas.** pretext uses `OffscreenCanvas`/DOM canvas. In Node there's no canvas, so `TextLayoutEngine.canUsePretext()` returns false and it falls back to the built-in wrapper. Don't remove that canvas guard. Rich runs never use pretext - they measure through `measureRunWidth` (pdf-lib's embedded-font metrics, the same font that draws), so run layout is identical in Node and the browser.
+- **Builtin font aliases are WinAnsi-only.** `sans`/`serif`/`mono` (pdf-lib standard fonts) cannot encode characters outside WinAnsi - pdf-lib throws at draw (e.g. ✓, □, →, emoji). Real fonts (user-loaded via `useFonts` `files`) have full coverage via fontkit. Code blocks default to the `mono` alias (Courier), so non-WinAnsi characters inside fenced code throw too - load a custom mono family for such content. Markdown task-list markers use ✓/□, so converting task lists with only builtin aliases will throw - load a font set for symbol-heavy documents.
 - **Node output:** `getBuffer()`/`writeToFile()` use dynamic `node:fs/promises` + `Buffer` detection; `download()`/`getBlob()` are browser-only.
-- **`pdf-lib` is effectively unmaintained** — acceptable now, long-term supply-chain risk.
+- **`pdf-lib` is effectively unmaintained** - acceptable now, long-term supply-chain risk.
 - Tests live in `tests/*.test.mjs` and run against the built `dist/`. Run `pnpm test` (builds first). Verify changes with `pnpm typecheck`, `pnpm build`, `pnpm test`.
 
 ## Commands
@@ -149,7 +149,7 @@ pnpm build        # tsup -> dist/
 pnpm typecheck    # tsc --noEmit
 pnpm test         # build + run tests/*.test.mjs against dist/
 pnpm example       # build + run every example (writes PDFs next to example code)
-                   # or: pnpm example invoice report — just those examples
+                   # or: pnpm example invoice report - just those examples
 ```
 
 ## Roadmap (from PLAN.md / README)

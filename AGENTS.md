@@ -4,27 +4,28 @@ Guidance for AI coding agents working in this repo. Humans: start at [README.md]
 
 ## What this is
 
-pdf-kalem — a PDF-focused widget-tree UI library for document generation. TypeScript, ESM, built with tsup on top of pdf-lib + yoga-layout; examples are copyable plain-ESM folders under `examples/` (run with `node`, no per-example npm setup).
+pdf-kalem - a PDF-focused widget-tree UI library for document generation. TypeScript, ESM, built with tsup on top of pdf-lib + yoga-layout; examples are copyable plain-ESM folders under `examples/` (run with `node`, no per-example npm setup).
 
 ## Commands
 
-- `pnpm typecheck` — `tsc --noEmit`; run after every change
-- `pnpm build` — tsup build to `dist/`
-- `pnpm test` — build + run every `tests/*.test.mjs` via `tests/run-all.mjs` (golden plan tests, e2e page-count invariant, custom-font embedding, container-containment invariants, rich-run wrapping/painting, markdown conversion, shared aspect-fit measure/placement math, everyday widgets)
-- `pnpm example` — build + run every example (each writes its PDF next to its code); pass names to run a subset: `pnpm example invoice report`
-- `pnpm docs:dev` — VitePress docs site (`docs/`; the playground pages are live workbenches)
-- `pnpm docs:build` — build the docs site into `docs/.vitepress/dist`
+- `pnpm typecheck` - `tsc --noEmit`; run after every change
+- `pnpm build` - tsup build to `dist/`
+- `pnpm test` - build + run every `tests/*.test.mjs` via `tests/run-all.mjs` (golden plan tests, e2e page-count invariant, custom-font embedding, container-containment invariants, rich-run wrapping/painting, markdown conversion, shared aspect-fit measure/placement math, everyday widgets)
+- `pnpm example` - build + run every example (each writes its PDF next to its code); pass names to run a subset: `pnpm example invoice report`
+- `pnpm docs:dev` - VitePress docs site (`docs/`; the playground pages are live workbenches)
+- `pnpm docs:build` - build the docs site into `docs/.vitepress/dist`
 
 ## Doc map
 
-- [CONTEXT.md](./CONTEXT.md) — domain glossary; read before touching source
-- [ARCHITECTURE.md](./ARCHITECTURE.md) — module seams and deepening opportunities; defines vocabulary (module, seam, adapter, depth)
-- [IDEAS.md](./IDEAS.md) — known bugs + ideas
-- [PLAN.md](./PLAN.md) — roadmap
+- [CONTEXT.md](./CONTEXT.md) - domain glossary; read before touching source
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - module seams and deepening opportunities; defines vocabulary (module, seam, adapter, depth)
+- [IDEAS.md](./IDEAS.md) - known bugs + ideas
+- [PLAN.md](./PLAN.md) - roadmap
 
 ## Conventions
 
-- Public API surface is what `package.json` `exports` declares — don't widen it without intent.
-- `sideEffects: false` — keep tree-shaking safe; no top-level side effects in `src/`.
+- Public API surface is what `package.json` `exports` declares - don't widen it without intent.
+- `sideEffects: false` - keep tree-shaking safe; no top-level side effects in `src/`.
 - Use the vocabulary from ARCHITECTURE.md when writing or reviewing design changes.
+- Use a regular hyphen (-) instead of an em dash in prose, comments, messages, and examples.
 - update changelog and version before pushing the code

@@ -187,7 +187,7 @@ test('keep-with-next moves the head to the next page instead of orphaning it', a
 
   assert.equal(pageCount, 2);
 
-  // Page 1: only the filler — the head would be orphaned at its bottom.
+  // Page 1: only the filler - the head would be orphaned at its bottom.
   assert.equal(pages[0].roots.length, 1);
   assert.equal(pages[0].roots[0].widget, filler);
   assert.equal(pages[0].roots[0].box.height, 90);
@@ -259,7 +259,7 @@ test('end-to-end: saved PDF page count matches getPageCount()', async () => {
 
 test('a whitespace-only trailing page is dropped', async () => {
   // Content box 80pt: two 33.4 blocks fit (66.8); the 20pt Spacer overflows
-  // and moves whole to a fresh page — which would be pure white. Whitespace-
+  // and moves whole to a fresh page - which would be pure white. Whitespace-
   // only pages are never wanted: the plan drops it and renumbers.
   const page = Page({
     dimensions: [200, 100],

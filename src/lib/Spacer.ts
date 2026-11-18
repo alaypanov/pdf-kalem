@@ -3,7 +3,7 @@ import type { RenderContext } from './RenderContextInterface';
 
 export interface SpacerOptions extends WidgetOptions {
   /**
-   * Fixed extent along the parent's main axis — a gap of exactly this many
+   * Fixed extent along the parent's main axis - a gap of exactly this many
    * points. Takes precedence over `grow`.
    */
   size?: number;
@@ -16,7 +16,7 @@ export interface SpacerOptions extends WidgetOptions {
 }
 
 /**
- * Invisible box that occupies space in flow — the replacement for faking
+ * Invisible box that occupies space in flow - the replacement for faking
  * gaps with empty `Container({ height: 12 })`. Fixed (`size`) or flexible
  * (`grow`); paints nothing.
  */

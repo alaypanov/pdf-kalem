@@ -19,9 +19,9 @@ export type { Spacing } from './utils/spacing';
  * integer points) buys nothing here and actively harms abutting boxes:
  * each node's edges round independently, so boxes with fractional sizes
  * (table rows are the visible case) round their shared edges apart and the
- * per-cell border strokes land ~1pt apart — doubled lines. pointScaleFactor
+ * per-cell border strokes land ~1pt apart - doubled lines. pointScaleFactor
  * 0 disables rounding; shared edges stay bit-identical floats and the
- * strokes overlap exactly. Created lazily — src/ has no top-level side
+ * strokes overlap exactly. Created lazily - src/ has no top-level side
  * effects.
  */
 let yogaConfig: Config | undefined;
@@ -38,12 +38,12 @@ export interface WidgetOptions {
   /**
    * Keep-together opt-out: never split this widget's box across pages; move
    * it whole to the next page (clip if it is taller than a full page).
-   * Default: undefined — breakability is decided by structure.
+   * Default: undefined - breakability is decided by structure.
    */
   breakable?: boolean;
   /**
    * Outer spacing around the widget's box (I11). CSS-like per-side object
-   * or a number for all sides. No margin collapsing — Yoga resolves it as
+   * or a number for all sides. No margin collapsing - Yoga resolves it as
    * plain box geometry, and pagination break offsets already carry it.
    */
   margin?: Spacing;
@@ -64,12 +64,12 @@ export abstract class Widget {
     // Add child nodes to this node and wire parent pointers. A widget
     // instance belongs to exactly one parent: sharing an instance (twice in
     // one array, or across two parents) makes Yoga's WASM heap abort the
-    // whole process — throw a readable error instead (B19).
+    // whole process - throw a readable error instead (B19).
     const seen = new Set<Widget>();
     for (const child of this.children) {
       if (child.parent !== undefined || seen.has(child)) {
         throw new Error(
-          'Widget instances cannot be shared or re-parented: this instance already belongs to a parent (or appears twice in one children array). Build a fresh widget instead — re-parenting corrupts the Yoga WASM heap.'
+          'Widget instances cannot be shared or re-parented: this instance already belongs to a parent (or appears twice in one children array). Build a fresh widget instead - re-parenting corrupts the Yoga WASM heap.'
         );
       }
       seen.add(child);
@@ -77,7 +77,7 @@ export abstract class Widget {
       this.node.insertChild(child.node, this.node.getChildCount());
     }
 
-    // Margins are a box feature, not a per-widget decision — every widget
+    // Margins are a box feature, not a per-widget decision - every widget
     // gets the same vocabulary from the base (I11).
     if (options.margin !== undefined) {
       const margin = resolveSpacingEdges(options.margin, 0);
@@ -117,7 +117,7 @@ export abstract class Widget {
   }
 
   /**
-   * The single styling entry — a thin delegation to the Yoga style
+   * The single styling entry - a thin delegation to the Yoga style
    * interpreter (src/lib/yoga-style.ts), which owns the dispatch and the
    * dimension parsing. Subclasses keep this ergonomic protected form.
    */
@@ -127,7 +127,7 @@ export abstract class Widget {
 
   /**
    * Post-layout computed size (0 before layout). Widgets with meaningful
-   * intrinsics override — Text (measured lines), Table (row sums), and their
+   * intrinsics override - Text (measured lines), Table (row sums), and their
    * pagination callers rely on that.
    */
   getWidth(): number {
@@ -178,24 +178,24 @@ export abstract class Widget {
   }
 
   /**
-   * @internal — package-internal: position this widget's node absolutely
+   * @internal - package-internal: position this widget's node absolutely
    * within its parent (Stack aligns its non-positioned children this way).
    */
   positionAbsolute(): void {
     this.node.setPositionType(PositionType.Absolute);
   }
 
-  /** @internal — package-internal: append a child after construction (edit module overlays). */
+  /** @internal - package-internal: append a child after construction (edit module overlays). */
   appendWidgetChild(widget: Widget): void {
     if (widget.parent !== undefined) {
       throw new Error(
-        'Widget instances cannot be shared or re-parented: this instance already belongs to a parent. Build a fresh widget instead — re-parenting corrupts the Yoga WASM heap.'
+        'Widget instances cannot be shared or re-parented: this instance already belongs to a parent. Build a fresh widget instead - re-parenting corrupts the Yoga WASM heap.'
       );
     }
     widget.parent = this;
     this.children.push(widget);
     this.node.insertChild(widget.node, this.node.getChildCount());
-    // Late appends must see the same context/theme as the rest of the tree —
+    // Late appends must see the same context/theme as the rest of the tree -
     // setContext otherwise runs only in the PdfDoc constructor (B16).
     if (this.context) {
       widget.setContext(this.context);
@@ -223,9 +223,9 @@ export abstract class Widget {
    * Position edges this widget declared for absolute positioning, when it
    * anchors itself to the page box (e.g. FixedContainer). The pagination
    * walker uses them to re-anchor page-root fixed widgets against the real
-   * page dimensions — the flow pass resolves `bottom`/`right` against the
+   * page dimensions - the flow pass resolves `bottom`/`right` against the
    * auto-height flow canvas, which is not the page box. Default: undefined
-   * (edges unknown — the flow-computed box is used as-is).
+   * (edges unknown - the flow-computed box is used as-is).
    */
   getPositionEdges(): { top?: number; bottom?: number; left?: number; right?: number } | undefined {
     return undefined;

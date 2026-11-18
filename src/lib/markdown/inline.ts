@@ -105,7 +105,7 @@ export function inlineToRuns(
         if (ctx.href) {
           // Images are block-level and can't carry the link annotation (B20).
           console.warn(
-            `markdown: an image inside a link (${ctx.href}) renders unlinked — images are block-level and cannot carry the annotation`
+            `markdown: an image inside a link (${ctx.href}) renders unlinked - images are block-level and cannot carry the annotation`
           );
         }
         images.push(image);

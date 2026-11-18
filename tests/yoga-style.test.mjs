@@ -1,6 +1,6 @@
 /**
  * Yoga style interpreter tests: the styling seam (ARCHITECTURE.md #8) against
- * a bare Yoga node — no widget, no context, no layout tree.
+ * a bare Yoga node - no widget, no context, no layout tree.
  *
  * Run: node tests/yoga-style.test.mjs (after `pnpm build`).
  */

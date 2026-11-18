@@ -12,7 +12,7 @@ interface FixedContainerOptions extends WidgetOptions {
   right?: number;
   width?: YogaStyleValue;
   height?: YogaStyleValue;
-  /** Theme token or literal — same vocabulary as Container (I11). */
+  /** Theme token or literal - same vocabulary as Container (I11). */
   bgColor?: ThemeColorValue;
 }
 
@@ -31,7 +31,7 @@ export class FixedContainerWidget extends Widget {
     this.right = options.right;
     this.bgColor = options.bgColor;
 
-    // Yoga absolute positioning. Set directly on the node — the context is
+    // Yoga absolute positioning. Set directly on the node - the context is
     // not wired up until setContext() runs (after the whole tree is built).
     this.node.setPositionType(PositionType.Absolute);
     if (this.top !== undefined) this.node.setPosition(Edge.Top, this.top);

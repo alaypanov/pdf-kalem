@@ -1,6 +1,6 @@
 /**
  * Preview seam tests (IDEAS.md I9 Stage 1): `renderToPng` rasterizes the
- * exact bytes `doc.save()` produced — right page, right size, real content.
+ * exact bytes `doc.save()` produced - right page, right size, real content.
  *
  * Run: node tests/preview.test.mjs (after `pnpm build`).
  */

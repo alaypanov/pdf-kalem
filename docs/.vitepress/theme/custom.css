@@ -1,16 +1,16 @@
-/* pdf-kalem docs — the paper/ink editorial theme (the repo's brand palette,
+/* pdf-kalem docs - the paper/ink editorial theme (the repo's brand palette,
    originally set by the examples index), mapped onto VitePress's
    default-theme variables.
    Utility classes (bg-paper, text-ink, …) come from docs/uno.config.ts and are
    used by the custom layouts (theme/Home.vue, the playground pages); this file
-   re-skins the stock docs chrome — nav, sidebar, prose, code, blocks.
+   re-skins the stock docs chrome - nav, sidebar, prose, code, blocks.
    The palette vars (--paper, --ink, …) flip in .dark, so every VitePress
    mapping below follows automatically. */
 
 :root {
   color-scheme: light;
 
-  /* Palette — the docs brand (paper/ink). */
+  /* Palette - the docs brand (paper/ink). */
   --paper: #faf9f7;
   --paper-2: #f3f1ec;
   --ink: #1c1917;
@@ -40,7 +40,7 @@
   --vp-c-text-2: var(--muted);
   --vp-c-text-3: var(--faint);
 
-  /* Brand: burnt amber — links, accents, active states. */
+  /* Brand: burnt amber - links, accents, active states. */
   --vp-c-brand-1: var(--accent);
   --vp-c-brand-2: var(--accent-2);
   --vp-c-brand-3: var(--accent-3);
@@ -89,7 +89,7 @@
   --vp-shadow-5: 0 18px 56px rgba(28, 25, 23, 0.16), 0 4px 12px rgba(28, 25, 23, 0.16);
 }
 
-/* Night paper — the same palette flipped; the VitePress mappings above are
+/* Night paper - the same palette flipped; the VitePress mappings above are
    var-indirected, so they follow automatically. */
 .dark {
   color-scheme: dark;
@@ -115,7 +115,7 @@
   --vp-c-gray-soft: rgba(168, 162, 158, 0.16);
 }
 
-/* Serif display headings — the examples page's editorial voice. */
+/* Serif display headings - the examples page's editorial voice. */
 .vp-doc h1,
 .vp-doc h2,
 .vp-doc h3,

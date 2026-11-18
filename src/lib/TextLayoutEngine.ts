@@ -29,7 +29,7 @@ export interface LineFragment {
 
 /**
  * A run as the engine sees it: fully resolved down to a concrete font name.
- * Style flags (bold/italic/mono) are the caller's concern — the engine only
+ * Style flags (bold/italic/mono) are the caller's concern - the engine only
  * needs text plus the font that measures and draws it.
  */
 export interface EngineRun {
@@ -47,7 +47,7 @@ export interface TextLayoutResult {
 
 /**
  * How a text block should behave when it overflows its box.
- * - `visible`: no height-derived truncation — lines beyond the box stay
+ * - `visible`: no height-derived truncation - lines beyond the box stay
  *   laid out. An explicit `maxLines` still clamps (CSS line-clamp
  *   semantics); `overflow` only chooses the indicator for that clamp.
  * - `clip`: lines beyond the limit are dropped.
@@ -128,7 +128,7 @@ interface RichParagraph {
  *
  * This is the shared core that used to be duplicated between `TextWidget`
  * and `LinkWidget`. It has no knowledge of themes, widgets, yoga, or render
- * contexts — it only knows how to turn a {@link TextLayoutConfig} into a
+ * contexts - it only knows how to turn a {@link TextLayoutConfig} into a
  * {@link TextLayoutResult}. Painting the result is the job of
  * {@link TextPainter}.
  */
@@ -615,7 +615,7 @@ export class TextLayoutEngine {
       }
 
       if (!producedLine) {
-        // Empty paragraph (no words after collapsing) — one blank line,
+        // Empty paragraph (no words after collapsing) - one blank line,
         // matching the plain-text fallback.
         lines.push({ text: '', width: 0 });
       }
@@ -711,7 +711,7 @@ export class TextLayoutEngine {
     }
 
     // A blank last line (no fragments) still shows the ellipsis, in the
-    // first run's font — matching the plain path (B20).
+    // first run's font - matching the plain path (B20).
     if (fragments.length === 0) {
       const ellipsisWidth = this.measureRunWidthFor(0, '…');
       if (ellipsisWidth <= maxWidth) {
@@ -757,7 +757,7 @@ export class TextLayoutEngine {
     }
 
     if (!best) {
-      // No cut fits under the accumulated prefixes — fall back to a bare
+      // No cut fits under the accumulated prefixes - fall back to a bare
       // ellipsis in the first fragment's font (the plain path keeps one).
       const ellipsisWidth = this.measureRunWidthFor(fragments[0].runIndex, '…');
       if (ellipsisWidth <= maxWidth) {

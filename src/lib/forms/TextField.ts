@@ -23,7 +23,7 @@ export class TextFieldWidget extends PlacedFormWidget {
     this.maxLength = options.maxLength;
 
     this.setYogaStyle({
-      // Fill the available width — with a floor: inside a shrink-wrapping
+      // Fill the available width - with a floor: inside a shrink-wrapping
       // Column (alignItems: flex-start) a bare '100%' resolves against the
       // wrapped parent and collapses to zero (an invisible field). Explicit
       // `width` is honored exactly, no floor.
@@ -37,7 +37,7 @@ export class TextFieldWidget extends PlacedFormWidget {
     return 'TextField';
   }
 
-  /** @internal — PdfDoc's formData walk applies values here. */
+  /** @internal - PdfDoc's formData walk applies values here. */
   bindValue(value: string | boolean): void {
     if (typeof value !== 'string') {
       throw new Error(`TextField "${this.name}" expects a string formData value, got ${typeof value}.`);
@@ -56,7 +56,7 @@ export class TextFieldWidget extends PlacedFormWidget {
     if (this.maxLength !== undefined) field.setMaxLength(this.maxLength);
     if (this.value !== undefined) field.setText(this.value);
     if (this.readOnly) field.enableReadOnly();
-    // addToPage creates the /DA entry setFontSize requires — order matters.
+    // addToPage creates the /DA entry setFontSize requires - order matters.
     field.addToPage(page, { ...box, ...this.appearanceArgs(context) });
     if (this.appearance.fontSize !== undefined) field.setFontSize(this.appearance.fontSize);
   }

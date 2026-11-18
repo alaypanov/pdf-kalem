@@ -9,23 +9,23 @@ import { mdiAbacus } from '@mdi/js'
  * Live widget-tree workbench for the docs playground.
  *
  * The editor holds the body of a plain-JS function returning an array of
- * Page widgets — widget factories, `theme`, `fromHex`, `PageSize`, and
+ * Page widgets - widget factories, `theme`, `fromHex`, `PageSize`, and
  * `mdiAbacus` are injected as parameters (same sandbox contract as the
  * standalone examples), evaluated with `new Function` on every debounced
  * render. The starter tree is the invoice example. The shell (editor,
  * preview, debounce, status) lives in {@link CodePdfWorkbench}.
- * Mount inside <ClientOnly> — rendering touches browser APIs.
+ * Mount inside <ClientOnly> - rendering touches browser APIs.
  */
 
-const SAMPLE_CODE = `// Widget playground — edit the code; the PDF re-renders as you type.
+const SAMPLE_CODE = `// Widget playground - edit the code; the PDF re-renders as you type.
 //
 // This is the body of a function: \`return\` an array of Page widgets.
 // Widget factories (Page, Text, Row, Column, Container, Table, …) plus
-// \`theme\`, \`fromHex\`, \`PageSize\`, and \`mdiAbacus\` are already in scope —
+// \`theme\`, \`fromHex\`, \`PageSize\`, and \`mdiAbacus\` are already in scope -
 // plain JavaScript, no imports or types needed. Fonts, theme, and document
 // setup are handled by the scaffolding around this editor.
 //
-// Tip: children of a Container shrink-wrap (alignItems: flex-start) — give
+// Tip: children of a Container shrink-wrap (alignItems: flex-start) - give
 // Rows and Columns \`width: '100%'\` when you want them to fill the panel
 // or let \`justifyBetween\` spread their children.
 
@@ -143,7 +143,7 @@ return [
                   gap: 6,
                   children: [
                     Text('Bill to', { variant: 'h2' }),
-                    Text('Northwind Labs — Attn: Finance Team', { variant: 'body' }),
+                    Text('Northwind Labs - Attn: Finance Team', { variant: 'body' }),
                     Text('88 King Street, Toronto, ON M5V 1L7', { variant: 'caption' }),
                     Link('accounts@northwindlabs.com', {
                       href: 'mailto:accounts@northwindlabs.com',

@@ -50,7 +50,7 @@ export class PageWidget extends Widget {
       }
     }
 
-    // Doc default — read from the options, NOT context.getDimensions():
+    // Doc default - read from the options, NOT context.getDimensions():
     // during save that reflects the current output page, so a size-less page
     // would inherit the previous page's size (B10).
     const options = context.getOptions();
@@ -62,7 +62,7 @@ export class PageWidget extends Widget {
     return this.paginateContent;
   }
 
-  /** @internal — flow layout pass for pagination (used by Paginator). */
+  /** @internal - flow layout pass for pagination (used by Paginator). */
   runFlowLayout(width: number, height: number | undefined): void {
     this.node.setWidth(width);
     if (height === undefined) {
@@ -73,7 +73,7 @@ export class PageWidget extends Widget {
     this.calculateLayout(width, height, Direction.LTR);
   }
 
-  /** @internal — content box after layout, page-relative top-left origin. */
+  /** @internal - content box after layout, page-relative top-left origin. */
   getContentBox(dimensions: [number, number]): LayoutBox {
     const padTop = this.node.getComputedPadding(Edge.Top);
     const padBottom = this.node.getComputedPadding(Edge.Bottom);
@@ -94,11 +94,11 @@ export class PageWidget extends Widget {
 
   /**
    * Opens the backend surface this page paints onto. LoadedPage overrides
-   * this to a no-op — its surface is an adopted existing page, opened in
+   * this to a no-op - its surface is an adopted existing page, opened in
    * render() before the layout pass.
    *
    * Page lifecycle is PDF mechanics (PdfPageSurface), not part of the
-   * neutral RenderContext — pages are where drawing surfaces are created.
+   * neutral RenderContext - pages are where drawing surfaces are created.
    */
   protected async openPage(context: RenderContext, dimensions: [number, number]): Promise<void> {
     if (!canAddPages(context)) {
@@ -113,7 +113,7 @@ export class PageWidget extends Widget {
     debugLog(`Page dimensions: ${dimensions[0]} x ${dimensions[1]}`);
 
     if (!this.paginateContent) {
-      // Legacy single-page path — byte-identical to pre-pagination behavior.
+      // Legacy single-page path - byte-identical to pre-pagination behavior.
       await this.openPage(context, dimensions);
       await this.prepareLayout(context);
       this.node.setWidth(dimensions[0]);

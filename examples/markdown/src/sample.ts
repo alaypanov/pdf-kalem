@@ -5,14 +5,14 @@
  */
 export const sample = `# pdf-kalem Markdown
 
-This document was converted to PDF with **pdf-kalem** — a widget-tree UI library
+This document was converted to PDF with **pdf-kalem** - a widget-tree UI library
 for document generation. Everything you see is laid out with *Yoga flexbox*
 and painted with pdf-lib.
 
 ## Inline styles
 
 Text can be **bold**, *italic*, ***both***, ~~struck through~~, or
-\`inline code\`. Links stay clickable on every line fragment they wrap onto —
+\`inline code\`. Links stay clickable on every line fragment they wrap onto -
 try [this one](https://github.com/alaypanov/pdf-kalem).
 
 ## Lists
@@ -37,7 +37,7 @@ await doc.save();
 
 ## Quotes and rules
 
-> Blockquotes get a left rule and italic text — good for asides and
+> Blockquotes get a left rule and italic text - good for asides and
 > callouts that span more than one line.
 
 ---
@@ -50,6 +50,6 @@ await doc.save();
 | Rich runs  | shipped | per-fragment links, strike, mono         |
 | Markdown   | shipped | this very document                       |
 
-Images work too (\`png\`/\`jpeg\`, format sniffed from the bytes) — this sample
+Images work too (\`png\`/\`jpeg\`, format sniffed from the bytes) - this sample
 skips them so it renders offline.
 `;

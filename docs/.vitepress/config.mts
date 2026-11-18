@@ -8,7 +8,7 @@ export default defineConfig({
   description: 'A PDF-focused widget-tree UI library for document generation.',
   // GitHub Pages project site: https://alaypanov.github.io/pdf-kalem/
   base: '/pdf-kalem/',
-  // Sitemap generation (docs/.vitepress/dist/sitemap.xml) — spiders find the
+  // Sitemap generation (docs/.vitepress/dist/sitemap.xml) - spiders find the
   // pages through robots.txt's Sitemap line. VitePress 1.x builds sitemap
   // URLs without `base` (relative paths resolved against the hostname), so
   // transformItems prepends the GitHub Pages subpath; transformPageData adds
@@ -36,7 +36,7 @@ export default defineConfig({
     ],
     // The playground imports the library, and yoga-layout's ESM entry loads
     // its WASM with top-level await. VitePress's defaults (chrome87/es2020)
-    // reject TLA — raise every esbuild target VitePress touches (build,
+    // reject TLA - raise every esbuild target VitePress touches (build,
     // source transform, dev dep pre-bundle). Modern browsers support TLA.
     build: { target: 'es2022' },
     esbuild: { target: 'es2022' },

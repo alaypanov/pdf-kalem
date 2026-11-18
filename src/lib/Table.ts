@@ -290,7 +290,7 @@ export class TableWidget extends Widget {
   constructor(options: TableOptions) {
     if (options.children && options.children.length > 0) {
       throw new Error(
-        'Table: children are not supported — compose rows via head/body (TableHead/TableBody/TableRow/TableCell) or Table.fromRows.'
+        'Table: children are not supported - compose rows via head/body (TableHead/TableBody/TableRow/TableCell) or Table.fromRows.'
       );
     }
     const children = [options.head, options.body].filter(Boolean) as Widget[];
@@ -359,7 +359,7 @@ export class TableWidget extends Widget {
    * continuation page) and `keepWithNext` (never orphaned at a page bottom);
    * rows are atomic because a TableRow is row-direction, so the base-class
    * default returns null for them and the paginator moves rows whole. The
-   * render side needs no pagination awareness — rows are real widgets the
+   * render side needs no pagination awareness - rows are real widgets the
    * plan places like any other.
    */
   override getBreakUnits(): BreakUnit[] | null {

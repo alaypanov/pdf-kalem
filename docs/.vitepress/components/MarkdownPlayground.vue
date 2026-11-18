@@ -21,12 +21,12 @@ import { fromHex } from '../../../src/lib/utils/color-utils'
  * a debounced `markdownToPdf` preview, with a page-count badge, download,
  * and an error strip. Loads Inter from the docs site's static assets via
  * `files`; code renders in the builtin `mono` alias (Courier).
- * Mount inside <ClientOnly> — rendering touches browser APIs.
+ * Mount inside <ClientOnly> - rendering touches browser APIs.
  */
 
 const SAMPLE_MD = `# pdf-kalem Markdown
 
-This page was converted to PDF with **pdf-kalem** — a widget-tree UI library
+This page was converted to PDF with **pdf-kalem** - a widget-tree UI library
 for document generation. Everything you see is laid out with *Yoga flexbox*
 and painted with pdf-lib. Edit the markdown on the left; the preview
 re-renders as you type.
@@ -34,7 +34,7 @@ re-renders as you type.
 ## Inline styles
 
 Text can be **bold**, *italic*, ***both***, ~~struck through~~, or
-\`inline code\`. Links stay clickable on every line fragment they wrap onto —
+\`inline code\`. Links stay clickable on every line fragment they wrap onto -
 try [this one](https://github.com/alaypanov/pdf-kalem).
 
 ## Lists
@@ -59,7 +59,7 @@ await doc.save();
 
 ## Quotes and rules
 
-> Blockquotes get a left rule and italic text — good for asides and
+> Blockquotes get a left rule and italic text - good for asides and
 > callouts that span more than one line.
 
 ---

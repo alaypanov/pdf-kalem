@@ -20,7 +20,7 @@ export class FlexContainer extends Widget {
     super({ children: options.children });
 
     // `style` is the escape hatch and the last word (same contract as
-    // Container, I11) — spreading it first let width/height clobber it (B14).
+    // Container, I11) - spreading it first let width/height clobber it (B14).
     this.setYogaStyle({
       width: options.width ?? 'auto',
       height: options.height ?? 'auto',

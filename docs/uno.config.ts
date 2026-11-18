@@ -4,7 +4,7 @@ export default defineConfig({
   presets: [presetWind4()],
   theme: {
     colors: {
-      // Paper — the docs brand palette (light).
+      // Paper - the docs brand palette (light).
       ink: '#1c1917',
       paper: '#faf9f7',
       paper2: '#f3f1ec',
@@ -12,7 +12,7 @@ export default defineConfig({
       faint: '#a8a29e',
       accent: '#b45309',
       hairline: 'rgba(28, 25, 23, 0.12)',
-      // Night paper — docs dark mode; theme/custom.css flips the palette.
+      // Night paper - docs dark mode; theme/custom.css flips the palette.
       night: '#1c1917',
       night2: '#211d1b',
       bone: '#e7e5e4',

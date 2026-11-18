@@ -56,14 +56,14 @@ export interface TextOptions extends WidgetOptions {
   /** Block-level style, overriding the theme variant's. Runs replace it per axis. */
   fontStyle?: FontStyleValue;
   /**
-   * Line height in POINTS — the vertical distance between line baselines.
+   * Line height in POINTS - the vertical distance between line baselines.
    * This is not a CSS multiplier: `lineHeight: 1.4` means 1.4pt (lines pile
    * on top of each other). For the CSS `line-height: 1.4` behavior use
    * {@link lineHeightMultiplier}.
    */
   lineHeight?: number;
   /**
-   * Line height as a CSS-like multiplier of the font size — `1.4` at size 12
+   * Line height as a CSS-like multiplier of the font size - `1.4` at size 12
    * gives a 16.8pt line height. Ignored when {@link lineHeight} (points) is
    * set; the theme variant's value applies when neither is.
    */
@@ -90,7 +90,7 @@ function toCanvasFontFamily(family: string): string {
 /**
  * The canvas font string that measures the same face `face` draws: builtin
  * faces get the weight/style keywords over their canvas stack; custom
- * families measure under the face id — browser `FontFace`s register per face
+ * families measure under the face id - browser `FontFace`s register per face
  * id (`inter-bold`), so measuring under the plain family name would use the
  * regular face for styled text (B17).
  */
@@ -229,7 +229,7 @@ export class TextWidget extends Widget {
   /**
    * Applies block/variant typography onto a resolved font name. Each axis is
    * replaced when set (block wins over variant); unset axes keep the base
-   * name's own style — so `font: 'inter-bold'` keeps working, and a block
+   * name's own style - so `font: 'inter-bold'` keeps working, and a block
    * `fontStyle: 'italic'` on it yields `inter-bold-italic`.
    */
   private applyBlockTypography(base: string): string {
@@ -250,8 +250,8 @@ export class TextWidget extends Widget {
   /**
    * Resolves a run to the pdf font name + canvas font that measure and draw
    * it. `font`/`mono` overrides swap the family but inherit the block's
-   * typography (CSS inheritance); otherwise the base font — already styled
-   * by the block — is decomposed into family + style and the run's
+   * typography (CSS inheritance); otherwise the base font - already styled
+   * by the block - is decomposed into family + style and the run's
    * weight/style replace their axis (an explicit weight of 400 un-bolds a
    * bold base), falling back down the face chain when a face is missing.
    */
@@ -265,14 +265,14 @@ export class TextWidget extends Widget {
         : 'mono';
       const overrideParsed = parseFaceId(family);
       if (overrideParsed) {
-        // The override name carries its own style ('inter-bold') — it is the
+        // The override name carries its own style ('inter-bold') - it is the
         // more specific base that block typography and the run's axes
         // replace, so an explicit 400 un-bolds it like the block path (B20).
         family = overrideParsed.family;
         baseStyle = this.blockFaceStyle(overrideParsed.style);
       } else {
         // Inherit the block's fully-styled face (the base name's own style +
-        // block typography) — the same decomposition non-override runs use.
+        // block typography) - the same decomposition non-override runs use.
         const blockFaceName = this.getFontName();
         const parsed = builtinPdfNameFace(blockFaceName) ?? parseFaceId(blockFaceName);
         baseStyle = parsed?.style ?? 'regular';
@@ -351,7 +351,7 @@ export class TextWidget extends Widget {
     return this.getSize();
   }
 
-  /** Full font height (ascent + descent) — half-leading derives from it. */
+  /** Full font height (ascent + descent) - half-leading derives from it. */
   protected getFontHeight(): number {
     if (this.context) {
       return this.context.measureFontHeight(this.getSize(), this.getFontName());
@@ -361,7 +361,7 @@ export class TextWidget extends Widget {
   }
 
   protected getCanvasFont(): string {
-    // Measure with the same face that draws (B17) — getFontName() is the
+    // Measure with the same face that draws (B17) - getFontName() is the
     // fully-styled face id (e.g. 'sans-bold', 'inter-bold').
     return canvasFontForFace(this.getFontName(), this.getSize());
   }
@@ -419,7 +419,7 @@ export class TextWidget extends Widget {
 
   protected layoutText(maxWidth: number, heightLineLimit?: number): TextLayoutResult {
     // Yoga stores computed sizes as float32 while the measurements that
-    // produced them are float64 — a shrink-wrapped block's stored width can
+    // produced them are float64 - a shrink-wrapped block's stored width can
     // sit a ~1e-6pt hair UNDER its own measured text width, and re-wrapping
     // at the stored width would phantom-wrap ('1.' → '1' / '.'). Tolerate
     // sub-0.01pt overflow: invisible at any zoom, and exactly the noise
@@ -437,7 +437,7 @@ export class TextWidget extends Widget {
 
     // A pagination slice: a continuation (flowOffset > 0), or a first slice
     // whose fragment box is shorter than the block's flow height. Sliced
-    // blocks draw a window of the full layout — no overflow truncation, the
+    // blocks draw a window of the full layout - no overflow truncation, the
     // block continues on the next page.
     if (lineHeight > 0 && (flowOffset > 0 || box.height + 0.01 < flowHeight)) {
       const block = this.layoutText(maxWidth);
@@ -501,7 +501,7 @@ export class TextWidget extends Widget {
     const lineHeight = this.getLineHeight();
     const ascent = this.getFontAscent();
     // The line box spans baseline ± (halfLeading + ascent) top / (lineHeight
-    // - halfLeading - ascent) bottom — the same model TextPainter.position
+    // - halfLeading - ascent) bottom - the same model TextPainter.position
     // uses. The previous rect dropped the half-leading and sat one notch
     // below the line box (B20).
     const halfLeading = (lineHeight - this.getFontHeight()) / 2;

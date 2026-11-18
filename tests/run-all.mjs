@@ -2,7 +2,7 @@
  * Test runner: runs every `*.test.mjs` in this directory, each in its own
  * process (isolation matches the old per-file `&&` chain in package.json),
  * failing fast on the first failure. New test files are picked up
- * automatically — no list to maintain.
+ * automatically - no list to maintain.
  *
  * Run: node tests/run-all.mjs (after `pnpm build`).
  */

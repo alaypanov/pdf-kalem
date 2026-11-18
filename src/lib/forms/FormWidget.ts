@@ -9,7 +9,7 @@ import { isPdfFormSurface } from './surface';
 
 /**
  * Appearance options pdf-lib's field appearance generation supports. The
- * default appearance font is Helvetica (a pdf-lib limitation — embedded-font
+ * default appearance font is Helvetica (a pdf-lib limitation - embedded-font
  * faces can come later); unset options leave pdf-lib's own defaults in place.
  */
 export interface FormFieldAppearance {
@@ -21,7 +21,7 @@ export interface FormFieldAppearance {
 }
 
 /**
- * Options every form field shares. `width`/`height` size the field's box —
+ * Options every form field shares. `width`/`height` size the field's box -
  * the box IS the widget, so every field ships a usable default instead of
  * shrink-wrapping to zero.
  */
@@ -34,7 +34,7 @@ export interface FormFieldOptions extends WidgetOptions, FormFieldAppearance {
 }
 
 /**
- * Appearance args handed to pdf-lib's `addToPage` — the subset of its
+ * Appearance args handed to pdf-lib's `addToPage` - the subset of its
  * (unexported) `FieldAppearanceOptions` form widgets set.
  */
 interface FieldAppearanceArgs {
@@ -49,7 +49,7 @@ interface FieldAppearanceArgs {
  *
  * Form widgets are PDF-typed (ADR 0001): at render time they narrow the
  * backend-neutral context to {@link PdfFormSurface} and place their field at
- * the widget's layout box — which `getLayoutBox` already returns in PDF
+ * the widget's layout box - which `getLayoutBox` already returns in PDF
  * coordinates (bottom-left origin; the Y-flip lives in the backend), exactly
  * what pdf-lib's `addToPage` wants. Because `PageScope` answers
  * `getLayoutBox` from the pagination plan, fields compose with pagination and
@@ -59,7 +59,7 @@ interface FieldAppearanceArgs {
  * `PDFDocument`, so nothing pdf-lib-owned is cached on the widget.
  */
 export abstract class FormWidget extends Widget {
-  /** The AcroForm field name — unique per document (pdf-lib enforces it). */
+  /** The AcroForm field name - unique per document (pdf-lib enforces it). */
   readonly name: string;
   protected readonly readOnly: boolean;
   protected readonly appearance: FormFieldAppearance;
@@ -68,7 +68,7 @@ export abstract class FormWidget extends Widget {
     super(options);
     if (typeof name !== 'string' || name.trim().length === 0) {
       throw new Error(
-        'Form widgets require a non-empty `name` — it is the AcroForm field name (and the data-binding key).',
+        'Form widgets require a non-empty `name` - it is the AcroForm field name (and the data-binding key).',
       );
     }
     this.name = name;
@@ -88,19 +88,19 @@ export abstract class FormWidget extends Widget {
   /**
    * Applies a formData value by field name (PdfDoc's binding walk). The base
    * refuses: only value-carrying fields (text, check, dropdown, radio group)
-   * accept bindings — a Button, for instance, carries no value.
+   * accept bindings - a Button, for instance, carries no value.
    *
-   * @internal — package-internal: PdfDoc's formData walk applies values here.
+   * @internal - package-internal: PdfDoc's formData walk applies values here.
    */
   bindValue(value: string | boolean): void {
     throw new Error(
-      `${this.kind} has no value to bind (got ${typeof value}) — only text, check, dropdown, and radio fields accept formData values.`,
+      `${this.kind} has no value to bind (got ${typeof value}) - only text, check, dropdown, and radio fields accept formData values.`,
     );
   }
 
   /**
    * Narrows the backend-neutral context to the PDF form surface at render
-   * time — the `LoadedPage` narrowing pattern (ADR 0001: PDF-typed modules,
+   * time - the `LoadedPage` narrowing pattern (ADR 0001: PDF-typed modules,
    * never interface widening).
    */
   protected requireSurface(context: RenderContext): { form: PDFForm; page: PDFPage } {
@@ -112,7 +112,7 @@ export abstract class FormWidget extends Widget {
     const page = context.getCurrentPage();
     if (!page) {
       throw new Error(
-        `${this.kind} rendered with no open page — form fields are placed on the page being painted.`,
+        `${this.kind} rendered with no open page - form fields are placed on the page being painted.`,
       );
     }
     return { form: context.getForm(), page };
@@ -120,12 +120,12 @@ export abstract class FormWidget extends Widget {
 
   /**
    * Resolves appearance overrides against the theme (no theme tokens yet).
-   * Unset options are OMITTED, not passed as undefined — pdf-lib's
+   * Unset options are OMITTED, not passed as undefined - pdf-lib's
    * `addToPage` only applies its own defaults (black text, white background,
    * black 1pt border) for keys that are absent, and a visible box is the
    * right default for a form field.
    *
-   * @internal — package-internal: Radio reads its group's resolved appearance.
+   * @internal - package-internal: Radio reads its group's resolved appearance.
    */
   appearanceArgs(context: RenderContext): FieldAppearanceArgs {
     const theme = context.getTheme();
@@ -143,7 +143,7 @@ export abstract class FormWidget extends Widget {
 }
 
 /**
- * A form field placed at its own layout box — the leaf fields. Field-owning
+ * A form field placed at its own layout box - the leaf fields. Field-owning
  * containers ({@link RadioGroup}) extend {@link FormWidget} directly and
  * override `render` instead: their box holds children, not a field.
  */

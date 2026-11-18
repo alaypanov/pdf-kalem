@@ -1,5 +1,5 @@
 /**
- * MarkdownStyles with defaults applied — the concrete values the renderers
+ * MarkdownStyles with defaults applied - the concrete values the renderers
  * consume. Resolved once per conversion.
  */
 import type { ThemeColorValue } from '../Theme';

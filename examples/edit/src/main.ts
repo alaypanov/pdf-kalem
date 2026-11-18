@@ -47,7 +47,7 @@ annex.drawText('ANNEX', { x: 40, y: 200, size: 18, font, color: rgb(0.7, 0.4, 0.
 const other = await loadPdf(await extra.save());
 
 // Compose freely: cover first, then the edited original. Remove/reorder are
-// plain array ops (`splice`, `sort`) — the array is the edit surface.
+// plain array ops (`splice`, `sort`) - the array is the edit surface.
 const merged = [...other.pages.slice(0, 1), ...pdf.pages];
 await writeFile(
   new URL('merged.pdf', import.meta.url),

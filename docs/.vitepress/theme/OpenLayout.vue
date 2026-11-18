@@ -7,7 +7,7 @@ import Home from './Home.vue'
  * The theme's Layout wraps EVERY page, so this component switches:
  * frontmatter `layout: home` renders the editorial home (no docs nav, the
  * cards navigate); frontmatter `layout: open` renders the bare, open shell
- * (no docs nav/sidebar — the workbench is the page); everything else
+ * (no docs nav/sidebar - the workbench is the page); everything else
  * delegates to the default theme untouched.
  *
  * `<Content />` is a VitePress global component (registered alongside

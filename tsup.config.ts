@@ -8,7 +8,7 @@ export default defineConfig({
     edit: 'src/edit.ts',
     forms: 'src/forms.ts',
     // Node-only preview rasterizer (IDEAS.md I9). Its deps are optional
-    // peers, loaded lazily — external keeps them out of the bundle.
+    // peers, loaded lazily - external keeps them out of the bundle.
     preview: 'src/preview.ts',
     // Test-only surface (Paginator/PageScope/plans). Shipped in dist/ but not
     // in package.json exports, so it is not importable by package consumers.

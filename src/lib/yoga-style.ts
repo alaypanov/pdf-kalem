@@ -1,7 +1,7 @@
 import { Align, Edge, FlexDirection, Gutter, Justify, PositionType, type Node } from 'yoga-layout';
 
 /**
- * The Yoga style interpreter — the one shared styling seam between widgets
+ * The Yoga style interpreter - the one shared styling seam between widgets
  * and Yoga (ARCHITECTURE.md #8). Extracted from the `Widget` base class so
  * the base interface stops growing with each style key and the dispatch is
  * testable against a bare node: no widget, no context, no layout tree.
@@ -12,7 +12,7 @@ import { Align, Edge, FlexDirection, Gutter, Justify, PositionType, type Node } 
  */
 export type YogaStyleValue = number | 'auto' | `${number}%`;
 
-/** Dimension value for min/max constraints — Yoga rejects 'auto' there. */
+/** Dimension value for min/max constraints - Yoga rejects 'auto' there. */
 export type YogaDimensionValue = number | `${number}%`;
 
 export interface YogaStyle {

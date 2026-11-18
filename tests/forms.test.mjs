@@ -118,7 +118,7 @@ await test('fields are placed at their layout box in PDF coordinates', async () 
 });
 
 await test('fields keep a usable width inside shrink-wrapping Columns', async () => {
-  // Column defaults to alignItems: flex-start — a bare percent-width field
+  // Column defaults to alignItems: flex-start - a bare percent-width field
   // resolves against the shrink-wrapped parent and collapses to zero (the
   // invisible-field bug). The default style carries a 120pt floor; the
   // documented fix is a `width: '100%'` wrapper (or a stretching parent).
@@ -290,7 +290,7 @@ await test('formData binds by field name and wins over widget values', async () 
   assert.equal(form.getTextField('full-name').getText(), 'Grace Hopper');
   assert.equal(form.getCheckBox('consent').isChecked(), false);
   assert.deepEqual(form.getDropdown('plan').getSelected(), ['Basic']);
-  // 'tier' is absent from formData — the widget's own value survives.
+  // 'tier' is absent from formData - the widget's own value survives.
   assert.equal(form.getRadioGroup('tier').getSelected(), 'a');
 });
 

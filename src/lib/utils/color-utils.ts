@@ -75,7 +75,7 @@ export function toPdfLibColor(color?: ColorValue): PdfLibColor | undefined {
     // rendering transparency as fully opaque (B20).
     if (color.alpha !== undefined && color.alpha < 255 && !alphaUnsupportedWarned) {
         alphaUnsupportedWarned = true;
-        console.warn('pdf-kalem: ColorValue.alpha is not supported by the PDF backend — the color renders fully opaque.');
+        console.warn('pdf-kalem: ColorValue.alpha is not supported by the PDF backend - the color renders fully opaque.');
     }
 
     return rgb(color.red / 255, color.green / 255, color.blue / 255);

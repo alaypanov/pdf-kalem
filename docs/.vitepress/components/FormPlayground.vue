@@ -5,28 +5,28 @@ import { loadPlaygroundFonts, playgroundTheme } from './workbench'
 import CodePdfWorkbench from './CodePdfWorkbench.vue'
 
 /**
- * Live form-building workbench for the docs playground — the same sandbox
+ * Live form-building workbench for the docs playground - the same sandbox
  * contract as the widget playground (a function body returning Page[]), with
  * the form field factories in scope. Fields become real AcroForm fields in
  * the rendered PDF: open the proof in a browser tab or reader and type into
  * it. The shell (editor, preview, debounce, status) lives in
- * {@link CodePdfWorkbench}. Mount inside <ClientOnly> — rendering touches
+ * {@link CodePdfWorkbench}. Mount inside <ClientOnly> - rendering touches
  * browser APIs.
  */
 
-const SAMPLE_CODE = `// Forms playground — edit the code; the PDF re-renders as you type.
+const SAMPLE_CODE = `// Forms playground - edit the code; the PDF re-renders as you type.
 //
 // This is the body of a function: \`return\` an array of Page widgets.
 // The form factories (TextField, CheckBox, Dropdown, RadioGroup + Radio,
-// Button, Signature) join the regular widgets — every field takes a unique
+// Button, Signature) join the regular widgets - every field takes a unique
 // \`name\` (the AcroForm field name) and lands in the PDF as a real, fillable
 // form field. \`theme\` and \`fromHex\` are in scope too; labels are plain
-// Text widgets you compose yourself — wrap label + field in a Column with
+// Text widgets you compose yourself - wrap label + field in a Column with
 // \`width: '100%'\` so the field fills the page (Columns shrink-wrap by
 // default).
 
 function labeled(label, widget) {
-  // width: '100%' — Columns shrink-wrap their children by default, so the
+  // width: '100%' - Columns shrink-wrap their children by default, so the
   // field's own '100%' would resolve against the wrapped width and collapse.
   return Column({
     width: '100%',
@@ -46,7 +46,7 @@ return [
         gap: 16,
         children: [
           Text('Workshop registration', { variant: 'h1' }),
-          Text('The boxes are real AcroForm fields — download the PDF and type into them.', {
+          Text('The boxes are real AcroForm fields - download the PDF and type into them.', {
             variant: 'caption',
           }),
 
@@ -64,8 +64,8 @@ return [
               RadioGroup('plan', {
                 gap: 8,
                 children: [
-                  Row({ gap: 8, crossAxisAlignment: 'center', children: [Radio('basic'), Text('Basic — free', { variant: 'body' })] }),
-                  Row({ gap: 8, crossAxisAlignment: 'center', children: [Radio('pro'), Text('Pro — €120', { variant: 'body' })] }),
+                  Row({ gap: 8, crossAxisAlignment: 'center', children: [Radio('basic'), Text('Basic - free', { variant: 'body' })] }),
+                  Row({ gap: 8, crossAxisAlignment: 'center', children: [Radio('pro'), Text('Pro - €120', { variant: 'body' })] }),
                 ],
               }),
             ],

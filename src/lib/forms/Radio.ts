@@ -9,7 +9,7 @@ export interface RadioOptions extends WidgetOptions {
 }
 
 /**
- * One option of a {@link RadioGroup} — a single radio circle. `value` is the
+ * One option of a {@link RadioGroup} - a single radio circle. `value` is the
  * option value stored in the group's field (and matched by data binding).
  * The circle carries no label of its own: compose one with `Text` in a Row.
  */
@@ -19,7 +19,7 @@ export class RadioWidget extends Widget {
   constructor(value: string, options: RadioOptions = {}) {
     super(options);
     if (typeof value !== 'string' || value.trim().length === 0) {
-      throw new Error('Radio requires a non-empty `value` — it is the option value stored in the RadioGroup field.');
+      throw new Error('Radio requires a non-empty `value` - it is the option value stored in the RadioGroup field.');
     }
     this.value = value;
 
@@ -37,7 +37,7 @@ export class RadioWidget extends Widget {
     const group = this.findGroup();
     if (!group) {
       throw new Error(
-        'Radio must be placed inside a RadioGroup (nesting in Rows/Columns is fine) — it has no field of its own.',
+        'Radio must be placed inside a RadioGroup (nesting in Rows/Columns is fine) - it has no field of its own.',
       );
     }
     group.placeOption(this.value, this, context);

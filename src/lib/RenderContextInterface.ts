@@ -16,20 +16,20 @@ import type {
  *
  * Widgets depend on this interface, not on any concrete backend. The PDF
  * backend supplies a {@link PdfRenderContext}; this is the polymorphism
- * point that lets the same widget tree render to different output formats —
+ * point that lets the same widget tree render to different output formats -
  * and, load-bearing today, the seam pagination's `PageScope` composes
  * through (ADR 0001).
  *
  * The interface is split into three concerns:
  *
- * 1. **Theme / debug** — shared configuration every backend needs.
- * 2. **Measurement** — font metrics. The signatures are shared, but each
+ * 1. **Theme / debug** - shared configuration every backend needs.
+ * 2. **Measurement** - font metrics. The signatures are shared, but each
  *    backend implements them against its own font system (pdf-lib's
  *    `PDFFont`, canvas `measureText`, etc.).
- * 3. **Drawing + geometry** — backend-specific drawing primitives and the
+ * 3. **Drawing + geometry** - backend-specific drawing primitives and the
  *    layout-box mapping.
  *
- * Page lifecycle (addPage/current-page/adopt) is deliberately NOT here —
+ * Page lifecycle (addPage/current-page/adopt) is deliberately NOT here -
  * it is backend mechanics, not something a scope-like adapter must answer.
  * The PDF-typed surface lives in {@link PdfPageSurface} (ADR 0001: PDF
  * features get PDF-typed modules, never interface widening).
@@ -108,7 +108,7 @@ export interface RenderContext {
 
   /**
    * Children of `widget` to render in the current scope. Undefined means
-   * "the widget's real children" — today's behavior. Implemented by the
+   * "the widget's real children" - today's behavior. Implemented by the
    * pagination scope; backends leave it undefined.
    */
   getRenderChildren?(widget: Widget): Widget[] | undefined;

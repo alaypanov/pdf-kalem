@@ -162,7 +162,7 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface, PdfFormS
   /**
    * The document's interactive form (created in the catalog on first use).
    * Form widgets (`src/lib/forms/`) narrow to {@link PdfFormSurface} at render
-   * time and create their fields through it — PDF-typed per ADR 0001, never
+   * time and create their fields through it - PDF-typed per ADR 0001, never
    * part of the neutral `RenderContext`.
    */
   getForm(): PDFForm {
@@ -190,8 +190,8 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface, PdfFormS
 
   /**
    * Adopts a page from a foreign `PDFDocument` (e.g. one loaded by the edit
-   * module): the page object is copied into this document — content streams,
-   * annotations, links, and form fields come along — and becomes the current
+   * module): the page object is copied into this document - content streams,
+   * annotations, links, and form fields come along - and becomes the current
    * page, so subsequent drawing lands on top of the original content.
    */
   async adoptPage(source: unknown, pageIndex: number): Promise<void> {
@@ -301,7 +301,7 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface, PdfFormS
     // names win: a family literally named 'inter-bold' embeds as itself,
     // never as the bold face of 'inter'. Suffixed ids resolve through the
     // family's faces, falling back (with a warning) when a face is missing
-    // — bold-italic → bold → italic → regular.
+    // - bold-italic → bold → italic → regular.
     let registered = this.fonts?.families.get(fontName)?.regular;
     let faceNote: string | undefined;
 
@@ -363,7 +363,7 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface, PdfFormS
         this.fontkitRegisteredOnDoc = true;
       }
       const font = await doc.embedFont(registered as any);
-      // Cache under the name the caller used — measurement looks the name up
+      // Cache under the name the caller used - measurement looks the name up
       // raw, so alias ids ('sans-bold') hit the embedded font instead of
       // silently measuring with the estimate (B20).
       this.fontCache.set(fontName, font);
@@ -392,7 +392,7 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface, PdfFormS
   /**
    * The fontkit instance used to embed custom fonts: an explicitly
    * registered one (via {@link FontRegistry}) first, then a lazy dynamic
-   * import of `@pdf-lib/fontkit` — so documents with custom fonts need no
+   * import of `@pdf-lib/fontkit` - so documents with custom fonts need no
    * `registerFontkit` call.
    */
   private async ensureFontkit(): Promise<unknown | undefined> {
@@ -427,7 +427,7 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface, PdfFormS
   }
 
   measureTextWidth(text: string, size: number, fontName: StandardFonts | string = StandardFonts.Helvetica): number {
-    // The cache key is the name the caller used — getFont caches under the
+    // The cache key is the name the caller used - getFont caches under the
     // raw name, so alias ids ('sans-bold') hit the embedded font instead of
     // silently measuring with the estimate (B20).
     const cacheKey = `${fontName}\u0000${size}\u0000${text}`;
@@ -439,7 +439,7 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface, PdfFormS
     const font = this.fontCache.get(fontName);
     if (!font) {
       // Un-embedded font (e.g. the getPageCount dry run, which has no
-      // document): return the estimate WITHOUT caching it — otherwise save()
+      // document): return the estimate WITHOUT caching it - otherwise save()
       // would keep wrapping text with the estimate after the real font is
       // embedded (B9).
       return text.length * size * 0.6;
@@ -452,7 +452,7 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface, PdfFormS
 
   /**
    * Typographic (hhea) metrics for embedded custom fonts, via pdf-lib's
-   * fontkit embedder. pdf-lib's `heightAtSize` is bbox-based — its
+   * fontkit embedder. pdf-lib's `heightAtSize` is bbox-based - its
    * `descender: false` variant returns the bbox yMax, which sits far below
    * the real ascender for fonts like Inter and made line boxes bottom-heavy.
    * Standard fonts have no fontkit font; their AFM metrics are already

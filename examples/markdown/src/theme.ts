@@ -3,7 +3,7 @@ import { fromHex } from 'pdf-kalem/utils/color-utils';
 
 /**
  * The converted document's look. `markdownToPdf` merges these values over
- * its own markdown theme defaults — user values win per key, so only the
+ * its own markdown theme defaults - user values win per key, so only the
  * tokens you set change the output.
  */
 export const theme = createTheme({

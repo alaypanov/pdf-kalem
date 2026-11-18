@@ -17,7 +17,7 @@ export interface SignatureOptions extends WidgetOptions {
 }
 
 /**
- * A signature line — a visual placeholder, NOT an AcroForm field: pdf-lib can
+ * A signature line - a visual placeholder, NOT an AcroForm field: pdf-lib can
  * read but not create signature fields, so there is nothing interactive to
  * make. The widget draws the signing line and caption with the vector/text
  * primitives (the same drawing surface SVGPath uses); the empty space above

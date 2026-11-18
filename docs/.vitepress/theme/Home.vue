@@ -7,7 +7,7 @@ import { useData, withBase } from 'vitepress'
  * display headline, deck line, lede, action buttons, and a hairline card
  * grid with numbered eyebrows. Content comes from the `layout: home`
  * frontmatter in docs/index.md (hero + features); OpenLayout.vue routes
- * `layout: home` here instead of the default VitePress home. No docs nav —
+ * `layout: home` here instead of the default VitePress home. No docs nav -
  * the cards navigate. Hero mapping: name → display headline, text → serif
  * deck line, tagline → lede.
  */

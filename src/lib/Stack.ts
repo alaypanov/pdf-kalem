@@ -43,9 +43,9 @@ const ALIGNMENTS: Record<StackAlignment, { justify: YogaStyle['justifyContent'];
  *
  * Children split into two kinds:
  *
- * - **Positioned** children — widgets that declare their own absolute
+ * - **Positioned** children - widgets that declare their own absolute
  *   insets (`FixedContainer`). Stack leaves their nodes untouched.
- * - **Non-positioned** children — aligned per `alignment` (Yoga aligns
+ * - **Non-positioned** children - aligned per `alignment` (Yoga aligns
  *   inset-less absolute children via justifyContent/alignItems).
  *
  * Sizing follows the same rule as Flutter's Stack: explicit `width`/
@@ -53,7 +53,7 @@ const ALIGNMENTS: Record<StackAlignment, { justify: YogaStyle['justifyContent'];
  * child (measured intrinsically in prepareLayout, after children have
  * their intrinsic sizes). Positioned children may overflow the box.
  *
- * Stack is atomic under pagination — overlaid children cannot split
+ * Stack is atomic under pagination - overlaid children cannot split
  * coherently, so the whole box moves or is clipped.
  */
 export class StackWidget extends Widget {
@@ -61,7 +61,7 @@ export class StackWidget extends Widget {
   private readonly explicitHeight?: YogaStyle['height'];
 
   constructor(options: StackOptions = {}) {
-    // Forward the full options so the base wiring (margin, breakable) runs —
+    // Forward the full options so the base wiring (margin, breakable) runs -
     // passing only `children` silently dropped `margin` (B15).
     super(options);
 
@@ -91,7 +91,7 @@ export class StackWidget extends Widget {
 
   /**
    * Auto sizing: measure each non-positioned child intrinsically (its own
-   * Yoga pass — Text's measure function and Image's intrinsic size are in
+   * Yoga pass - Text's measure function and Image's intrinsic size are in
    * place by now) and take the max. The page-root layout recomputes the
    * tree afterward, so the throwaway passes leave nothing behind.
    */
@@ -110,7 +110,7 @@ export class StackWidget extends Widget {
     if (!found) {
       if (this.explicitWidth === undefined || this.explicitHeight === undefined) {
         throw new Error(
-          'Stack with only positioned children (e.g. FixedContainer) cannot be sized — pass explicit width and height.',
+          'Stack with only positioned children (e.g. FixedContainer) cannot be sized - pass explicit width and height.',
         );
       }
       return;

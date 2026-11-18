@@ -224,7 +224,7 @@ function listMarkerText(
   styles: ResolvedMarkdownStyles,
 ): string {
   // No trailing space: the plain-text fallback trims it; the content column
-  // carries the gap instead. ✓ (U+2713) / □ (U+25A1) — the shipped `inter`
+  // carries the gap instead. ✓ (U+2713) / □ (U+25A1) - the shipped `inter`
   // family has these glyphs; builtin WinAnsi aliases do not (see CONTEXT.md).
   if (item.task) {
     return item.checked ? '✓' : '□';
@@ -278,7 +278,7 @@ async function renderImage(
     const bytes = new Uint8Array(await fetchImageBytes(image.href));
     const format = sniffImageFormat(bytes);
     if (!format) {
-      console.warn(`markdown: skipping image '${image.href}' — only png/jpeg can be embedded`);
+      console.warn(`markdown: skipping image '${image.href}' - only png/jpeg can be embedded`);
       return undefined;
     }
     return Image.fromBytes(bytes, format, {

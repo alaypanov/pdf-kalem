@@ -1,6 +1,6 @@
 /**
  * Package-internal test surface. Shipped in dist/ but deliberately NOT
- * exported from package.json `exports` — consumers cannot import it via the
+ * exported from package.json `exports` - consumers cannot import it via the
  * package name. In-repo tests use it to assert pagination plans without
  * pdf-lib (see tests/pagination.test.mjs) and the shared aspect-fit math
  * (see tests/aspect-fit.test.mjs).

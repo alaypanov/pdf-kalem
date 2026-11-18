@@ -5,13 +5,13 @@ import type { RenderContext } from './RenderContextInterface';
  * The PDF-specific page-lifecycle surface (ARCHITECTURE #10).
  *
  * ADR 0001's rule is "PDF-specific features get PDF-typed modules, never
- * interface widening" — but `adoptPage` and the page-handle members lived on
+ * interface widening" - but `adoptPage` and the page-handle members lived on
  * the "backend-neutral" `RenderContext`, typed `unknown` to hide that they
  * are pdf-lib mechanics. This interface moves them where they belong: the
  * PDF-typed layer.
  *
  * `PdfRenderContext` implements both interfaces (it already had every
- * method); the edit module's `LoadedPage` — the one consumer of adoption —
+ * method); the edit module's `LoadedPage` - the one consumer of adoption -
  * narrows to this surface at render time.
  */
 export interface PdfPageSurface {
@@ -22,8 +22,8 @@ export interface PdfPageSurface {
 
   /**
    * Adopts a page from a foreign `PDFDocument` as the current drawing
-   * surface: the page object is copied into the output document — content
-   * streams, annotations, links, and form fields come along — so subsequent
+   * surface: the page object is copied into the output document - content
+   * streams, annotations, links, and form fields come along - so subsequent
    * drawing lands on top of the original content. Used by the edit module
    * (`pdf-kalem/edit`).
    */
@@ -32,7 +32,7 @@ export interface PdfPageSurface {
 
 /**
  * Structural check: can this context open pages? `Page` only ever calls
- * `addPage` — demanding the full surface (including `adoptPage`, which only
+ * `addPage` - demanding the full surface (including `adoptPage`, which only
  * the edit module uses) would over-constrain test fakes and future scopes.
  */
 export function canAddPages(context: RenderContext): context is RenderContext & Pick<PdfPageSurface, 'addPage'> {

@@ -66,7 +66,7 @@ test('Container no longer defeats a parent\'s alignItems: stretch', async () => 
 });
 
 test('Container still shrink-wraps when the parent does not stretch', async () => {
-  // Row defaults to alignItems: flex-start — the cross axis does not stretch.
+  // Row defaults to alignItems: flex-start - the cross axis does not stretch.
   const row = await layout(
     Row({ children: [Container({ height: 20, child: Text('wrap') })] }),
   );
@@ -88,7 +88,7 @@ test('shrink-wrap is available explicitly via style', async () => {
 
 test('per-side padding applies edge-by-edge', async () => {
   // A Flex child fills the content box (alignSelf: stretch) so all four
-  // padding edges are measurable — Text measures its own lines and would
+  // padding edges are measurable - Text measures its own lines and would
   // not reach the right/bottom edges.
   const container = await layout(
     Container({

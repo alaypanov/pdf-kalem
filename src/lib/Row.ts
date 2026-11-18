@@ -45,7 +45,7 @@ export type RowComponent = ((options?: RowOptions) => FlexContainer) &
  */
 function createRow(options: RowOptions = {}): FlexContainer {
   // Prop-derived values first, `style` last (the escape hatch wins per key,
-  // same contract as Container — B14). The direction stays pinned: it is the
+  // same contract as Container - B14). The direction stays pinned: it is the
   // widget's identity, not a default.
   const style: YogaStyle = {
     justifyContent: options.mainAxisAlignment || justifyStart,

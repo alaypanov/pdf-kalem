@@ -189,7 +189,7 @@ test('paragraphs render emphasis as runs', async () => {
   ]);
 
   // Strikethrough: one line over the 'gone' fragment, ABOVE the baseline
-  // (0.28em up — PDF y grows up; an underline would be below).
+  // (0.28em up - PDF y grows up; an underline would be below).
   assert.equal(context.drawLines.length, 1);
   const struck = styled[2];
   assert.equal(context.drawLines[0].start.y, struck.y + struck.size * 0.28);
@@ -248,7 +248,7 @@ test('unordered, ordered, nested, and task lists render markers', async () => {
   assert.ok(!texts.includes('[ ]'));
 
   // Nested item's marker is indented further right than the top-level one
-  // (alpha, beta, nested — all unordered bullets).
+  // (alpha, beta, nested - all unordered bullets).
   const markers = context.drawTexts.filter((call) => call.text === '•');
   assert.equal(markers.length, 3);
   assert.ok(markers[2].x > markers[0].x);
@@ -263,7 +263,7 @@ test('code blocks render mono text on a padded background', async () => {
   const codeCall = context.drawTexts.find((call) => call.text.includes('const x'));
   assert.ok(codeCall, 'code text not drawn');
   assert.equal(codeCall.fontName, 'Courier');
-  // The fenced content's trailing \n is trimmed — no blank line at the
+  // The fenced content's trailing \n is trimmed - no blank line at the
   // bottom of the block (it made the bottom padding look uneven).
   assert.equal(context.drawTexts.length, 1);
   assert.ok(
@@ -315,7 +315,7 @@ test('markdown tables get cell padding from the merged theme defaults', async ()
   assert.equal(context.drawTexts[0].text, 'A');
   assert.equal(context.drawTexts[0].x - context.drawRects[0].x, 6);
 
-  // A user theme wins per key (fresh widgets — trees can't re-parent).
+  // A user theme wins per key (fresh widgets - trees can't re-parent).
   const themed = await renderWidgets(
     await markdownToWidgets(md),
     mergeMarkdownTheme(createTheme({ table: { cellPadding: 9 } }))

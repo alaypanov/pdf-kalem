@@ -1,10 +1,10 @@
 # Fonts
 
-Built-in aliases work without any font files: `sans`, `sans-bold`, `sans-italic`, `sans-bold-italic`, `serif` (+ variants), `mono` (+ variants). These are pdf-lib's standard fonts — WinAnsi-encoded, so they cannot draw characters outside that range (e.g. `✓`, `→`, emoji). For real typography, load a font family.
+Built-in aliases work without any font files: `sans`, `sans-bold`, `sans-italic`, `sans-bold-italic`, `serif` (+ variants), `mono` (+ variants). These are pdf-lib's standard fonts - WinAnsi-encoded, so they cannot draw characters outside that range (e.g. `✓`, `→`, emoji). For real typography, load a font family.
 
 ## Loading a font family
 
-`useFonts` maps your document's **font tokens** to families: the keys (`body`, `code`, `heading`, …) are the same tokens text variants reference. Doc-level font tokens win over `theme.fonts`. No `registerFontkit` call is needed — fontkit loads lazily on the first custom-font embed.
+`useFonts` maps your document's **font tokens** to families: the keys (`body`, `code`, `heading`, …) are the same tokens text variants reference. Doc-level font tokens win over `theme.fonts`. No `registerFontkit` call is needed - fontkit loads lazily on the first custom-font embed.
 
 A family entry is either a single source (its regular face) or an object of per-face sources. A string is fetched (browser/http URL); pass bytes for Node filesystem loading:
 
@@ -31,7 +31,7 @@ const fonts = await useFonts(
 const doc = new PdfDoc({ fonts, children: [/* ... */] });
 ```
 
-The repo's examples load Inter exactly this way — the OFL-licensed TTFs live in [`examples/fonts/`](https://github.com/alaypanov/pdf-kalem/tree/main/examples/fonts).
+The repo's examples load Inter exactly this way - the OFL-licensed TTFs live in [`examples/fonts/`](https://github.com/alaypanov/pdf-kalem/tree/main/examples/fonts).
 
 ## Faces and fallback
 
@@ -43,9 +43,9 @@ Text([{ text: 'Total', fontStyle: 'italic' }]);        // run-level
 createTheme({ text: { h1: { fontWeight: 700 } } });    // theme variant
 ```
 
-Weights follow CSS matching against the family's faces: 100–500 (and `'normal'`) render regular, 600–900 (and `'bold'`) render bold. Each axis replaces the base style — an explicit `fontWeight: 400` un-bolds a bold base — and block typography carries into run `font`/`mono` overrides.
+Weights follow CSS matching against the family's faces: 100–500 (and `'normal'`) render regular, 600–900 (and `'bold'`) render bold. Each axis replaces the base style - an explicit `fontWeight: 400` un-bolds a bold base - and block typography carries into run `font`/`mono` overrides.
 
-Faces are also referenced directly by suffixing the family name — `inter-bold`, `inter-italic`, `inter-bold-italic` — the same convention the builtin aliases use. A `font` value with a style suffix keeps working, and block `fontWeight`/`fontStyle` layer onto it per axis.
+Faces are also referenced directly by suffixing the family name - `inter-bold`, `inter-italic`, `inter-bold-italic` - the same convention the builtin aliases use. A `font` value with a style suffix keeps working, and block `fontWeight`/`fontStyle` layer onto it per axis.
 
 Missing faces fall back at embed time (bold-italic → bold → italic → regular) with a console warning, so a family can ship incrementally.
 
@@ -54,5 +54,5 @@ Missing faces fall back at embed time (bold-italic → bold → italic → regul
 `PdfDoc.registerFont` / `registerFonts` / `registerFontFromUrl` still work as a process-wide fallback; doc-scoped `FontSet`s always resolve first.
 
 ::: warning WinAnsi limitation
-Task-list markers (`✓`/`□`), arrows, and emoji throw with the builtin aliases — including code blocks set in `mono` (Courier). Load your own mono family via `files` for symbol-heavy or non-Latin code.
+Task-list markers (`✓`/`□`), arrows, and emoji throw with the builtin aliases - including code blocks set in `mono` (Courier). Load your own mono family via `files` for symbol-heavy or non-Latin code.
 :::

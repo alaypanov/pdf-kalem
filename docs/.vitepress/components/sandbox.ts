@@ -3,7 +3,7 @@
  *
  * The editor holds the *body* of a function: it must `return` an array of
  * Page widgets. Widget factories and helpers are injected as function
- * parameters (plain JavaScript — no imports, no types), so edited code is
+ * parameters (plain JavaScript - no imports, no types), so edited code is
  * evaluated with `new Function` on every render without a transpiler. This
  * keeps the playgrounds dependency-free and instant.
  */
@@ -92,7 +92,7 @@ export function evalPages(code: string, sandbox: Record<string, unknown>): Widge
 
 /**
  * Captures `console.warn` while `fn` runs. Library warnings (theme-token
- * typos, font fallbacks — I12) fire through it; without this they'd only be
+ * typos, font fallbacks - I12) fire through it; without this they'd only be
  * visible in the browser DevTools console, not in the playground UI where
  * the user is looking at the wrong-colored output.
  */
@@ -108,7 +108,7 @@ export async function captureWarnings<T>(fn: () => Promise<T>): Promise<{ result
 }
 
 /**
- * Evaluate editor code (a function body) that edits `pages` in place — the
+ * Evaluate editor code (a function body) that edits `pages` in place - the
  * edit playground's contract: overlay with `pages[i].add([...])`, restructure
  * by mutating the array. No return value; the (mutated) array is the result.
  */

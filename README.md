@@ -2,20 +2,20 @@
 
 > **For AI assistants:** read [`CONTEXT.md`](./CONTEXT.md) for a compact codebase orientation before diving into the source.
 
-> **Status: early alpha.** The API is not yet stable and may change between versions. Not recommended for production use yet — feedback and bug reports are welcome.
+> **Status: early alpha.** The API is not yet stable and may change between versions. Not recommended for production use yet - feedback and bug reports are welcome.
 
 pdf-kalem is a widget-tree UI library for document-style layout and generation.
 
-The core idea is to describe content as a tree of widgets — pages, containers, rows, columns, text, images, links, tables, and SVG paths — run [Yoga](https://github.com/facebook/yoga) for flexbox layout, and render the tree through a backend-specific renderer. The PDF backend (`pdf-lib`).
+The core idea is to describe content as a tree of widgets - pages, containers, rows, columns, text, images, links, tables, and SVG paths - run [Yoga](https://github.com/facebook/yoga) for flexbox layout, and render the tree through a backend-specific renderer. The PDF backend (`pdf-lib`).
 
-The design is heavily inspired by [Flutter](https://flutter.dev)'s widget-tree model — the idea of composing documents from declarative widget trees with flexbox layout, theme tokens, and per-widget overrides. pdf-kalem adapts that mental model to the document/PDF domain.
+The design is heavily inspired by [Flutter](https://flutter.dev)'s widget-tree model - the idea of composing documents from declarative widget trees with flexbox layout, theme tokens, and per-widget overrides. pdf-kalem adapts that mental model to the document/PDF domain.
 
 ## What It Does
 
 - Builds page-based layouts with Yoga (flexbox: `Row`, `Column`, `gap`, `flexGrow`, `%` widths, absolute positioning).
 - **Pagination**: content taller than one page automatically flows onto additional pages. Text blocks split by line, table rows stay whole and headers repeat, and each `Page` re-renders its chrome per output page; whitespace-only pages (an overflowing trailing `Spacer`) are dropped. Opt out per page with `Page({ overflow: false })` or keep a text block together with `Text(..., { breakable: false })`.
-- **Edits existing PDFs** via `pdf-kalem/edit`: load a PDF as Page widgets, overlay widgets on its pages, restructure/merge, save — original content, annotations, and form fields preserved.
-- **Builds fillable forms** via `pdf-kalem/forms`: text fields, checkboxes, dropdowns, radio groups, and buttons as widget-tree nodes — real AcroForm fields in the output, with `formData` data binding (template + data).
+- **Edits existing PDFs** via `pdf-kalem/edit`: load a PDF as Page widgets, overlay widgets on its pages, restructure/merge, save - original content, annotations, and form fields preserved.
+- **Builds fillable forms** via `pdf-kalem/forms`: text fields, checkboxes, dropdowns, radio groups, and buttons as widget-tree nodes - real AcroForm fields in the output, with `formData` data binding (template + data).
 - Exports PDFs through `pdf-lib` with metadata, custom fonts, link annotations, and SVG paths.
 - Provides a shared text engine (powered by [`@chenglou/pretext`](https://github.com/chenglou/pretext)) with grapheme-aware wrapping, `maxLines`, and `ellipsis` overflow.
 - Supports document-scoped themes (color tokens, font aliases, text variants, table/container defaults) with per-widget overrides.
@@ -25,11 +25,11 @@ The design is heavily inspired by [Flutter](https://flutter.dev)'s widget-tree m
 
 The project is split into three layers:
 
-1. **Widget tree** — `PdfDoc`, `Page`, `Container`, `Text`, `Row`, `Column`, `Image`, `Link`, `FixedContainer`, `SVGPath`, `Table`, `HLine`, and related layout primitives. Widgets depend on a backend-neutral `RenderContext` interface, not on any concrete backend.
-2. **Render layer** — `PdfRenderContext` (implements `RenderContext`) drives `pdf-lib`; `PdfRenderer` walks the page tree and drives the context. The PDF coordinate flip (y grows up from the bottom-left) is applied inside `PdfRenderContext`, so widgets deal in layout boxes, not PDF math.
-3. **Shared services** — `FontRegistry` (singleton) owns registered font bytes, the fontkit instance, and browser `FontFace` loading. `TextLayoutEngine` (pure text measurement/wrapping/truncation) and `TextPainter` (draws a laid-out text block via a `RenderContext`) are shared by `Text` and `Link`.
+1. **Widget tree** - `PdfDoc`, `Page`, `Container`, `Text`, `Row`, `Column`, `Image`, `Link`, `FixedContainer`, `SVGPath`, `Table`, `HLine`, and related layout primitives. Widgets depend on a backend-neutral `RenderContext` interface, not on any concrete backend.
+2. **Render layer** - `PdfRenderContext` (implements `RenderContext`) drives `pdf-lib`; `PdfRenderer` walks the page tree and drives the context. The PDF coordinate flip (y grows up from the bottom-left) is applied inside `PdfRenderContext`, so widgets deal in layout boxes, not PDF math.
+3. **Shared services** - `FontRegistry` (singleton) owns registered font bytes, the fontkit instance, and browser `FontFace` loading. `TextLayoutEngine` (pure text measurement/wrapping/truncation) and `TextPainter` (draws a laid-out text block via a `RenderContext`) are shared by `Text` and `Link`.
 
-`PdfDoc` is the document model: it owns the page tree, theme, metadata, and lifecycle hooks. It is intentionally **not** a `Widget` — a document is not a layout node. Rendering is delegated to `PdfRenderer`, and runtime helpers (`save`/`getBlob`/`download`/`getBuffer`/`writeToFile`) live on `PdfDoc` as convenience methods.
+`PdfDoc` is the document model: it owns the page tree, theme, metadata, and lifecycle hooks. It is intentionally **not** a `Widget` - a document is not a layout node. Rendering is delegated to `PdfRenderer`, and runtime helpers (`save`/`getBlob`/`download`/`getBuffer`/`writeToFile`) live on `PdfDoc` as convenience methods.
 
 ## Install
 
@@ -47,12 +47,12 @@ pnpm install
 
 ## Examples
 
-The [`examples/`](./examples) folder holds self-contained, copyable projects — a one-file hello-world, an invoice, a multi-page report, and a markdown-to-PDF CLI. Each is a plain ESM TypeScript folder (no per-example npm setup) with its own theme, components, and data, structured so you can lift one into your own project and adapt it:
+The [`examples/`](./examples) folder holds self-contained, copyable projects - a one-file hello-world, an invoice, a multi-page report, and a markdown-to-PDF CLI. Each is a plain ESM TypeScript folder (no per-example npm setup) with its own theme, components, and data, structured so you can lift one into your own project and adapt it:
 
 ```bash
 pnpm build      # examples import the built library
 pnpm example   # run every example; each writes its PDF next to its code
-               # or: pnpm example invoice — just one
+               # or: pnpm example invoice - just one
 ```
 
 See [`examples/README.md`](./examples/README.md) for what each one demonstrates and how to copy one.
@@ -114,15 +114,15 @@ const buffer = await doc.getBuffer();
 await doc.writeToFile('invoice.pdf');
 ```
 
-`getBuffer()` and `writeToFile()` are intended for Node runtimes. `download()`, `getBlob()`, and `print()` are browser-only — `print()` loads the PDF into a hidden iframe and opens the browser's print dialog (Safari's PDF viewer doesn't support programmatic printing; download-and-print manually there).
+`getBuffer()` and `writeToFile()` are intended for Node runtimes. `download()`, `getBlob()`, and `print()` are browser-only - `print()` loads the PDF into a hidden iframe and opens the browser's print dialog (Safari's PDF viewer doesn't support programmatic printing; download-and-print manually there).
 
 ### Pagination
 
 When a page's content is taller than the page, pdf-kalem splits it across additional pages. It does this with a three-pass approach (layout → paginate → render), similar to react-pdf:
 
-1. **Layout** — the whole page tree is laid out once on a single tall canvas.
-2. **Paginate** — the laid-out tree is walked and split into per-page *fragment* trees. Each fragment is a lightweight view onto a widget for one output page (it reuses the same Yoga node, so there's no re-layout).
-3. **Render** — each output page adds a PDF page and renders its fragments, shifting coordinates by `-pageIndex × pageHeight` so each slice lands correctly.
+1. **Layout** - the whole page tree is laid out once on a single tall canvas.
+2. **Paginate** - the laid-out tree is walked and split into per-page *fragment* trees. Each fragment is a lightweight view onto a widget for one output page (it reuses the same Yoga node, so there's no re-layout).
+3. **Render** - each output page adds a PDF page and renders its fragments, shifting coordinates by `-pageIndex × pageHeight` so each slice lands correctly.
 
 Splitting rules by widget:
 
@@ -186,7 +186,7 @@ Text(
   { size: 12 }
 );
 
-// Runs can carry their own links — each line fragment of the run gets its
+// Runs can carry their own links - each line fragment of the run gets its
 // own clickable annotation, so a run that wraps stays clickable everywhere.
 Text([{ text: 'Read the ' }, { text: 'full report', href: 'https://example.com' }]);
 
@@ -195,13 +195,13 @@ Text([{ text: 'Read the ' }, { text: 'full report', href: 'https://example.com' 
 Text([{ text: 'const x = 1', mono: true }]);
 ```
 
-Run fields: `fontWeight`, `fontStyle`, `strike`, `href`, `mono`, `font`, `color`. Weight follows CSS matching — 100–500 renders regular, 600–900 renders bold — and each axis replaces the base style (an explicit `fontWeight: 400` un-bolds a bold base). Faces resolve through the run's family with the usual fallback chain, so `{ fontWeight: 700 }` in an `inter` text uses `inter-bold` when loaded and falls back with a warning otherwise. Words that span run boundaries (`he` + `**llo**`) never break internally; wrapping, `maxLines`, and `ellipsis` all work across runs.
+Run fields: `fontWeight`, `fontStyle`, `strike`, `href`, `mono`, `font`, `color`. Weight follows CSS matching - 100–500 renders regular, 600–900 renders bold - and each axis replaces the base style (an explicit `fontWeight: 400` un-bolds a bold base). Faces resolve through the run's family with the usual fallback chain, so `{ fontWeight: 700 }` in an `inter` text uses `inter-bold` when loaded and falls back with a warning otherwise. Words that span run boundaries (`he` + `**llo**`) never break internally; wrapping, `maxLines`, and `ellipsis` all work across runs.
 
 ## Fonts
 
 Built-in aliases work without registration: `sans`, `sans-bold`, `sans-italic`, `sans-bold-italic`, `serif` (+ variants), `mono` (+ variants).
 
-For real typography, load a font set once and pass it to the document. Families come from your own font files — the repo's examples load Inter this way (the OFL-licensed TTFs live in [`examples/fonts/`](./examples/fonts)):
+For real typography, load a font set once and pass it to the document. Families come from your own font files - the repo's examples load Inter this way (the OFL-licensed TTFs live in [`examples/fonts/`](./examples/fonts)):
 
 ```ts
 import { PdfDoc, useFonts } from 'pdf-kalem';
@@ -214,9 +214,9 @@ const fonts = await useFonts(
 const doc = new PdfDoc({ fonts, children: [/* ... */] });
 ```
 
-A family entry is either a single source (its regular face) or an object of per-face sources; a string is fetched (browser/http URL — pass bytes for Node filesystem loading). Code falls back to the builtin `mono` alias (Courier); load a real mono family via `files` when you need one.
+A family entry is either a single source (its regular face) or an object of per-face sources; a string is fetched (browser/http URL - pass bytes for Node filesystem loading). Code falls back to the builtin `mono` alias (Courier); load a real mono family via `files` when you need one.
 
-A family carries faces: `regular` plus optional `bold`, `italic`, and `boldItalic`. A face is referenced by suffixing the family name — `inter-bold`, `inter-italic`, `inter-bold-italic` — the same convention the builtin aliases use. Missing faces fall back at embed time (bold-italic → bold → italic → regular) with a console warning, so a family can ship incrementally.
+A family carries faces: `regular` plus optional `bold`, `italic`, and `boldItalic`. A face is referenced by suffixing the family name - `inter-bold`, `inter-italic`, `inter-bold-italic` - the same convention the builtin aliases use. Missing faces fall back at embed time (bold-italic → bold → italic → regular) with a console warning, so a family can ship incrementally.
 
 Bring your own fonts per face:
 
@@ -235,7 +235,7 @@ const fonts = await useFonts(
 );
 ```
 
-No `registerFontkit` call is needed — fontkit loads lazily on the first custom-font embed. Legacy global registration (`PdfDoc.registerFont` / `registerFonts` / `registerFontFromUrl`) still works as a process-wide fallback; doc-scoped `FontSet`s always resolve first.
+No `registerFontkit` call is needed - fontkit loads lazily on the first custom-font embed. Legacy global registration (`PdfDoc.registerFont` / `registerFonts` / `registerFontFromUrl`) still works as a process-wide fallback; doc-scoped `FontSet`s always resolve first.
 
 ## Markdown
 
@@ -246,7 +246,7 @@ import { markdownToPdf, markdownToWidgets } from 'pdf-kalem/markdown';
 
 // Sugar: one paginated Page, markdown theme defaults merged under your theme.
 const doc = await markdownToPdf('# Report\n\nBody text with **emphasis**.', {
-  theme: myTheme,      // optional — user values win over the defaults
+  theme: myTheme,      // optional - user values win over the defaults
   fonts,               // optional FontSet (see Fonts above)
   page: { padding: 48 },
 });
@@ -257,15 +257,15 @@ await doc.save();
 const blocks = await markdownToWidgets(md, { styles: { spacing: 8 } });
 ```
 
-Supported: headings (`h1`..`h6` theme variants, bold), emphasis (`**bold**`, `*italic*`, `~~strikethrough~~`, `` `code` ``), links (clickable per line fragment, underlined, `link` color token), ordered/unordered/nested/task lists (tasks render as `✓`/`□`), fenced code blocks (monospace, `pre-wrap`, background), blockquotes (left rule + italic), GFM tables (per-column alignment, padded cells, header row), horizontal rules, and images (png/jpeg — the format is sniffed from the fetched bytes; other formats are skipped with a warning).
+Supported: headings (`h1`..`h6` theme variants, bold), emphasis (`**bold**`, `*italic*`, `~~strikethrough~~`, `` `code` ``), links (clickable per line fragment, underlined, `link` color token), ordered/unordered/nested/task lists (tasks render as `✓`/`□`), fenced code blocks (monospace, `pre-wrap`, background), blockquotes (left rule + italic), GFM tables (per-column alignment, padded cells, header row), horizontal rules, and images (png/jpeg - the format is sniffed from the fetched bytes; other formats are skipped with a warning).
 
 Styling is theme-driven: headings resolve the `h1`..`h6` text variants, links resolve the `link` color token, and `MarkdownStyles` overrides the rest (code font/colors, blockquote rule, list indent, spacing, image width, table options). `markdownThemeDefaults` is exported so custom docs can merge the same baseline.
 
-A copyable converter project ships in [`examples/markdown/`](./examples/markdown) — a small CLI that turns any markdown file (or an embedded sample) into a paginated PDF.
+A copyable converter project ships in [`examples/markdown/`](./examples/markdown) - a small CLI that turns any markdown file (or an embedded sample) into a paginated PDF.
 
 ## Forms
 
-The `pdf-kalem/forms` subpath adds **real AcroForm fields** to the widget tree — the saved PDF is fillable in any PDF reader:
+The `pdf-kalem/forms` subpath adds **real AcroForm fields** to the widget tree - the saved PDF is fillable in any PDF reader:
 
 ```ts
 import { TextField, CheckBox, Dropdown, RadioGroup, Radio, Button, Signature } from 'pdf-kalem/forms';
@@ -277,15 +277,15 @@ Page({
     Dropdown('country', { options: ['Germany', 'Kazakhstan'] }),
     RadioGroup('plan', { children: [Radio('basic'), Radio('pro')] }),
     CheckBox('consent'),
-    Button('submit', { label: 'Register' }), // visual only — pdf-lib has no action API
+    Button('submit', { label: 'Register' }), // visual only - pdf-lib has no action API
     Signature(),                             // drawn signing line, not a field
   ],
 });
 ```
 
-Every field takes a unique `name` (the AcroForm field name), ships a usable default size, and is atomic — on overflow it moves whole to the next page. Labels are plain `Text` widgets you compose yourself.
+Every field takes a unique `name` (the AcroForm field name), ships a usable default size, and is atomic - on overflow it moves whole to the next page. Labels are plain `Text` widgets you compose yourself.
 
-**Data binding**: `new PdfDoc({ children, formData })` applies values by field name, winning over per-widget `value`/`checked` options — the same tree-builder with different `formData` produces filled variants of one template. Type mismatches throw at construction; keys matching no field warn.
+**Data binding**: `new PdfDoc({ children, formData })` applies values by field name, winning over per-widget `value`/`checked` options - the same tree-builder with different `formData` produces filled variants of one template. Type mismatches throw at construction; keys matching no field warn.
 
 A copyable form project ships in [`examples/forms/`](./examples/forms) (blank template + filled variant). See the [form widgets guide](https://alaypanov.github.io/pdf-kalem/guide/forms) for the full field set and limitations (field text is Helvetica; buttons carry no actions; `Signature` is a drawn placeholder, not a signature field).
 
@@ -345,7 +345,7 @@ The current direction is:
 
 - keep the widget tree focused on document layout
 - keep PDF behavior explicit and first-class via `PdfDoc` / `PdfRenderContext`
-- **PDF-only focus** — no image/HTML backends are planned ([ADR 0001](./docs/adr/0001-pdf-only-focus.md)). PDF-specific features live in PDF-typed modules (e.g. `pdf-kalem/edit`) instead of widening the backend-neutral interface.
+- **PDF-only focus** - no image/HTML backends are planned ([ADR 0001](./docs/adr/0001-pdf-only-focus.md)). PDF-specific features live in PDF-typed modules (e.g. `pdf-kalem/edit`) instead of widening the backend-neutral interface.
 
 The `RenderContext` seam stays because it is load-bearing, not as a backend hook: pagination's per-page `PageScope` composes through it, and the PDF Y-flip lives in one place (`mapContentBox`).
 
@@ -360,12 +360,12 @@ The `RenderContext` seam stays because it is load-bearing, not as a backend hook
 
 pdf-kalem stands on the shoulders of several excellent open-source projects:
 
-- [Flutter](https://flutter.dev) — the widget-tree mental model that inspired pdf-kalem's design.
-- [pdf-lib](https://github.com/Hopding/pdf-lib) — the PDF generation engine that powers the PDF backend.
-- [Yoga](https://github.com/facebook/yoga) — the flexbox layout engine (from Meta/Facebook) that handles all layout computation.
-- [`@chenglou/pretext`](https://github.com/chenglou/pretext) — the grapheme-aware text measurement and wrapping engine.
-- [@mdi/js](https://github.com/Templarian/MaterialDesign-JS) — Material Design Icons path data, used by the `Icon` widget.
-- [@pdf-lib/fontkit](https://github.com/Hopding/pdf-lib/tree/master/fontkit) — custom font subsetting and embedding for PDFs.
+- [Flutter](https://flutter.dev) - the widget-tree mental model that inspired pdf-kalem's design.
+- [pdf-lib](https://github.com/Hopding/pdf-lib) - the PDF generation engine that powers the PDF backend.
+- [Yoga](https://github.com/facebook/yoga) - the flexbox layout engine (from Meta/Facebook) that handles all layout computation.
+- [`@chenglou/pretext`](https://github.com/chenglou/pretext) - the grapheme-aware text measurement and wrapping engine.
+- [@mdi/js](https://github.com/Templarian/MaterialDesign-JS) - Material Design Icons path data, used by the `Icon` widget.
+- [@pdf-lib/fontkit](https://github.com/Hopding/pdf-lib/tree/master/fontkit) - custom font subsetting and embedding for PDFs.
 
 # Tools
 - Zed Editor

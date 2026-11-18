@@ -2,7 +2,7 @@
  * Aspect-fit tests: the shared measure/placement math behind Image, SVGPath,
  * and Icon (ARCHITECTURE.md #4).
  *
- * Pure math — no widgets, no Yoga, no pdf-lib. Pins bug B1 (SVGPath drew
+ * Pure math - no widgets, no Yoga, no pdf-lib. Pins bug B1 (SVGPath drew
  * below its layout box because it passed the box bottom, not the drawn area's
  * top, to pdf-lib's y-flipping drawSvgPath). Run: node tests/aspect-fit.test.mjs
  * (after `pnpm build`).
@@ -18,7 +18,7 @@ import {
 } from '../dist/internals.js';
 
 // Yoga's measure modes, straight from the library (Undefined = 0, Exactly = 1,
-// AtMost = 2) — the widgets compare against this same enum.
+// AtMost = 2) - the widgets compare against this same enum.
 const { Exactly, AtMost, Undefined } = MeasureMode;
 
 const SPEC = {
@@ -59,7 +59,7 @@ check(
 // --- measure: Cover takes the larger scale -----------------------------------
 
 {
-  // Distinguishes Fit from Cover: square box around 2:1 content —
+  // Distinguishes Fit from Cover: square box around 2:1 content -
   // Fit limits by width (100×50), Cover fills the height (200×100).
   const coverSpec = { ...SPEC, sizing: ImageSizing.Cover };
   check(
@@ -121,7 +121,7 @@ check(
   check('top/bottom span the drawn height', p.top - p.bottom, p.drawnHeight);
 }
 
-// --- placement: B1 — the drawSvgPath origin is the drawn area's TOP -----------
+// --- placement: B1 - the drawSvgPath origin is the drawn area's TOP -----------
 
 {
   // An exactly-fitting box: the old SVGPath code passed y + offsetY (the box

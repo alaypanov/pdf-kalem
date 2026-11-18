@@ -37,7 +37,7 @@ function decodeStream(pdf, stream) {
   const bytes = Buffer.from(stream.contents);
   const decoded = filter?.toString().includes('FlateDecode') ? inflateSync(bytes) : bytes;
   // pdf-lib writes text-showing operators with hex literal strings
-  // (<504147...> Tj) — decode them so assertions can search plain text.
+  // (<504147...> Tj) - decode them so assertions can search plain text.
   return decoded.toString('latin1').replace(/<([0-9A-Fa-f]+)>/g, (_, hex) =>
     Buffer.from(hex, 'hex').toString('latin1'),
   );
@@ -144,7 +144,7 @@ await test('repeated add calls append in call order', async () => {
 
 await test('overlay overflow is clipped, never paginated into new pages', async () => {
   const pdf = await loadPdf(await fixtureBytes());
-  // Far taller than the 400pt page — a Text block of many lines.
+  // Far taller than the 400pt page - a Text block of many lines.
   const words = Array.from({ length: 400 }, (_, i) => `w${i}`).join(' ');
   pdf.pages[0].add([Text(words, { size: 12, lineHeight: 12 })]);
 

@@ -34,7 +34,7 @@ interface PageAcc {
 /**
  * One splitting widget's state on the current page. `origin` is the
  * page-relative y where the widget's flow offset 0 (its border-box top)
- * lands on THIS page — negative when a continuation slice starts above the
+ * lands on THIS page - negative when a continuation slice starts above the
  * page's content top. Every placement derives from it:
  * `pageY(unit) = origin + unit.offset`.
  */
@@ -54,14 +54,14 @@ interface Frame {
 /**
  * The pagination transformation: flow tree → `PagePlan` forest.
  *
- * Pure with respect to rendering — no drawing, no `addPage`, no pagination
+ * Pure with respect to rendering - no drawing, no `addPage`, no pagination
  * state on widgets. Deterministic: same tree + context ⇒ same plan.
  *
  * Pass 1 lays out at the real page height; when the content fits, the result
  * is `overflow: false` and the driver renders through the legacy path with
  * the pass-1 geometry still on the nodes. Only on overflow does pass 2
  * (height auto) feed the fragmentation walk, which reads computed geometry
- * only — Yoga never runs during the walk.
+ * only - Yoga never runs during the walk.
  *
  * Break policy: splittable fills the page then splits at a unit boundary;
  * atomic moves whole to the next page; atomic taller than a full page is
@@ -82,7 +82,7 @@ export class Paginator {
   }
 
   async paginate(page: PageWidget, context: RenderContext): Promise<Pagination> {
-    // Non-paginating pages (overflow: false) render as exactly one page —
+    // Non-paginating pages (overflow: false) render as exactly one page -
     // overflowing content is clipped by the viewer, never split. The dry
     // run (getPageCount) must agree with that.
     if (!page.paginates) {
@@ -97,7 +97,7 @@ export class Paginator {
     const dimensions = page.getDimensions(context);
     this.pageSize = dimensions;
 
-    // Pass 1: real page height (today's semantics — grow works, fitting
+    // Pass 1: real page height (today's semantics - grow works, fitting
     // documents render byte-identically through the legacy path).
     page.runFlowLayout(dimensions[0], dimensions[1]);
     this.content = page.getContentBox(dimensions);
@@ -107,7 +107,7 @@ export class Paginator {
       return { pages: [], pageCount: 1, overflow: false };
     }
 
-    // Pass 2: natural flow layout (height auto) — the fragmentation input.
+    // Pass 2: natural flow layout (height auto) - the fragmentation input.
     page.runFlowLayout(dimensions[0], undefined);
 
     this.current = {
@@ -146,8 +146,8 @@ export class Paginator {
 
     // Whitespace-only pages are never wanted: a trailing Spacer overflowing
     // onto a fresh page would otherwise emit a fully blank page. Fixed
-    // furniture (footers) keeps every page alive — it paints on each output
-    // page — and an all-whitespace document keeps its original plans (a
+    // furniture (footers) keeps every page alive - it paints on each output
+    // page - and an all-whitespace document keeps its original plans (a
     // zero-page PDF would be degenerate). Indexes renumber after the drop:
     // page numbering is doc-global.
     if (fixedWidgets.length === 0) {
@@ -170,7 +170,7 @@ export class Paginator {
 
   /**
    * Whitespace-only content: Spacers, and pure layout containers (Flex/
-   * Row/Column/Stack — no background, no border) whose entire subtree is
+   * Row/Column/Stack - no background, no border) whose entire subtree is
    * whitespace. Walks the WIDGET tree, not the fragment tree: whole-placed
    * fragments carry no fragment children, but the widget subtree is always
    * complete.
@@ -287,7 +287,7 @@ export class Paginator {
       this.attach(frag, frame, chain);
     } else {
       // Self-painted unit (text line): the frame's own fragment carries the
-      // slice — ensure it exists (its box derives from origin + flowHeight).
+      // slice - ensure it exists (its box derives from origin + flowHeight).
       // Page-level units always have widgets, so this never runs for the
       // page root frame.
       this.ensureFrameFrag(frame, chain);
@@ -344,7 +344,7 @@ export class Paginator {
   /**
    * Absolute-positioned children of a splitting frame: whole-placed subtrees
    * render them via their real children, but a split frame renders only its
-   * placed fragments — so each absolute child is re-emitted as a fragment
+   * placed fragments - so each absolute child is re-emitted as a fragment
    * anchored to the frame's box, on every page whose consumed flow range
    * contains the child's flow position (B11).
    */
@@ -387,7 +387,7 @@ export class Paginator {
       }
     }
     // Emit open frames' absolute children for the flow consumed up to the
-    // break point — content below it continues on the next page (B11).
+    // break point - content below it continues on the next page (B11).
     const breakPointY = deepest.origin + resumeOffset;
     for (const f of chain) {
       this.emitFrameAbsolutes(f, Math.max(f.origin, this.content.y), Math.min(breakPointY, f.origin + f.flowHeight));
@@ -421,7 +421,7 @@ export class Paginator {
             x: abs.x,
             y: fragY,
             width: abs.width,
-            // Clip like placeWholeUnit does — a repeat taller than the
+            // Clip like placeWholeUnit does - a repeat taller than the
             // content box must not draw past the page edge (B20).
             height: Math.max(0, Math.min(u.height, contentBottom - fragY)),
           },

@@ -10,7 +10,7 @@ export interface ButtonOptions extends FormFieldOptions {
 /**
  * A push button. Visual only by pdf-lib's limitation: the AcroForm field and
  * its face (caption, colors) are real, but pdf-lib exposes no action API, so
- * the button cannot submit/reset/run JavaScript — say so in docs, don't
+ * the button cannot submit/reset/run JavaScript - say so in docs, don't
  * pretend. The caption is pdf-lib's own (`addToPage(text, page, options)`),
  * not painted by the widget.
  */
@@ -38,7 +38,7 @@ export class ButtonWidget extends PlacedFormWidget {
     context: RenderContext,
   ): void {
     const field = form.createButton(this.name);
-    // addToPage creates the /DA entry setFontSize requires — order matters.
+    // addToPage creates the /DA entry setFontSize requires - order matters.
     field.addToPage(this.label ?? '', page, { ...box, ...this.appearanceArgs(context) });
     if (this.appearance.fontSize !== undefined) field.setFontSize(this.appearance.fontSize);
     if (this.readOnly) field.enableReadOnly();

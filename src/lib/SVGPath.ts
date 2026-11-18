@@ -30,10 +30,10 @@ export interface SVGPathOptions extends WidgetOptions {
   /** How to scale into the layout box when both width/height are constrained. */
   sizing?: ImageSizing;
 
-  /** Fill color — hex string or theme token. */
+  /** Fill color - hex string or theme token. */
   fill?: ThemeColorValue;
 
-  /** Stroke color — hex string or theme token. */
+  /** Stroke color - hex string or theme token. */
   stroke?: ThemeColorValue;
 
   /**
@@ -125,7 +125,7 @@ export class SVGPathWidget extends Widget {
       borderColor: strokeColor,
       // Raw user units: pdf-lib emits setLineWidth inside the scale(s, -s)
       // CTM, so the stroke scales with the shape exactly once. Pre-multiplying
-      // here would scale it twice (B13). Only when a stroke color resolves —
+      // here would scale it twice (B13). Only when a stroke color resolves -
       // a strokeWidth on a fill-only path would otherwise stroke with
       // pdf-lib's default black (B20).
       borderWidth:

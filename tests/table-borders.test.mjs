@@ -1,11 +1,11 @@
 /**
  * Regression test: Yoga's default pointScaleFactor = 1 rounds every node's
- * computed box to integer points independently — abutting boxes with
+ * computed box to integer points independently - abutting boxes with
  * fractional sizes (table rows are the visible case) round their shared
  * edges apart, and each cell's own border stroke lands ~1pt from its
  * neighbor's: the boundary reads as a doubled ~2pt line.
  *
- * The fix runs Yoga with pointScaleFactor = 0 (no rounding — PDF is a
+ * The fix runs Yoga with pointScaleFactor = 0 (no rounding - PDF is a
  * vector format), so vertically adjacent cells' shared edges stay
  * bit-identical and the strokes overlap exactly. Asserted on the content
  * stream: each cell is a `cm` translate (the cell's PDF bottom-left) plus a
@@ -83,7 +83,7 @@ await test('vertically adjacent cells share bit-identical edges (no rounding gap
 
   // Group by column (same x), sort top-down (PDF y grows up), and require
   // each lower cell's top edge (yBottom + height) to equal the upper cell's
-  // bottom edge (yBottom) to float precision — the two border strokes then
+  // bottom edge (yBottom) to float precision - the two border strokes then
   // overlap exactly and the boundary renders as one 1pt line.
   const columns = new Map();
   for (const box of boxes) {
@@ -102,7 +102,7 @@ await test('vertically adjacent cells share bit-identical edges (no rounding gap
       assert.ok(
         gap < 0.001,
         `column ${x}: shared edge between rows disagrees by ${gap}pt ` +
-        `(upper bottom ${upper.yBottom} vs lower top ${lower.yBottom + lower.height}) — rounded layout splits abutting boxes`,
+        `(upper bottom ${upper.yBottom} vs lower top ${lower.yBottom + lower.height}) - rounded layout splits abutting boxes`,
       );
     }
   }

@@ -21,7 +21,7 @@ import type { Fragment, LayoutBox, PagePlan } from './types';
  * One output page's view of the backend. Implements {@link RenderContext} by
  * answering geometry from the page's plan and delegating everything else to
  * the backend. This is where pagination meets rendering: widgets keep calling
- * `render(context)` + `getLayoutBox(this)` — the scope is a second answer at
+ * `render(context)` + `getLayoutBox(this)` - the scope is a second answer at
  * the seam they already trust, so the render path is unchanged.
  */
 export class PageScope implements RenderContext {
@@ -175,7 +175,7 @@ export class PageScope implements RenderContext {
 
   /**
    * Form widgets (`src/lib/forms/`) narrow to `PdfFormSurface` at render
-   * time — including when they render through a scope on a paginated page.
+   * time - including when they render through a scope on a paginated page.
    * The scope is a view of ITS backend, so the PDF-typed members pass
    * through; a backend without them fails with the same honest error the
    * form widgets themselves throw.
@@ -192,7 +192,7 @@ export class PageScope implements RenderContext {
     const backend = this.backend as unknown as Partial<PdfFormSurface>;
     if (typeof backend[name] !== 'function') {
       throw new Error(
-        `PageScope: the backend does not expose ${name}() — form widgets require the PDF render context (pdf-kalem/forms renders through pdf-lib).`,
+        `PageScope: the backend does not expose ${name}() - form widgets require the PDF render context (pdf-kalem/forms renders through pdf-lib).`,
       );
     }
     return this.backend as unknown as PdfFormSurface & Pick<PdfFormSurface, K>;

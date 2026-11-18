@@ -11,27 +11,27 @@ import CodePdfWorkbench from './CodePdfWorkbench.vue'
 /**
  * Live PDF-editing workbench for the docs playground.
  *
- * The editor holds the body of a plain-JS function receiving `pages` — the
+ * The editor holds the body of a plain-JS function receiving `pages` - the
  * loaded document's pages as Page widgets. Code overlays widgets with
  * `pages[i].add([...])` and restructures by mutating the array; factories
  * and helpers are injected as parameters (same sandbox contract as the
  * widget playground), evaluated with `new Function` on every debounced
- * render. The sample document is synthesized with pdf-lib — no binary
- * assets — and a file input swaps in the visitor's own PDF. The shell
+ * render. The sample document is synthesized with pdf-lib - no binary
+ * assets - and a file input swaps in the visitor's own PDF. The shell
  * (editor, preview, debounce, status) lives in {@link CodePdfWorkbench}.
- * Mount inside <ClientOnly> — rendering touches browser APIs.
+ * Mount inside <ClientOnly> - rendering touches browser APIs.
  */
 
-const SAMPLE_CODE = `// PDF editing playground — edit the code; the PDF re-renders as you type.
+const SAMPLE_CODE = `// PDF editing playground - edit the code; the PDF re-renders as you type.
 //
 // \`pages\` holds the loaded document's pages as Page widgets, sized from the
-// file. Overlay widgets with pages[i].add([...]) — they paint on top of the
+// file. Overlay widgets with pages[i].add([...]) - they paint on top of the
 // original content. Restructure by mutating the array (splice/push).
 // Widget factories (Page, Text, Row, Column, Container, FixedContainer,
-// HLine, Table, …) plus \`theme\` and \`fromHex\` are already in scope — plain
+// HLine, Table, …) plus \`theme\` and \`fromHex\` are already in scope - plain
 // JavaScript, no imports or types needed.
 
-// A review stamp on page one — flow placement from the top of the page.
+// A review stamp on page one - flow placement from the top of the page.
 pages[0].add([
   Text([{ text: 'REVIEWED', fontWeight: 700, color: fromHex('#B45309') }], { size: 26 }),
   HLine({ thickness: 2, color: fromHex('#B45309') }),
@@ -59,7 +59,7 @@ pages[1].add([
   }),
 ]);
 
-// Restructure: pages is a plain array — uncomment to try.
+// Restructure: pages is a plain array - uncomment to try.
 // pages.splice(2, 1);                       // drop the appendix
 // pages.reverse();                          // reorder
 // pages.push(Page({                         // append a generated page
@@ -82,7 +82,7 @@ const theme = createTheme({
   },
 })
 
-/** A two-page fake "memo" synthesized with pdf-lib — something to edit. */
+/** A two-page fake "memo" synthesized with pdf-lib - something to edit. */
 async function makeSamplePdf(): Promise<Uint8Array> {
   const doc = await PDFDocument.create()
   const helv = await doc.embedFont(StandardFonts.Helvetica)
@@ -170,7 +170,7 @@ async function loadFile(event: Event): Promise<void> {
   if (!file) return
   sampleBytes = new Uint8Array(await file.arrayBuffer())
   fileName.value = file.name
-  // Immediate render — a file swap should not wait for the debounce.
+  // Immediate render - a file swap should not wait for the debounce.
   await workbench.value?.render()
 }
 

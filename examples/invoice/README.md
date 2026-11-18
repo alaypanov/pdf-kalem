@@ -27,19 +27,19 @@ src/
 
 ## What it demonstrates
 
-- **Theme tokens** — widgets reference `'brand'`, `'panel'`, `'label'`… so
+- **Theme tokens** - widgets reference `'brand'`, `'panel'`, `'label'`… so
   re-skinning never touches layout code (`src/theme.ts`).
-- **Component composition** — repeated pieces (label/value, panels, tables)
+- **Component composition** - repeated pieces (label/value, panels, tables)
   are functions returning widgets, composed in `document.ts`.
-- **Data/layout separation** — content lives in `src/data.ts`; the same
+- **Data/layout separation** - content lives in `src/data.ts`; the same
   codebase renders any invoice.
-- **Custom fonts** — Inter loads from the repo's shared `examples/fonts/`
+- **Custom fonts** - Inter loads from the repo's shared `examples/fonts/`
   folder through `useFonts(…, { files })` (Node `fs` bytes); the library
   itself bundles no font files.
 
 ## Copy it
 
-The folder is plain ESM TypeScript — copy it into any project that has
+The folder is plain ESM TypeScript - copy it into any project that has
 `pdf-kalem` installed and run `node src/main.ts`. It reads the Inter TTFs
-from `examples/fonts/` — take that folder along (or swap in any TTFs you
+from `examples/fonts/` - take that folder along (or swap in any TTFs you
 like and point the `files` entries at them).

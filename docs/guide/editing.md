@@ -1,17 +1,17 @@
 # Editing existing PDFs
 
-The `pdf-kalem/edit` subpath loads an existing PDF for editing. Every page becomes a real [`Page`](./widgets) widget — sized from the file — so editing and generation share one document model:
+The `pdf-kalem/edit` subpath loads an existing PDF for editing. Every page becomes a real [`Page`](./widgets) widget - sized from the file - so editing and generation share one document model:
 
 ```ts
 import { loadPdf } from 'pdf-kalem/edit';
 
 const pdf = await loadPdf(bytes, {
-  theme: myTheme,   // optional — for overlay widgets
+  theme: myTheme,   // optional - for overlay widgets
   fonts,            // optional FontSet (see Fonts)
 });
 ```
 
-The source is bytes (`Uint8Array | ArrayBuffer`) or a **URL string** — fetched for you (browser and Node 18+ both have `fetch`), matching the `useFonts` source convention. Pass bytes from a file picker or Node's `fs` when they're already in hand:
+The source is bytes (`Uint8Array | ArrayBuffer`) or a **URL string** - fetched for you (browser and Node 18+ both have `fetch`), matching the `useFonts` source convention. Pass bytes from a file picker or Node's `fs` when they're already in hand:
 
 ```ts
 const fromUrl = await loadPdf('https://example.com/contract.pdf');
@@ -41,11 +41,11 @@ pdf.pages[0].add([
 ]);
 ```
 
-Overlays are declarative — the widget tree is the state, and painting happens at save time together with the rest of the document.
+Overlays are declarative - the widget tree is the state, and painting happens at save time together with the rest of the document.
 
 ## Restructuring pages
 
-`pdf.pages` is a plain array — native array operations are the API:
+`pdf.pages` is a plain array - native array operations are the API:
 
 ```ts
 pdf.pages.splice(2, 1);                        // remove a page
@@ -68,16 +68,16 @@ const doc = new PdfDoc({ children: [...pdf.pages, generatedPage], fonts });
 await doc.save();
 ```
 
-Loaded pages are **adopted** into the output document — the original page object is copied, so its content streams, annotations, links, and form fields are preserved, and your widgets draw on top. Nothing is re-drawn or flattened.
+Loaded pages are **adopted** into the output document - the original page object is copied, so its content streams, annotations, links, and form fields are preserved, and your widgets draw on top. Nothing is re-drawn or flattened.
 
 ## Escape hatch
 
-`pdf.PDFDocument` exposes the underlying pdf-lib document (read-write) for anything the editing API doesn't cover — metadata, form fields, raw pdf-lib drawing. Beyond `loadPdf`'s guarantees, you're on your own there.
+`pdf.PDFDocument` exposes the underlying pdf-lib document (read-write) for anything the editing API doesn't cover - metadata, form fields, raw pdf-lib drawing. Beyond `loadPdf`'s guarantees, you're on your own there.
 
 ::: warning Limitations
-- **Rotated pages** (`/Rotate ≠ 0`) throw a clear error at `loadPdf` — overlaying them is not supported yet.
+- **Rotated pages** (`/Rotate ≠ 0`) throw a clear error at `loadPdf` - overlaying them is not supported yet.
 - **Encrypted PDFs** are not supported; the pdf-lib load error propagates.
-- **Overlay overflow** is clipped with a warning — overlays belong to exactly one page and are never paginated across pages.
+- **Overlay overflow** is clipped with a warning - overlays belong to exactly one page and are never paginated across pages.
 :::
 
 ## Try it live

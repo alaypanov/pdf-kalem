@@ -2,9 +2,9 @@
 
 When a page's content is taller than the page, pdf-kalem splits it across additional pages. It does this with a three-pass approach (layout → paginate → render), similar to react-pdf:
 
-1. **Layout** — the whole page tree is laid out once on a single tall canvas.
-2. **Paginate** — the laid-out tree is walked and split into per-page *fragment* trees. Each fragment is a lightweight view onto a widget for one output page (it reuses the same Yoga node, so there's no re-layout).
-3. **Render** — each output page adds a PDF page and renders its fragments, shifting coordinates by `-pageIndex × pageHeight` so each slice lands correctly.
+1. **Layout** - the whole page tree is laid out once on a single tall canvas.
+2. **Paginate** - the laid-out tree is walked and split into per-page *fragment* trees. Each fragment is a lightweight view onto a widget for one output page (it reuses the same Yoga node, so there's no re-layout).
+3. **Render** - each output page adds a PDF page and renders its fragments, shifting coordinates by `-pageIndex × pageHeight` so each slice lands correctly.
 
 ## Splitting rules by widget
 
@@ -12,7 +12,7 @@ When a page's content is taller than the page, pdf-kalem splits it across additi
 - **Table rows** stay whole (never split mid-row), and the **header repeats** on each page that shows body rows.
 - **Containers/columns** pass the boundary to their children.
 - **Unbreakable blocks** (`breakable: false`) move whole to the next page; a block taller than a full page is clipped.
-- **Fixed widgets** (`FixedContainer` anchored to the page box) are re-emitted on every output page the `Page` produces — each `Page` owns its furniture.
+- **Fixed widgets** (`FixedContainer` anchored to the page box) are re-emitted on every output page the `Page` produces - each `Page` owns its furniture.
 
 ```ts
 Page({
@@ -33,8 +33,8 @@ Page({
 
 Two tools keep related content together:
 
-- `breakable: false` on any widget — the block moves whole instead of straddling a boundary.
-- The table head is marked `keepWithNext` internally — a header is never orphaned at a page bottom; it moves to the next page with the first row.
+- `breakable: false` on any widget - the block moves whole instead of straddling a boundary.
+- The table head is marked `keepWithNext` internally - a header is never orphaned at a page bottom; it moves to the next page with the first row.
 
 ## Opting out
 
@@ -46,10 +46,10 @@ Page({ overflow: false, children: [...] });
 
 ## Page count
 
-`doc.getPageCount()` returns the number of output pages (Σ per-Page plan pages, memoized) — the number the paginator will actually produce, not the number of `Page` widgets you declared.
+`doc.getPageCount()` returns the number of output pages (Σ per-Page plan pages, memoized) - the number the paginator will actually produce, not the number of `Page` widgets you declared.
 
 ::: tip Whitespace-only pages are dropped
-A page whose content paints nothing — trailing `Spacer`s (or pure layout containers holding only them) that overflowed onto a fresh page — is discarded and the remaining pages renumber. Whitespace-only pages are never wanted. Pages carrying fixed furniture (a `FixedContainer` footer) always survive: the furniture paints on every output page.
+A page whose content paints nothing - trailing `Spacer`s (or pure layout containers holding only them) that overflowed onto a fresh page - is discarded and the remaining pages renumber. Whitespace-only pages are never wanted. Pages carrying fixed furniture (a `FixedContainer` footer) always survive: the furniture paints on every output page.
 :::
 
 ## See it live

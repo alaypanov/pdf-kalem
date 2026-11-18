@@ -13,7 +13,7 @@ import { fromHex } from '../dist/utils/color-utils.js';
 
 const theme = createTheme({
   colors: {
-    // The summary panels' background — was silently falling back to white
+    // The summary panels' background - was silently falling back to white
     // until the I12 token warning caught the missing definition.
     panel: fromHex('#F5F5F5'),
   },
@@ -30,7 +30,7 @@ const labelValue = (label, value) =>
     children: [Text(label.toUpperCase(), { variant: 'label' }), Text(value, { variant: 'body' })],
   });
 
-/** The invoice's summary panel — the structure that used to overflow. */
+/** The invoice's summary panel - the structure that used to overflow. */
 function summaryPanel() {
   return Container({
     width: 210,
@@ -73,7 +73,7 @@ test('Container sizes to content when no height is given', async () => {
   const panel = await layout(summaryPanel());
   const box = panel.getAbsoluteLayoutBox();
 
-  // Content column (125) + vertical padding (32) — not the old fixed 100.
+  // Content column (125) + vertical padding (32) - not the old fixed 100.
   const content = panel.getChildWidgets()[0].getAbsoluteLayoutBox();
   assert.ok(
     Math.abs(box.height - (content.height + 32)) < 1,

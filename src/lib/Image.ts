@@ -13,7 +13,7 @@ import { sniffImageFormat } from './utils/image-format';
 // aspect-fit.ts) but was first shipped from this module.
 export { ImageSizing };
 
-/** True when running under Node — the runtime that can read file paths. */
+/** True when running under Node - the runtime that can read file paths. */
 function isNode(): boolean {
   return typeof (globalThis as { process?: { versions?: { node?: string } } }).process?.versions?.node === 'string';
 }
@@ -80,7 +80,7 @@ export class ImageWidget extends Widget {
     this.bytes = options.bytes;
     this.scale = options.scale ?? 1;
     if (!Number.isFinite(this.scale) || this.scale <= 0) {
-      // Same guard SVGPath has — scale 0 used to silently become 1 and a
+      // Same guard SVGPath has - scale 0 used to silently become 1 and a
       // negative scale silently drew nothing (B20).
       throw new Error('Image: scale must be a positive number');
     }
@@ -90,7 +90,7 @@ export class ImageWidget extends Widget {
 
     // Media shrink-wraps: a stretching parent (Page sets alignItems:
     // stretch) would blow the box up to the full column width and center
-    // the drawn content inside it — an unsized image draws at its intrinsic
+    // the drawn content inside it - an unsized image draws at its intrinsic
     // size, at the flow position, unless the user sizes it (width/height,
     // e.g. '100%'). The fit measure caps ambient (AtMost) space at the
     // intrinsic size, so a parent-provided box only ever shrinks it.
@@ -102,7 +102,7 @@ export class ImageWidget extends Widget {
   }
 
   /**
-   * The fit spec is only known once the image bytes are embedded — before
+   * The fit spec is only known once the image bytes are embedded - before
    * that the measure function measures zero (aspect-fit module contract).
    */
   private spec(): FitSpec | null {
@@ -125,13 +125,13 @@ export class ImageWidget extends Widget {
     const bytes = this.bytes;
 
     // The bytes are ground truth: when the signature disagrees with the
-    // declared format (Image.jpeg on png data), the sniffed format wins —
+    // declared format (Image.jpeg on png data), the sniffed format wins -
     // embedImage reports unsupported signatures itself. The decision is
     // memoized so re-loads within/across saves warn once, not per call.
     const sniffed = sniffImageFormat(bytes);
     const format = sniffed ?? this.format;
     if (sniffed && sniffed !== this.format && this.resolvedFormat !== format) {
-      console.warn(`Image: declared format '${this.format}' does not match the bytes (sniffed '${sniffed}') — using the sniffed format.`);
+      console.warn(`Image: declared format '${this.format}' does not match the bytes (sniffed '${sniffed}') - using the sniffed format.`);
     }
     this.resolvedFormat = format;
     // No widget-level embed cache: the backend dedupes per document, and a
@@ -148,7 +148,7 @@ export class ImageWidget extends Widget {
     // natural size). Unconstrained contexts measure at the intrinsic size;
     // definite parent boxes (Container width/height, percent widths) fit
     // into the available space; one explicit dimension derives the other
-    // (B12). loadImage runs in prepareLayout — before any layout — so the
+    // (B12). loadImage runs in prepareLayout - before any layout - so the
     // spec is always known by measure time.
     if (!this.measureConfigured) {
       this.node.setMeasureFunc(aspectFitMeasure(() => this.spec()));
@@ -201,7 +201,7 @@ export const Image = {
       : (bytes as ArrayBuffer);
     const resolved = format ?? sniffImageFormat(buffer);
     if (!resolved) {
-      throw new Error("Image.fromBytes: could not sniff the format from the bytes — pass 'png' or 'jpeg' explicitly.");
+      throw new Error("Image.fromBytes: could not sniff the format from the bytes - pass 'png' or 'jpeg' explicitly.");
     }
     return new ImageWidget({ ...options, url: '', format: resolved, bytes: buffer });
   },

@@ -105,7 +105,7 @@ test('data URLs still fetch (unchanged path)', async () => {
 
 test('Fit constrains against the parent-provided box (no intrinsic pin)', async () => {
   // The old behavior pinned the intrinsic size onto the Yoga node when no
-  // width/height was given — a node with definite dimensions never consults
+  // width/height was given - a node with definite dimensions never consults
   // its measure func, so a 360pt image overflowed a Container({ width: 180,
   // height: 50 }) at natural size. Fit scale = min(180/360, 50/200) = 0.25.
   const canvas = createCanvas(360, 200);

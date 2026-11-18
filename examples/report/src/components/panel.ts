@@ -14,7 +14,7 @@ export interface PanelOptions {
 
 /**
  * A variable-height panel: Container sizes to content unless given explicit
- * dimensions. The report's default surface — stat cards, callouts, and
+ * dimensions. The report's default surface - stat cards, callouts, and
  * side-by-side columns are all panels with different options.
  */
 export function panel(options: PanelOptions) {

@@ -2,9 +2,9 @@
  * Example runner: picks example entry points and runs them from each
  * example's own directory (so PDFs land next to the code).
  *
- * - `pnpm example` — run every example (the old behavior).
- * - `pnpm example invoice` — run one.
- * - `pnpm example invoice report` — run several, in the order given.
+ * - `pnpm example` - run every example (the old behavior).
+ * - `pnpm example invoice` - run one.
+ * - `pnpm example invoice report` - run several, in the order given.
  *
  * The `example` package script builds dist/ first; this file only selects
  * and runs. An example is any folder here containing `src/main.ts` or

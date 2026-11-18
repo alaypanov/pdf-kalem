@@ -22,7 +22,7 @@ import {
 /**
  * Converts markdown to widget blocks (headings, paragraphs, lists, code,
  * quotes, tables, rules, images). Async because image formats are sniffed
- * from fetched bytes. Blocks carry no spacing — wrap them in a `Column`
+ * from fetched bytes. Blocks carry no spacing - wrap them in a `Column`
  * with a `gap` (as `markdownToPdf` does) when embedding.
  */
 export async function markdownToWidgets(
@@ -36,7 +36,7 @@ export async function markdownToWidgets(
 
 /**
  * Converts markdown to a `PdfDoc` with one paginated Page. Returns the doc
- * — call `save()`/`getBuffer()`/`getPageCount()` on it as usual.
+ * - call `save()`/`getBuffer()`/`getPageCount()` on it as usual.
  */
 export async function markdownToPdf(
   md: string,

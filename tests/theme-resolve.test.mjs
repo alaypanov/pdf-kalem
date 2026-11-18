@@ -1,6 +1,6 @@
 /**
  * Theme-resolution policy tests: the precedence seam (ARCHITECTURE.md #6) as
- * pure functions — no widget, no context, no Yoga.
+ * pure functions - no widget, no context, no Yoga.
  *
  * Run: node tests/theme-resolve.test.mjs (after `pnpm build`).
  */

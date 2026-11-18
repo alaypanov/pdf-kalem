@@ -22,19 +22,19 @@ src/
 
 ## What it demonstrates
 
-- **`markdownToPdf`** — one call from markdown to a paginated, ready-to-save
+- **`markdownToPdf`** - one call from markdown to a paginated, ready-to-save
   document.
-- **Theme merging** — your theme's tokens win per key over the converter's
+- **Theme merging** - your theme's tokens win per key over the converter's
   markdown defaults; unset tokens keep the baseline.
-- **`MarkdownStyles`** — converter-level overrides the theme's text variants
+- **`MarkdownStyles`** - converter-level overrides the theme's text variants
   don't cover (code font, blockquote rule, list indent, spacing).
-- **Custom fonts** — Inter loads from the repo's shared `examples/fonts/`
-  folder through `useFonts(…, { files })` (all four faces — the sample uses
+- **Custom fonts** - Inter loads from the repo's shared `examples/fonts/`
+  folder through `useFonts(…, { files })` (all four faces - the sample uses
   weight/style runs); code falls back to the builtin mono alias (Courier).
 
 ## Copy it
 
-The folder is plain ESM TypeScript — copy it into any project that has
+The folder is plain ESM TypeScript - copy it into any project that has
 `pdf-kalem` installed and run `node src/main.ts`. It reads the Inter TTFs
-from `examples/fonts/` — take that folder along (or swap in any TTFs you
+from `examples/fonts/` - take that folder along (or swap in any TTFs you
 like and point the `files` entries at them).

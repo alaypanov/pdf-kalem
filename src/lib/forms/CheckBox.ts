@@ -24,7 +24,7 @@ export class CheckBoxWidget extends PlacedFormWidget {
     return 'CheckBox';
   }
 
-  /** @internal — PdfDoc's formData walk applies values here. */
+  /** @internal - PdfDoc's formData walk applies values here. */
   bindValue(value: string | boolean): void {
     if (typeof value !== 'boolean') {
       throw new Error(`CheckBox "${this.name}" expects a boolean formData value, got ${typeof value}.`);

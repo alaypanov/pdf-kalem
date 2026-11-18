@@ -3,10 +3,10 @@ import { MeasureMode } from 'yoga-layout';
 /**
  * How a media widget scales its intrinsic box into its layout box.
  *
- * - `Fit` — largest size that fits inside the box, aspect ratio preserved
+ * - `Fit` - largest size that fits inside the box, aspect ratio preserved
  *   (the default everywhere).
- * - `Cover` — smallest size that covers the box, aspect ratio preserved.
- * - `None` — no scaling: draw at the intrinsic size, centered in the box.
+ * - `Cover` - smallest size that covers the box, aspect ratio preserved.
+ * - `None` - no scaling: draw at the intrinsic size, centered in the box.
  */
 export enum ImageSizing {
   Fit = 'fit',
@@ -16,7 +16,7 @@ export enum ImageSizing {
 
 /**
  * The intrinsic geometry + fit policy of a media widget (Image, SVGPath, or
- * Icon). One place owns the measure/placement math all three share — see
+ * Icon). One place owns the measure/placement math all three share - see
  * ARCHITECTURE.md #4.
  */
 export interface FitSpec {
@@ -46,7 +46,7 @@ export type YogaMeasureFunc = (
  * The Yoga measure function for fit/cover media, shared by Image, SVGPath,
  * and Icon. `getSpec` is re-read on every measure so widgets with late-loading
  * intrinsic sizes (Image embeds its bytes asynchronously) can return `null`
- * until known — measured as zero-size, same as before.
+ * until known - measured as zero-size, same as before.
  *
  * Unconstrained, or `sizing: None`, measures at the intrinsic size.
  * Otherwise the intrinsic box scales into the constraints: Fit takes the
@@ -85,9 +85,9 @@ export function aspectFitMeasure(getSpec: () => FitSpec | null): YogaMeasureFunc
     }
 
     // Fit shrinks to fit but never enlarges on an ambient (AtMost)
-    // constraint — a stretching parent must not blow a small logo up to the
-    // full column width. Only an explicitly demanded (Exactly) dimension —
-    // the user's own width/height — may scale the media up. Cover still
+    // constraint - a stretching parent must not blow a small logo up to the
+    // full column width. Only an explicitly demanded (Exactly) dimension -
+    // the user's own width/height - may scale the media up. Cover still
     // fills: covering is its whole job.
     if (spec.sizing === ImageSizing.Fit && !widthExactly && !heightExactly) {
       scale = Math.min(scale, 1);
@@ -112,10 +112,10 @@ export interface FitPlacement {
   drawnHeight: number;
   /** Left edge of the drawn area. */
   left: number;
-  /** Bottom edge of the drawn area (PDF y grows up) — the drawImage origin. */
+  /** Bottom edge of the drawn area (PDF y grows up) - the drawImage origin. */
   bottom: number;
   /**
-   * Top edge of the drawn area in PDF coordinates — the drawSvgPath origin.
+   * Top edge of the drawn area in PDF coordinates - the drawSvgPath origin.
    * pdf-lib's drawSvgPath applies scale(s, -s): the path's SVG top lands at
    * y and content extends downward from it, so SVG-space widgets must anchor
    * at the drawn area's TOP, not its bottom (bug B1).

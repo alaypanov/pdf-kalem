@@ -4,7 +4,7 @@
  * sides individually, with unset sides falling back to the caller's default.
  *
  * Deliberately minimal: no CSS shorthand sugar (`horizontal`/`vertical`) and
- * no margin collapsing — Yoga resolves margins as plain box geometry.
+ * no margin collapsing - Yoga resolves margins as plain box geometry.
  */
 export type Spacing = number | {
   top?: number;

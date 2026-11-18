@@ -1,18 +1,18 @@
 # Widgets
 
-Everything in a pdf-kalem document is a widget created through a factory function. Widgets depend on a backend-neutral `RenderContext` interface — they deal in layout boxes, not PDF math.
+Everything in a pdf-kalem document is a widget created through a factory function. Widgets depend on a backend-neutral `RenderContext` interface - they deal in layout boxes, not PDF math.
 
 ## Layout primitives
 
-- `Page` — the root container. Owns padding, page size, and pagination behavior.
-- `Container` — a box that sizes to its content unless given `width`/`height`. Supports `bgColor`, `padding`, and `border`. Accepts `child` (single) or `children`.
-- `Row` / `Column` — flex containers with `mainAxisAlignment`, `crossAxisAlignment`, and `gap` (via `style`). Expose Flutter-ish statics: `Row.justifyBetween`, `Row.alignCenter`, `Column.alignEnd`, …
-- `FlexContainer` — the general flex box with a full `style` object.
-- `FixedContainer` — absolutely positioned against the page box (`top`/`bottom`/`left`/`right`). Used for page furniture like footers.
-- `Stack` — overlays its children in the same box, painted in order (first child bottom-most). Non-positioned children align per `alignment` (`'topLeft'` … `'bottomRight'`); a `FixedContainer` child keeps its own insets. Sizes to its largest non-positioned child unless given `width`/`height`. Atomic under pagination — it moves whole to the next page.
-- `Spacer` — invisible box that occupies space in flow: `Spacer({ size: 12 })` for a fixed gap, bare `Spacer()` (or `grow: 2`) to absorb free space and push siblings apart.
-- `HLine` — a horizontal rule with `color` and `thickness`.
-- `VLine` — the vertical sibling: `color`, `thickness`, and `height` (stretches to the row by default).
+- `Page` - the root container. Owns padding, page size, and pagination behavior.
+- `Container` - a box that sizes to its content unless given `width`/`height`. Supports `bgColor`, `padding`, and `border`. Accepts `child` (single) or `children`.
+- `Row` / `Column` - flex containers with `mainAxisAlignment`, `crossAxisAlignment`, and `gap` (via `style`). Expose Flutter-ish statics: `Row.justifyBetween`, `Row.alignCenter`, `Column.alignEnd`, …
+- `FlexContainer` - the general flex box with a full `style` object.
+- `FixedContainer` - absolutely positioned against the page box (`top`/`bottom`/`left`/`right`). Used for page furniture like footers.
+- `Stack` - overlays its children in the same box, painted in order (first child bottom-most). Non-positioned children align per `alignment` (`'topLeft'` … `'bottomRight'`); a `FixedContainer` child keeps its own insets. Sizes to its largest non-positioned child unless given `width`/`height`. Atomic under pagination - it moves whole to the next page.
+- `Spacer` - invisible box that occupies space in flow: `Spacer({ size: 12 })` for a fixed gap, bare `Spacer()` (or `grow: 2`) to absorb free space and push siblings apart.
+- `HLine` - a horizontal rule with `color` and `thickness`.
+- `VLine` - the vertical sibling: `color`, `thickness`, and `height` (stretches to the row by default).
 
 ```ts
 import { Page, Column, Row, Container, Stack, FixedContainer, Text, HLine } from 'pdf-kalem/widgets';
@@ -48,11 +48,11 @@ A `Container` respects its parent's cross-axis alignment like any other box: und
 :::
 
 ::: tip Margins on everything
-Every widget accepts `margin` — a number (all sides) or per-side `{ top, right, bottom, left }` — for outer spacing, without structural contortions. Margins do not collapse (Yoga resolves them as plain box geometry).
+Every widget accepts `margin` - a number (all sides) or per-side `{ top, right, bottom, left }` - for outer spacing, without structural contortions. Margins do not collapse (Yoga resolves them as plain box geometry).
 :::
 
 ::: warning Stack needs something to size to
-A `Stack` whose children are all positioned (`FixedContainer`) has nothing to size itself against — pass explicit `width` and `height`, or include at least one non-positioned child.
+A `Stack` whose children are all positioned (`FixedContainer`) has nothing to size itself against - pass explicit `width` and `height`, or include at least one non-positioned child.
 :::
 
 ## Text and rich runs
@@ -72,7 +72,7 @@ Text(
   { size: 12 },
 );
 
-// Runs can carry their own links — each line fragment of the run gets its
+// Runs can carry their own links - each line fragment of the run gets its
 // own clickable annotation, so a run that wraps stays clickable everywhere.
 Text([{ text: 'Read the ' }, { text: 'full report', href: 'https://example.com' }]);
 
@@ -81,12 +81,12 @@ Text([{ text: 'Read the ' }, { text: 'full report', href: 'https://example.com' 
 Text([{ text: 'const x = 1', mono: true }]);
 ```
 
-Run fields: `fontWeight`, `fontStyle`, `strike`, `href`, `mono`, `font`, `color`. Weight follows CSS matching — 100–500 renders regular, 600–900 renders bold — and each axis replaces the base style (an explicit `fontWeight: 400` un-bolds a bold base). Faces resolve through the run's family with the usual fallback chain. Words that span run boundaries never break internally; wrapping, `maxLines`, and `ellipsis` all work across runs.
+Run fields: `fontWeight`, `fontStyle`, `strike`, `href`, `mono`, `font`, `color`. Weight follows CSS matching - 100–500 renders regular, 600–900 renders bold - and each axis replaces the base style (an explicit `fontWeight: 400` un-bolds a bold base). Faces resolve through the run's family with the usual fallback chain. Words that span run boundaries never break internally; wrapping, `maxLines`, and `ellipsis` all work across runs.
 
 Text options include `variant` (theme text variant), `size`, `color`, `align`, `fontWeight`, `fontStyle`, `lineHeight`, `lineHeightMultiplier`, `maxLines`, and `overflow: 'ellipsis'`. Theme text variants accept the same `fontWeight`/`fontStyle`, so a variant can set its weight once: `heading: { fontWeight: 700 }`.
 
 ::: warning `lineHeight` is points, not a multiplier
-`lineHeight` is the vertical distance between baselines **in points**: `lineHeight: 16` at size 10 gives 16pt lines. It is **not** CSS's `line-height: 1.4` multiplier — `lineHeight: 1.4` means 1.4pt and piles lines on top of each other. For the CSS behavior use `lineHeightMultiplier` (`1.4` at size 10 → 14pt lines); explicit points win over the multiplier when both are set, and user values beat the theme variant's.
+`lineHeight` is the vertical distance between baselines **in points**: `lineHeight: 16` at size 10 gives 16pt lines. It is **not** CSS's `line-height: 1.4` multiplier - `lineHeight: 1.4` means 1.4pt and piles lines on top of each other. For the CSS behavior use `lineHeightMultiplier` (`1.4` at size 10 → 14pt lines); explicit points win over the multiplier when both are set, and user values beat the theme variant's.
 :::
 
 ## Tables
@@ -141,11 +141,11 @@ Table({
 
 ## Media: images, SVG paths, icons
 
-- `Image.png(url)` / `Image.jpeg(url)` / `Image.fromBytes(bytes, format)` — embed raster images with `sizing: ImageSizing.Fit | Cover | None`. The drawn area is centered in the layout box.
-- `SVGPath(d, { viewBoxWidth, viewBoxHeight, fill, stroke, strokeWidth })` — draw vector paths. `strokeWidth` is in user units and scales with the shape.
-- `Icon({ path, size, color })` — Material-style icons from SVG path data, with a small built-in registry (`Icon.register`). Colors resolve theme tokens.
+- `Image.png(url)` / `Image.jpeg(url)` / `Image.fromBytes(bytes, format)` - embed raster images with `sizing: ImageSizing.Fit | Cover | None`. The drawn area is centered in the layout box.
+- `SVGPath(d, { viewBoxWidth, viewBoxHeight, fill, stroke, strokeWidth })` - draw vector paths. `strokeWidth` is in user units and scales with the shape.
+- `Icon({ path, size, color })` - Material-style icons from SVG path data, with a small built-in registry (`Icon.register`). Colors resolve theme tokens.
 
-Give media one of `width`/`height` and the other dimension derives from the aspect ratio; give neither and it sizes to its intrinsic size; give both and the fit/cover `sizing` places it in the box. Unsized media also **fits into a parent-provided box**: inside `Container({ width: 180, height: 50 })` a larger image scales down to fit (the drawn area stays centered). `Fit` never scales **up** on ambient space — a small logo in a full-width `Page` draws at its intrinsic size, not blown up to the column width; only an explicit `width`/`height` may enlarge it. Media shrink-wraps by default (`alignSelf: flex-start`); pass `width: '100%'` for a full-width box.
+Give media one of `width`/`height` and the other dimension derives from the aspect ratio; give neither and it sizes to its intrinsic size; give both and the fit/cover `sizing` places it in the box. Unsized media also **fits into a parent-provided box**: inside `Container({ width: 180, height: 50 })` a larger image scales down to fit (the drawn area stays centered). `Fit` never scales **up** on ambient space - a small logo in a full-width `Page` draws at its intrinsic size, not blown up to the column width; only an explicit `width`/`height` may enlarge it. Media shrink-wraps by default (`alignSelf: flex-start`); pass `width: '100%'` for a full-width box.
 
 ```ts
 import { Image, ImageSizing, SVGPath, Icon } from 'pdf-kalem/widgets';
@@ -167,4 +167,4 @@ Icon({ path: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z', size: 24, color: 'primary' }
 
 ## Try it live
 
-The [widget playground](/playground/widgets) has this whole guide editable — every snippet works there.
+The [widget playground](/playground/widgets) has this whole guide editable - every snippet works there.

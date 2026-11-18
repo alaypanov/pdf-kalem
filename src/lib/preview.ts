@@ -1,7 +1,7 @@
 /**
  * Preview seam, Stage 1 (IDEAS.md I9): rasterize produced PDF bytes to PNG.
  *
- * The seam sits at the *bytes* level — WYSIWYG by construction (the pixels
+ * The seam sits at the *bytes* level - WYSIWYG by construction (the pixels
  * come from the same PDF the user gets), with no second drawing path that
  * can drift, and no violation of ADR 0001's PDF-only pivot. Stage 2 (a
  * faster Node-only adapter on `pdf-raster`, and a browser adapter for the
@@ -9,7 +9,7 @@
  * makes the seam real.
  *
  * Node-only: the Stage 1 adapter is `pdfjs-dist` + `@napi-rs/canvas`. Both
- * are **optional peer dependencies** — they are loaded lazily on the first
+ * are **optional peer dependencies** - they are loaded lazily on the first
  * `renderToPng` call, so consumers who never import `pdf-kalem/preview`
  * never pay for them. Install with:
  *
@@ -18,7 +18,7 @@
  * ```
  *
  * Node built-ins are reached through the same `new Function` escape hatch
- * `doc-output.ts` uses — `src/` stays free of node type dependencies.
+ * `doc-output.ts` uses - `src/` stays free of node type dependencies.
  */
 
 export interface RenderToPngOptions {
@@ -26,7 +26,7 @@ export interface RenderToPngOptions {
   page?: number;
   /** Rasterize every page; resolves to an array of PNGs in page order. */
   all?: boolean;
-  /** Raster density in DPI — PDF space is 72/inch, so 144 doubles it. Default: 144. */
+  /** Raster density in DPI - PDF space is 72/inch, so 144 doubles it. Default: 144. */
   dpi?: number;
 }
 
@@ -80,7 +80,7 @@ async function loadPreviewDeps(): Promise<PreviewDeps> {
     return { getDocument: pdfjs.getDocument as unknown as PreviewDeps['getDocument'], createCanvas: canvas.createCanvas };
   } catch (err) {
     throw new Error(
-      'pdf-kalem/preview requires pdfjs-dist and @napi-rs/canvas — install them: pnpm add -D pdfjs-dist @napi-rs/canvas',
+      'pdf-kalem/preview requires pdfjs-dist and @napi-rs/canvas - install them: pnpm add -D pdfjs-dist @napi-rs/canvas',
       { cause: err },
     );
   }
@@ -90,12 +90,12 @@ async function loadPreviewDeps(): Promise<PreviewDeps> {
  * pdfjs renders standard-14 fonts (unembedded builtin fonts like Helvetica)
  * from its own data files; without this it warns and the glyphs may not
  * draw. Resolved from wherever the consumer's package manager put
- * pdfjs-dist — `require.resolve` walks the real location through pnpm's
+ * pdfjs-dist - `require.resolve` walks the real location through pnpm's
  * symlink layout.
  */
 async function standardFontDataUrl(): Promise<string> {
   try {
-    // createRequire needs this module's URL — passed at the call site
+    // createRequire needs this module's URL - passed at the call site
     // because `new Function` bodies cannot contain `import.meta`.
     const loadCreateRequire = new Function(
       "return import('node:module').then((m) => m.createRequire)",
@@ -111,7 +111,7 @@ async function standardFontDataUrl(): Promise<string> {
     return segments.slice(0, -1).join('/') + '/standard_fonts/';
   } catch (err) {
     throw new Error(
-      'pdf-kalem/preview could not locate pdfjs-dist/standard_fonts — is pdfjs-dist installed?',
+      'pdf-kalem/preview could not locate pdfjs-dist/standard_fonts - is pdfjs-dist installed?',
       { cause: err },
     );
   }
@@ -120,7 +120,7 @@ async function standardFontDataUrl(): Promise<string> {
 /**
  * Rasterizes pages of a produced PDF to PNG bytes.
  *
- * `pdfBytes` is what `doc.save()` returned — the exact bytes a consumer
+ * `pdfBytes` is what `doc.save()` returned - the exact bytes a consumer
  * receives, so the preview cannot lie. Default: page 0 as one PNG.
  * `{ all: true }` rasterizes every page, resolving to an array in page
  * order. Throws with install guidance when the optional peer dependencies

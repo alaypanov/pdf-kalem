@@ -2,7 +2,7 @@
 /**
  * The pane header strip shared by the playgrounds: dot + label on the left,
  * state on the right. Everything the user needs to notice renders here, on
- * top of the source where the fix happens — errors (red) take precedence
+ * top of the source where the fix happens - errors (red) take precedence
  * over warnings (amber); the plain badge label shows when both are clear.
  */
 defineProps<{

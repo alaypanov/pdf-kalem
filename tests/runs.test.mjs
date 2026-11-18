@@ -1,12 +1,12 @@
 /**
- * Rich-run tests: `Text(string | Run[])` — per-run faces, cross-run wrapping
+ * Rich-run tests: `Text(string | Run[])` - per-run faces, cross-run wrapping
  * (including mid-word), strikethrough geometry, per-fragment link
  * annotations, and pagination of run text.
  *
  * Run: node tests/runs.test.mjs (after `pnpm build`).
  *
  * Deterministic metrics (size 10): regular char = 6pt, bold = 7pt,
- * mono = 5pt — so run-level measurement is observable in wrapping.
+ * mono = 5pt - so run-level measurement is observable in wrapping.
  */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -322,7 +322,7 @@ test('Link with runs annotates per fragment with the link href', async () => {
     Link([{ text: 'ab' }, { text: 'cd', fontWeight: 700 }], { href: 'https://link.example', size: SIZE })
   );
 
-  // Per-fragment annotations only — no whole-box rect.
+  // Per-fragment annotations only - no whole-box rect.
   assert.equal(context.linkAnnotations.length, 2);
   assert.deepEqual(
     context.linkAnnotations.map((a) => a.href),
@@ -362,7 +362,7 @@ test('positions baselines with half-leading inside the line box', async () => {
   // backend's getLayoutBox), so the line-box top is y + height. With
   // fontHeight = size and lineHeight = 1.2 × size, halfLeading = 0.1 × size:
   // the first baseline sits halfLeading + ascent below the box top (was just
-  // ascent — hugging the top with all the slack below the baseline).
+  // ascent - hugging the top with all the slack below the baseline).
   const box = widget.getAbsoluteLayoutBox();
   const topY = box.y + box.height;
   const halfLeading = (SIZE * 1.2 - SIZE) / 2;

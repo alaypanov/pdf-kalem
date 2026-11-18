@@ -1,7 +1,7 @@
 import { Column, Text } from 'pdf-kalem/widgets';
 import type { Link } from 'pdf-kalem/widgets';
 
-/** Link's widget type — label values may embed a link instead of a string. */
+/** Link's widget type - label values may embed a link instead of a string. */
 type LinkWidget = ReturnType<typeof Link>;
 
 /** An uppercase label over a value; the value may be a widget (e.g. a Link). */

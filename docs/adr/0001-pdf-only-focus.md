@@ -1,4 +1,4 @@
-# ADR 0001 — PDF-only focus
+# ADR 0001 - PDF-only focus
 
 Date: 2026-10-09 · Status: accepted
 
@@ -21,22 +21,22 @@ a hypothetical seam by this repo's own vocabulary.
 PDF is the only output format, deliberately.
 
 - No image/HTML backends will be built; the v2 `ImageDoc`/`EmailDoc` plan is dropped.
-- The `RenderContext` seam is **retained** — not as a backend hook, but because it is
+- The `RenderContext` seam is **retained** - not as a backend hook, but because it is
   load-bearing: pagination's per-page `PageScope` is a second implementation that composes
   through it, and the PDF Y-flip lives in one place (`mapContentBox`).
-- PDF-specific features get PDF-typed modules and escape hatches — the `pdf-kalem/edit`
-  pattern: real `PDFDocument` types, a `PDFDocument` getter, no pretense of neutrality —
+- PDF-specific features get PDF-typed modules and escape hatches - the `pdf-kalem/edit`
+  pattern: real `PDFDocument` types, a `PDFDocument` getter, no pretense of neutrality -
   never interface widening.
 - Format-neutral modules that cost nothing extra (widget tree, pagination, theme, markdown,
   `TextLayoutEngine`) stay as they are.
 
 ## Alternatives considered
 
-- **Active de-generalization** — collapse `RenderContext` into `PdfRenderContext` and let
+- **Active de-generalization** - collapse `RenderContext` into `PdfRenderContext` and let
   widgets use pdf-lib types directly. Rejected: a large rewrite with no user value that
   destabilizes pagination, the library's most valuable machinery. Complexity would be
   relocated, not removed.
-- **Keep the multi-backend posture** — continue generalizing per feature. Rejected:
+- **Keep the multi-backend posture** - continue generalizing per feature. Rejected:
   speculative generality with a real, growing tax; no user has asked for a second backend.
 
 ## Consequences
@@ -44,5 +44,5 @@ PDF is the only output format, deliberately.
 - README, CONTEXT.md, and ARCHITECTURE.md no longer promise future backends.
 - PDF-native features (form filling, annotations, outlines, text extraction, compression) are
   first-class roadmap candidates (PLAN.md) rather than things to apologize for.
-- If a second backend is ever genuinely needed, expect a refactor then — the seam makes it
+- If a second backend is ever genuinely needed, expect a refactor then - the seam makes it
   possible, not free.

@@ -10,9 +10,9 @@ export interface ThemeTextStyle {
   font?: string;
   /** CSS-like weight: 100–900, 'normal', or 'bold'. Snaps to the family's two-weight model (100–500 → regular, 600–900 → bold). */
   fontWeight?: number | 'normal' | 'bold';
-  /** CSS-like style. 'oblique' is intentionally absent — no synthetic slant yet. */
+  /** CSS-like style. 'oblique' is intentionally absent - no synthetic slant yet. */
   fontStyle?: 'normal' | 'italic';
-  /** Line height in POINTS (not a CSS multiplier — see TextOptions.lineHeight). */
+  /** Line height in POINTS (not a CSS multiplier - see TextOptions.lineHeight). */
   lineHeight?: number;
   /** Line height as a multiplier of the font size (CSS `line-height: 1.4`). Ignored when `lineHeight` is set. */
   lineHeightMultiplier?: number;
@@ -50,7 +50,7 @@ export function createTheme(theme: Theme = {}): Theme {
 }
 
 /**
- * Tokens already warned about — one warning per token per theme, not per
+ * Tokens already warned about - one warning per token per theme, not per
  * render call (a widget renders once per page fragment; the typo is the same
  * typo). The partition is per theme object: different documents can carry
  * different themes, so a warning in one must not suppress the same missing
@@ -75,11 +75,11 @@ function warnUnknownColorToken(token: string, theme: Theme | undefined): void {
   if (warned.has(token)) return;
   warned.add(token);
   console.warn(
-    `pdf-kalem: color token "${token}" is not defined in the theme${theme !== undefined ? '' : ' (no theme is set)'} — using the widget's fallback color.`,
+    `pdf-kalem: color token "${token}" is not defined in the theme${theme !== undefined ? '' : ' (no theme is set)'} - using the widget's fallback color.`,
   );
 }
 
-/** @internal — test isolation for the warn-once state. Exported via internals. */
+/** @internal - test isolation for the warn-once state. Exported via internals. */
 export function resetThemeWarningsForTests(): void {
   warnedTokensByTheme = new WeakMap();
   warnedTokensWithoutTheme.clear();
@@ -104,7 +104,7 @@ export function resolveThemeColor(theme: Theme | undefined, value?: ThemeColorVa
   }
 
   // Not a hex literal and not a known token: always a miss (colors have no
-  // pass-through semantics — unlike font names, which are family names by
+  // pass-through semantics - unlike font names, which are family names by
   // default). Warn once; the call site's fallback applies.
   warnUnknownColorToken(value, theme);
   return undefined;

@@ -7,7 +7,7 @@
  * default) will never see this output in their console.
  *
  * Genuine error/warning paths (font fallbacks, failed fetches, etc.) still
- * use `console.error` / `console.warn` directly — those should always surface.
+ * use `console.error` / `console.warn` directly - those should always surface.
  */
 
 let debugEnabled = false;

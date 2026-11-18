@@ -22,7 +22,7 @@ export class LoadedPage extends PageWidget {
   private readonly sourceIndex: number;
 
   constructor(source: PDFDocument, sourceIndex: number, dimensions: [number, number]) {
-    // overflow: false — an overlay belongs to exactly one page; content is
+    // overflow: false - an overlay belongs to exactly one page; content is
     // clipped by the page edge, never paginated across pages.
     super({ dimensions, overflow: false });
     this.source = source;
@@ -39,7 +39,7 @@ export class LoadedPage extends PageWidget {
    * page-filling flow root (column, top-down): position with padding,
    * alignment, and spacers; use `FixedContainer` for absolute placement.
    * Repeated calls append in call order. Painting happens at save time,
-   * together with the rest of the document — the widget tree is the state.
+   * together with the rest of the document - the widget tree is the state.
    */
   add(widgets: Widget[]): void {
     for (const widget of widgets) {
@@ -50,7 +50,7 @@ export class LoadedPage extends PageWidget {
   /**
    * Adopts the source page, then paints overlays on top. The override
    * signature stays the paginator's contract (`RenderContext`); the PDF
-   * page surface is narrowed at runtime — the edit module only ever runs
+   * page surface is narrowed at runtime - the edit module only ever runs
    * against the PDF backend, so the guard cannot fail in practice.
    */
   async render(context: RenderContext): Promise<void> {
@@ -62,8 +62,8 @@ export class LoadedPage extends PageWidget {
     debugLog(`LoadedPage: adopting source page ${this.sourceIndex}`);
     await surface.adoptPage(this.source, this.sourceIndex);
 
-    // The legacy single-page path (overflow: false): openPage is a no-op —
-    // the surface already exists — then layout + paint children on top.
+    // The legacy single-page path (overflow: false): openPage is a no-op -
+    // the surface already exists - then layout + paint children on top.
     await super.render(context);
     this.warnIfOverflowing();
   }
@@ -72,7 +72,7 @@ export class LoadedPage extends PageWidget {
   protected override async openPage(_context: RenderContext, _dimensions: [number, number]): Promise<void> {}
 
   /**
-   * Overlay content is clipped by the page edge, never paginated — say so
+   * Overlay content is clipped by the page edge, never paginated - say so
    * once when the flow content outgrows the page.
    */
   private warnIfOverflowing(): void {

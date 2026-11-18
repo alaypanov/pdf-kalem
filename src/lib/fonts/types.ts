@@ -3,8 +3,8 @@
  *
  * Created by {@link useFonts}; consumed by `new PdfDoc({ fonts })`. The doc
  * applies `tokens` over the theme's font mapping (doc-level wins, the user's
- * theme object is never mutated) and resolves family bytes doc-scoped —
- * before the global `FontRegistry` — so two documents in one process can use
+ * theme object is never mutated) and resolves family bytes doc-scoped -
+ * before the global `FontRegistry` - so two documents in one process can use
  * different fonts under the same family name.
  */
 
@@ -14,7 +14,7 @@ export type FontStyle = 'regular' | 'bold' | 'italic' | 'boldItalic';
 /** CSS-like font weight: 100–900 numeric or the 'normal'/'bold' keywords. */
 export type FontWeightValue = number | 'normal' | 'bold';
 
-/** CSS-like font style. 'oblique' is intentionally absent — no synthetic slant yet. */
+/** CSS-like font style. 'oblique' is intentionally absent - no synthetic slant yet. */
 export type FontStyleValue = 'normal' | 'italic';
 
 /**

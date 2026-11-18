@@ -4,7 +4,7 @@
  *
  * Run: node tests/fonts.test.mjs (after `pnpm build`).
  *
- * NOTE: FontRegistry is a process-global singleton — tests use distinct
+ * NOTE: FontRegistry is a process-global singleton - tests use distinct
  * family keys to stay isolated.
  */
 import assert from 'node:assert/strict';
@@ -65,7 +65,7 @@ test('committed Inter font file exists and parses as TTF/OTF', () => {
 test('registered font embeds via lazy fontkit (no explicit registerFontkit)', async () => {
   const bytes = fs.readFileSync(FONT_URL);
   PdfDoc.registerFont('Inter', bytes);
-  // No registerFontkit call — the backend lazy-imports @pdf-lib/fontkit on
+  // No registerFontkit call - the backend lazy-imports @pdf-lib/fontkit on
   // first embed of a custom font.
   const doc = new PdfDoc({
     children: [
@@ -348,7 +348,7 @@ test('run typography replaces its axis over the block style', async () => {
   const out = await doc.save();
 
   const embedded = await embeddedBaseFonts(out);
-  // Inter's italic faces carry 'InterItalic' PostScript names — match on the
+  // Inter's italic faces carry 'InterItalic' PostScript names - match on the
   // style suffix, not the family prefix.
   assert.ok(
     embedded.some((name) => name.includes('BoldItalic')),

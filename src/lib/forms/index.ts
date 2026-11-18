@@ -1,7 +1,7 @@
 /**
  * Form widgets (`pdf-kalem/forms`): AcroForm fields placed by the widget tree.
  *
- * PDF-typed per ADR 0001 — these widgets narrow to {@link PdfFormSurface} at
+ * PDF-typed per ADR 0001 - these widgets narrow to {@link PdfFormSurface} at
  * render time instead of widening the backend-neutral `RenderContext`.
  */
 export { TextField, TextFieldWidget, type TextFieldOptions } from './TextField';

@@ -7,14 +7,14 @@ export type PdfSource = string | Uint8Array | ArrayBuffer;
 
 /**
  * Loads an existing PDF for editing. Every page becomes a {@link LoadedPage}
- * widget (dimensions preset from the file) on `LoadedPdf.pages` — restructure
+ * widget (dimensions preset from the file) on `LoadedPdf.pages` - restructure
  * pages by mutating that array, overlay widgets with `page.add([...])`, and
  * save with `pdf.save()` or by composing `pages` into a `PdfDoc`.
  *
  * A string source is fetched (browser and Node 18+ both have global `fetch`);
  * pass bytes for other runtimes or when the bytes are already in hand.
  * Encrypted documents are not supported: pdf-lib's load error propagates
- * as-is. Rotated pages (`/Rotate ≠ 0`) throw a clear error — overlaying them
+ * as-is. Rotated pages (`/Rotate ≠ 0`) throw a clear error - overlaying them
  * is not supported yet.
  */
 export async function loadPdf(

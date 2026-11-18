@@ -17,11 +17,11 @@ import PlaygroundStrip from './PlaygroundStrip.vue'
  * download. Everything mechanical lives here; a playground supplies the
  * `renderCode` callback (editor text + loaded fonts → blob + page count),
  * its sample code, and its labels. Extra header controls go in the
- * `actions` slot. Mount inside <ClientOnly> — rendering touches browser APIs.
+ * `actions` slot. Mount inside <ClientOnly> - rendering touches browser APIs.
  */
 
 const props = defineProps<{
-  /** Starter code — the editor content on mount and after Reset. */
+  /** Starter code - the editor content on mount and after Reset. */
   sampleCode: string
   /** Breadcrumbs label (also used in render-failure console notes). */
   breadcrumbs: string
