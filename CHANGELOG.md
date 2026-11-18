@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.0-alpha.1] - 2026-11-18
+
 ### Known issues
 
 - Oversized atomic pagination fragments can paint into page padding; interactive link and form annotations are not constrained by a graphics clip (B28). No clipping behavior has changed.

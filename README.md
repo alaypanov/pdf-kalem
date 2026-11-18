@@ -2,7 +2,7 @@
 
 > **For AI assistants:** read [`CONTEXT.md`](./CONTEXT.md) for a compact codebase orientation before diving into the source.
 
-> **Status: early alpha.** The API is not yet stable and may change between versions. Not recommended for production use yet - feedback and bug reports are welcome.
+> **Status: early alpha.** The API is not yet stable and may change between versions. Not recommended for production use yet - feedback and bug reports are welcome. Known limitation: oversized atomic content can paint into page padding; review generated output carefully.
 
 pdf-kalem is a widget-tree UI library for document-style layout and generation.
 
