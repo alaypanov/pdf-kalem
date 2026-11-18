@@ -11,7 +11,7 @@ const pdf = await loadPdf(bytes, {
 });
 ```
 
-The source is bytes (`Uint8Array | ArrayBuffer`) or a **URL string** - fetched for you (browser and Node 18+ both have `fetch`), matching the `useFonts` source convention. Pass bytes from a file picker or Node's `fs` when they're already in hand:
+The source is bytes (`Uint8Array | ArrayBuffer`) or a **URL string** - fetched for you (browsers and the supported Node 22.18.0+ runtime both have `fetch`), matching the `useFonts` source convention. Pass bytes from a file picker or Node's `fs` when they're already in hand:
 
 ```ts
 const fromUrl = await loadPdf('https://example.com/contract.pdf');
@@ -69,6 +69,8 @@ await doc.save();
 ```
 
 Loaded pages are **adopted** into the output document - the original page object is copied, so its content streams, annotations, links, and form fields are preserved, and your widgets draw on top. Nothing is re-drawn or flattened.
+
+When saving only some pages, supported AcroForms keep fields attached to retained pages and drop fields attached only to omitted pages. A field shared across pages keeps its value and only its retained controls. If the form structure cannot be safely filtered, saving throws rather than retaining the omitted fields. **This is not a redaction guarantee.** Saving pages from multiple loaded PDFs with nonempty forms also throws; merging their form trees is not supported.
 
 ## Escape hatch
 

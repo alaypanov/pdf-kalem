@@ -1,6 +1,8 @@
+import { formSelections, loadedForm } from './edit/formSelection';
 import {
   PDFArray,
   PDFDocument,
+  PDFDict,
   PDFName,
   PDFObjectCopier,
   PDFPage,
@@ -209,7 +211,11 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface, PdfFormS
     const ref = doc.context.register(copiedPage);
     this.setCurrentPage(doc.addPage(PDFPage.of(copiedPage, ref, doc)));
 
-    const acroForm = src.catalog.get(PDFName.of('AcroForm'));
+    const selection = formSelections.get(doc)?.get(src);
+    for (const widget of selection?.widgets.get(pageIndex) ?? []) {
+      doc.context.lookup(copier.copy(widget), PDFDict).set(PDFName.of('P'), ref);
+    }
+    const acroForm = selection?.form ?? loadedForm(src);
     if (acroForm) {
       doc.catalog.set(PDFName.of('AcroForm'), copier.copy(acroForm));
     }
@@ -218,7 +224,10 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface, PdfFormS
   private copierFor(source: PDFDocument): PDFObjectCopier {
     let copier = this.pageCopiers.get(source);
     if (!copier) {
-      copier = PDFObjectCopier.for(source.context, this.getDocument().context);
+      copier = PDFObjectCopier.for(
+        formSelections.get(this.getDocument())?.get(source)?.context ?? source.context,
+        this.getDocument().context,
+      );
       this.pageCopiers.set(source, copier);
     }
     return copier;
@@ -370,9 +379,6 @@ export class PdfRenderContext implements RenderContext, PdfPageSurface, PdfFormS
       if (faceNote) {
         console.warn(`RenderContext.getFont: ${faceNote}.`);
       }
-      // Canvas-based measurement (pretext) needs the face registered under
-      // the same name in the browser font set; no-op outside the browser.
-      await registry.loadBrowserFont(fontName, registered);
       return font;
     }
 

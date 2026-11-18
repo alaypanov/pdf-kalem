@@ -84,7 +84,7 @@ function findFragments(pages, target) {
   const found = [];
   const walk = (fragment) => {
     if (fragment.widget === target) found.push(fragment);
-    fragment.children.forEach(walk);
+    if (fragment.mode === 'decomposed') fragment.children.forEach(walk);
   };
   for (const page of pages) {
     page.roots.forEach(walk);
@@ -381,7 +381,7 @@ function countImages(widgets) {
 
 // --- B20: minor findings ---
 
-test('B20: pre-wrap whitespace-only paragraph survives the Node fallback wrapper', async () => {
+test('B20: pre-wrap preserves a whitespace-only paragraph in plain and rich text', async () => {
   const plain = Text('a\n   \nb', { whiteSpace: 'pre-wrap', size: 10, lineHeight: 10 });
   const rich = Text([{ text: 'a\n   \nb' }], { whiteSpace: 'pre-wrap', size: 10, lineHeight: 10 });
   await new PdfDoc({
@@ -400,7 +400,6 @@ test('B20: rich ellipsis shows on a blank last visible line', async () => {
     align: 'left',
     ascent: 10,
     whiteSpace: 'normal',
-    wordBreak: 'normal',
     maxLines: 2,
     overflow: 'ellipsis',
     measureTextWidth: (t) => t.length * 6,

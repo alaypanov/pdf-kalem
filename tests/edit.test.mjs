@@ -8,7 +8,7 @@
 import assert from 'node:assert/strict';
 import { inflateSync } from 'node:zlib';
 
-import { PDFArray, PDFDocument, StandardFonts, degrees } from 'pdf-lib';
+import { PDFArray, PDFDocument, PDFHexString, PDFName, StandardFonts, degrees } from 'pdf-lib';
 
 import { loadPdf } from '../dist/edit.js';
 import { PdfDoc } from '../dist/index.js';
@@ -202,6 +202,81 @@ await test('save() is stateless: two saves produce two valid documents', async (
   assert.ok(pageText(second, 0).includes(OVERLAY_MARKER), 'second save re-adopts from the source');
 });
 
+async function formFixture() {
+  const doc = await PDFDocument.create();
+  const keep = doc.addPage();
+  const drop = doc.addPage();
+  const form = doc.getForm();
+  for (const [name, value, pages] of [
+    ['keep', 'kept value', [keep]],
+    ['remove', 'REMOVED-UNIQUE-VALUE', [drop]],
+    ['shared', 'shared value', [keep, drop]],
+  ]) {
+    const field = form.createTextField(name);
+    field.setText(value);
+    for (const page of pages) field.addToPage(page);
+  }
+  return doc;
+}
+
+await test('removing a form page drops its unique value and prunes the shared placement', async () => {
+  const loaded = await loadPdf(await (await formFixture()).save());
+  const removed = loaded.pages.pop();
+  for (let save = 0; save < 2; save++) {
+    const out = await PDFDocument.load(await loaded.save());
+    const form = out.getForm();
+    assert.equal(out.getPageCount(), 1);
+    assert.deepEqual(form.getFields().map((field) => field.getName()).sort(), ['keep', 'shared']);
+    const shared = form.getTextField('shared');
+    assert.equal(shared.getText(), 'shared value');
+    assert.equal(form.getTextField('keep').getText(), 'kept value');
+    const kids = shared.acroField.Kids();
+    assert.equal(kids.size(), 1);
+    const page = out.getPage(0);
+    const annots = page.node.Annots();
+    assert.equal(annots.size(), 2);
+    assert.ok(annots.asArray().includes(kids.get(0)));
+    assert.equal(out.context.lookup(kids.get(0)).get(PDFName.of('P')), page.ref);
+    const serializedValue = PDFHexString.fromText('REMOVED-UNIQUE-VALUE').toString();
+    for (const [, object] of out.context.enumerateIndirectObjects()) {
+      assert.ok(!object.toString().includes(serializedValue), 'removed value must not survive in orphan objects');
+    }
+  }
+  loaded.pages.push(removed);
+  const restored = await PDFDocument.load(await loaded.save());
+  assert.equal(restored.getForm().getTextField('remove').getText(), 'REMOVED-UNIQUE-VALUE');
+  assert.equal(restored.getForm().getTextField('shared').acroField.getWidgets().length, 2);
+});
+
+await test('removing form pages rejects an alternate reference into a removed page', async () => {
+  const doc = await formFixture();
+  const [keep, drop] = doc.getPages();
+  const link = doc.context.register(doc.context.obj({
+    Type: 'Annot', Subtype: 'Link', Rect: [0, 0, 10, 10], Dest: [drop.ref, 'Fit'],
+  }));
+  keep.node.addAnnot(link);
+  const loaded = await loadPdf(await doc.save());
+  loaded.pages.pop();
+  await assert.rejects(loaded.save(), /unsupported AcroForm.*reference/i);
+});
+
+await test('removing pages from a hierarchical AcroForm fails closed', async () => {
+  const doc = await formFixture();
+  const field = doc.getForm().createTextField('group.nested');
+  field.addToPage(doc.getPage(1));
+  const loaded = await loadPdf(await doc.save());
+  loaded.pages.pop();
+  await assert.rejects(loaded.save(), /unsupported AcroForm.*flat terminal/i);
+});
+
+await test('removing pages rejects widgets without a registered AcroForm', async () => {
+  const doc = await formFixture();
+  const loaded = await loadPdf(await doc.save());
+  loaded.PDFDocument.catalog.delete(PDFName.of('AcroForm'));
+  loaded.pages.pop();
+  await assert.rejects(loaded.save(), /unsupported AcroForm.*unregistered widget/i);
+});
+
 // --- composition with generated documents --------------------------------------
 
 await test('loaded pages compose into a user PdfDoc alongside generated ones', async () => {
@@ -218,6 +293,27 @@ await test('loaded pages compose into a user PdfDoc alongside generated ones', a
   assert.ok(pageText(out, 0).includes(MARKER_TWO), 'loaded page adopted into the generated doc');
   assert.equal(out.getPage(0).getSize().width, 200, 'loaded page keeps its preset size');
   assert.ok(pageText(out, 1).includes(GENERATED_MARKER), 'generated page follows');
+});
+
+await test('saving pages from multiple form-bearing sources rejects instead of losing fields', async () => {
+  const first = await loadPdf(await (await formFixture()).save());
+  const secondDoc = await PDFDocument.create();
+  secondDoc.getForm().createTextField('another').addToPage(secondDoc.addPage());
+  const second = await loadPdf(await secondDoc.save());
+  const merged = new PdfDoc({ children: [...first.pages, ...second.pages] });
+  await assert.rejects(merged.save(), /multiple loaded PDFs with AcroForms/i);
+});
+
+await test('one form-bearing source can be combined with a source without fields', async () => {
+  const withForm = await loadPdf(await (await formFixture()).save());
+  const emptyDoc = await PDFDocument.create();
+  emptyDoc.addPage();
+  emptyDoc.getForm(); // An empty catalog AcroForm should not clobber the real form.
+  const withoutFields = await loadPdf(await emptyDoc.save());
+  const merged = new PdfDoc({ children: [withForm.pages[0], ...withoutFields.pages] });
+  const out = await PDFDocument.load(await merged.save());
+  assert.equal(out.getPageCount(), 2);
+  assert.equal(out.getForm().getTextField('shared').getText(), 'shared value');
 });
 
 await test('absolute overlay placement via FixedContainer', async () => {

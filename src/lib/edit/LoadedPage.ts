@@ -4,6 +4,7 @@ import { PageWidget } from '../Page';
 import type { RenderContext } from '../RenderContextInterface';
 import { isPdfPageSurface, type PdfPageSurface } from '../PdfPageSurface';
 import type { Widget } from '../Widget';
+import { loadedPageOrigins } from './formSelection';
 import { debugLog } from '../utils/debug';
 
 /**
@@ -27,6 +28,7 @@ export class LoadedPage extends PageWidget {
     super({ dimensions, overflow: false });
     this.source = source;
     this.sourceIndex = sourceIndex;
+    loadedPageOrigins.set(this, { source, index: sourceIndex });
   }
 
   /** This page's index in the source document (post-restructure, positions in `LoadedPdf.pages` may differ). */

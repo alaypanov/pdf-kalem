@@ -1,3 +1,4 @@
+import { prepareFormSelections } from './edit/formSelection';
 import { Widget, WidgetOptions } from './Widget';
 import { PdfRenderContext } from './PdfRenderContext';
 import type { Theme } from './Theme';
@@ -121,8 +122,7 @@ export class PdfDoc {
     FontRegistry.instance.registerFontkit(fontkit);
   }
 
-  protected size?: PageSize; // Can be undefined if customSize is used
-  protected dimensions?: [number, number];
+  protected dimensions: [number, number];
   protected layout: 'portrait' | 'landscape';
   protected theme?: Theme;
   protected fonts?: FontSet;
@@ -147,14 +147,8 @@ export class PdfDoc {
       context.setFonts(options.fonts);
     }
 
-    // Prioritize customSize if provided
-    if (options.dimensions) {
-      this.dimensions = options.dimensions;
-      this.size = undefined; // Ensure size is not set if customSize is used
-    } else {
-      this.size = options.size; // Default to LETTER if neither is provided
-      this.dimensions = PDFDocSize[options.size || PageSize.LETTER] as [number, number];
-    }
+    this.dimensions = options.dimensions
+      ?? (PDFDocSize[options.size ?? PageSize.LETTER] ?? PDFDocSize.LETTER) as [number, number];
     this.layout = options.layout || 'portrait';
     this.meta = options.meta;
     this.beforeCreate = options.beforeCreate;
@@ -249,22 +243,13 @@ export class PdfDoc {
     return { ...theme, fonts: { ...theme?.fonts, ...tokens } };
   }
 
-  private getDimensions(): number[] {
-    if (this.dimensions) {
-      return this.dimensions;
-    }
-
-    // Use standard size, default to LETTER if size is somehow undefined (shouldn't happen with constructor logic)
-    return PDFDocSize[PageSize.LETTER]
-  }
-
   getWidth(): number {
-    const [width, height] = this.getDimensions();
+    const [width, height] = this.dimensions;
     return this.layout === 'portrait' ? width : height;
   }
 
   getHeight(): number {
-    const [width, height] = this.getDimensions();
+    const [width, height] = this.dimensions;
     return this.layout === 'portrait' ? height : width;
   }
 
@@ -273,6 +258,7 @@ export class PdfDoc {
 
     const pdfDoc = await PDFDocument.create();
     applyMeta(pdfDoc, this.getMeta());
+    await prepareFormSelections(pdfDoc, this.children);
     this.context.setDocument(pdfDoc);
 
     // Any dry run before this save measured with un-embedded fonts; the real
