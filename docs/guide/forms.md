@@ -75,6 +75,8 @@ Validation is honest and early: type mismatches throw at construction (text want
 
 Fields are placed at their layout box - the PDF coordinate flip is the backend's job, so nothing special is needed. Fields are **atomic**: on overflow they move whole to the next page (a field never splits), and they compose with `FixedContainer` for absolute placement.
 
+A field widget inside a repeating page-root `FixedContainer` creates **one field** with placements on each output page. All copies share the same value; selecting a radio option also selects its matching copy on every page. For independent inputs, use distinct widgets with distinct names. Each save starts with fresh fields.
+
 ::: warning Limitations
 - **Field text is Helvetica** in the generated appearance (pdf-lib limitation) - embedded-font faces for field appearances can come later.
 - **Buttons carry no actions** - pdf-lib exposes no way to attach submit/reset/JavaScript to a push button.

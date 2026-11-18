@@ -51,11 +51,14 @@ export class TextFieldWidget extends PlacedFormWidget {
     box: { x: number; y: number; width: number; height: number },
     context: RenderContext,
   ): void {
-    const field = form.createTextField(this.name);
-    if (this.multiline) field.enableMultiline();
-    if (this.maxLength !== undefined) field.setMaxLength(this.maxLength);
-    if (this.value !== undefined) field.setText(this.value);
-    if (this.readOnly) field.enableReadOnly();
+    const field = this.fieldFor(form, () => {
+      const field = form.createTextField(this.name);
+      if (this.multiline) field.enableMultiline();
+      if (this.maxLength !== undefined) field.setMaxLength(this.maxLength);
+      if (this.value !== undefined) field.setText(this.value);
+      if (this.readOnly) field.enableReadOnly();
+      return field;
+    });
     // addToPage creates the /DA entry setFontSize requires - order matters.
     field.addToPage(page, { ...box, ...this.appearanceArgs(context) });
     if (this.appearance.fontSize !== undefined) field.setFontSize(this.appearance.fontSize);

@@ -1,4 +1,4 @@
-import type { PDFForm, PDFPage } from 'pdf-lib';
+import type { PDFField, PDFForm, PDFPage } from 'pdf-lib';
 import type { RenderContext } from '../RenderContextInterface';
 import type { ThemeColorValue } from '../Theme';
 import { resolveColor } from '../theme-resolve';
@@ -6,6 +6,10 @@ import type { Color as PdfLibColor } from 'pdf-lib';
 import { toPdfLibColor } from '../utils/color-utils';
 import { Widget, type WidgetOptions, type YogaStyleValue } from '../Widget';
 import { isPdfFormSurface } from './surface';
+
+// PDFForm identity follows the output PDFDocument, not the persistent render
+// context or its per-page scopes. Weak keys keep discarded outputs collectible.
+const fieldsByForm = new WeakMap<PDFForm, WeakMap<FormWidget, PDFField>>();
 
 /**
  * Appearance options pdf-lib's field appearance generation supports. The
@@ -55,8 +59,9 @@ interface FieldAppearanceArgs {
  * `getLayoutBox` from the pagination plan, fields compose with pagination and
  * absolute positioning for free.
  *
- * Fields are created fresh on every render walk: a second save builds a fresh
- * `PDFDocument`, so nothing pdf-lib-owned is cached on the widget.
+ * A field belongs to one widget within one output PDFForm; repeated placements
+ * add annotations to it. A second save uses a fresh form and fresh fields.
+ * Nothing pdf-lib-owned is cached on the widget.
  */
 export abstract class FormWidget extends Widget {
   /** The AcroForm field name - unique per document (pdf-lib enforces it). */
@@ -80,6 +85,20 @@ export abstract class FormWidget extends Widget {
       borderColor: options.borderColor,
       borderWidth: options.borderWidth,
     };
+  }
+
+  protected fieldFor<T extends PDFField>(form: PDFForm, create: () => T): T {
+    let fields = fieldsByForm.get(form);
+    if (!fields) {
+      fields = new WeakMap();
+      fieldsByForm.set(form, fields);
+    }
+    const existing = fields.get(this);
+    if (existing) return existing as T;
+    // Never look up by name: a different widget with the same name must fail.
+    const field = create();
+    fields.set(this, field);
+    return field;
   }
 
   /** Readable widget name for error messages. */

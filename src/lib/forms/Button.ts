@@ -37,11 +37,14 @@ export class ButtonWidget extends PlacedFormWidget {
     box: { x: number; y: number; width: number; height: number },
     context: RenderContext,
   ): void {
-    const field = form.createButton(this.name);
+    const field = this.fieldFor(form, () => {
+      const field = form.createButton(this.name);
+      if (this.readOnly) field.enableReadOnly();
+      return field;
+    });
     // addToPage creates the /DA entry setFontSize requires - order matters.
     field.addToPage(this.label ?? '', page, { ...box, ...this.appearanceArgs(context) });
     if (this.appearance.fontSize !== undefined) field.setFontSize(this.appearance.fontSize);
-    if (this.readOnly) field.enableReadOnly();
   }
 }
 

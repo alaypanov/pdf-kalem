@@ -38,10 +38,14 @@ export class CheckBoxWidget extends PlacedFormWidget {
     box: { x: number; y: number; width: number; height: number },
     context: RenderContext,
   ): void {
-    const field = form.createCheckBox(this.name);
-    if (this.checked) field.check();
-    if (this.readOnly) field.enableReadOnly();
+    const field = this.fieldFor(form, () => {
+      const field = form.createCheckBox(this.name);
+      if (this.readOnly) field.enableReadOnly();
+      return field;
+    });
     field.addToPage(page, { ...box, ...this.appearanceArgs(context) });
+    // New annotations start Off, even when the field is already checked.
+    if (this.checked) field.check();
   }
 }
 

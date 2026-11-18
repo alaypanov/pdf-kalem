@@ -64,10 +64,13 @@ export class DropdownWidget extends PlacedFormWidget {
     box: { x: number; y: number; width: number; height: number },
     context: RenderContext,
   ): void {
-    const field = form.createDropdown(this.name);
-    field.addOptions(this.options);
-    if (this.value !== undefined) field.select(this.value);
-    if (this.readOnly) field.enableReadOnly();
+    const field = this.fieldFor(form, () => {
+      const created = form.createDropdown(this.name);
+      created.addOptions(this.options);
+      if (this.value !== undefined) created.select(this.value);
+      if (this.readOnly) created.enableReadOnly();
+      return created;
+    });
     field.addToPage(page, { ...box, ...this.appearanceArgs(context) });
   }
 }
