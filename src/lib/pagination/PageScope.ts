@@ -30,7 +30,7 @@ export class PageScope implements RenderContext {
   constructor(private readonly backend: RenderContext, plan: PagePlan) {
     const index = (fragment: Fragment): void => {
       this.fragByWidget.set(fragment.widget, fragment);
-      fragment.children.forEach(index);
+      if (fragment.mode === 'decomposed') fragment.children.forEach(index);
     };
     plan.fixed.forEach(index);
     plan.roots.forEach(index);
@@ -50,7 +50,7 @@ export class PageScope implements RenderContext {
     let ancestor = widget.getParent();
     while (ancestor) {
       const ancestorFrag = this.fragByWidget.get(ancestor);
-      if (ancestorFrag) {
+      if (ancestorFrag?.mode === 'whole') {
         const flow = ancestor.getAbsoluteLayoutBox();
         return this.backend.mapContentBox({
           x: box.x + (ancestorFrag.box.x - flow.x),
@@ -70,9 +70,8 @@ export class PageScope implements RenderContext {
 
   getRenderChildren(widget: Widget): Widget[] | undefined {
     const frag = this.fragByWidget.get(widget);
-    if (frag && frag.children.length > 0) {
-      return frag.children.map((f) => f.widget);
-    }
+    if (frag?.mode === 'decomposed') return frag.children.map((f) => f.widget);
+    if (frag?.mode === 'slice') return [];
     // Whole-placed widget (or unplaced descendant): its real children.
     return undefined;
   }

@@ -1,11 +1,10 @@
-import { Widget, YogaStyle, type YogaStyleValue } from './Widget';
+import { Widget, WidgetOptions, YogaStyle, type YogaStyleValue } from './Widget';
 import type { RenderContext } from './RenderContextInterface';
 
 /**
  * Options for configuring a FlexContainer widget
  */
-export interface FlexContainerOptions {
-  children?: Widget[];
+export interface FlexContainerOptions extends WidgetOptions {
   style?: YogaStyle;
   width?: YogaStyleValue;
   height?: YogaStyleValue;
@@ -17,7 +16,9 @@ export interface FlexContainerOptions {
  */
 export class FlexContainer extends Widget {
   constructor(options: FlexContainerOptions = {}) {
-    super({ children: options.children });
+    // forward the whole options object - the base reads breakable/margin;
+    // dropping them here silently ignored breakable:false on Row/Column/Flex
+    super(options);
 
     // `style` is the escape hatch and the last word (same contract as
     // Container, I11) - spreading it first let width/height clobber it (B14).

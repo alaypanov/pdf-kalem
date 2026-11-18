@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { PDFDocument } from 'pdf-lib';
 
 import { FakeContext, plan } from './fake-context.mjs';
+import { PageScope } from '../dist/internals.js';
 import {
   Page,
   Text,
@@ -55,6 +56,8 @@ test('breakable text splits by lines across pages', async () => {
   assert.equal(p1.roots.length, 1);
   const f1 = p1.roots[0];
   assert.equal(f1.widget, text);
+  assert.equal(f1.mode, 'slice');
+  assert.equal('children' in f1, false);
   assert.deepEqual(
     { x: f1.box.x, y: f1.box.y, width: f1.box.width, height: f1.box.height },
     { x: 0, y: 0, width: 200, height: 100 },
@@ -65,6 +68,7 @@ test('breakable text splits by lines across pages', async () => {
   assert.equal(p2.roots.length, 1);
   const f2 = p2.roots[0];
   assert.equal(f2.widget, text);
+  assert.equal(f2.mode, 'slice');
   assert.equal(f2.box.y, 0);
   assert.equal(f2.box.height, 10);
   assert.equal(f2.sliceTop, 100);
@@ -115,6 +119,9 @@ test('nested container splits with its children; ancestor fragments follow', asy
 
   const c1 = pages[0].roots[0];
   assert.equal(c1.widget, column);
+  assert.equal(c1.mode, 'decomposed');
+  assert.equal(c1.children[0].mode, 'whole');
+  assert.equal(c1.children[1].mode, 'slice');
   assert.equal(c1.box.y, 0);
   assert.equal(c1.box.height, 100); // chrome clipped to the content box
   assert.equal(c1.children.length, 2);
@@ -165,6 +172,8 @@ test('table rows split whole and the head repeats on continuation pages', async 
   const repeatedHead = t2.children[0];
   assert.equal(repeatedHead.widget, head);
   assert.equal(repeatedHead.repeated, true);
+  assert.equal(repeatedHead.mode, 'whole');
+  assert.equal('children' in repeatedHead, false);
   assert.equal(repeatedHead.box.y, 0);
   assert.equal(repeatedHead.box.height, 10);
   assert.equal(t2.children[1].widget, body.getRows()[9]);
@@ -213,6 +222,7 @@ test('page-root fixed widgets are re-emitted on every page', async () => {
   for (const p of pages) {
     assert.equal(p.fixed.length, 1);
     assert.equal(p.fixed[0].widget, banner);
+    assert.equal(p.fixed[0].mode, 'whole');
     assert.equal(p.fixed[0].box.y, 5);
     assert.equal(p.fixed[0].box.x, 5);
   }
@@ -315,6 +325,82 @@ test('a page with real content after the spacer is kept', async () => {
   // The spacer fragment rides along (it paints nothing); the Text is the
   // page's reason to exist.
   assert.ok(last.roots.some((f) => f.widget.constructor.name === 'TextWidget'));
+});
+
+const trailingWhitespacePage = (fixed = []) => Page({
+  dimensions: [200, 100],
+  children: [...fixed, Column({ children: [
+    Text('visible', { size: 10, lineHeight: 10 }),
+    Spacer({ size: 100 }),
+  ] })],
+});
+
+test('split Column drops trailing whitespace using page-local children (B26)', async () => {
+  const pagination = await plan(trailingWhitespacePage());
+  assert.equal(pagination.overflow, true);
+  assert.equal(pagination.pageCount, 1);
+  assert.equal(pagination.pages.length, 1);
+  assert.equal(pagination.pages[0].index, 0);
+});
+
+test('saved PDF has no trailing blank page inside a split Column (B26)', async () => {
+  const { PdfDoc } = await import('../dist/index.js');
+  const doc = new PdfDoc({ children: [trailingWhitespacePage()] });
+  const pdf = await PDFDocument.load(await doc.save());
+  assert.equal(pdf.getPageCount(), 1);
+  assert.equal(await doc.getPageCount(), 1);
+});
+
+test('fixed furniture keeps a split Column whitespace continuation alive', async () => {
+  const page = trailingWhitespacePage([
+    FixedContainer({ top: 0, left: 0, width: 20, height: 10 }),
+  ]);
+  const { pages } = await plan(page);
+  assert.equal(pages.length, 2);
+  assert.equal(pages[1].roots[0].mode, 'decomposed');
+  assert.equal(pages[1].roots[0].children.length, 1);
+  assert.equal(pages[1].roots[0].children[0].mode, 'whole');
+  assert.equal(pages[1].roots[0].children[0].widget.constructor.name, 'SpacerWidget');
+  assert.equal(pages[1].fixed[0].mode, 'whole');
+});
+
+test('whole subtree stays compact and translates descendants after moving', async () => {
+  const leaf = Text('visible', { size: 10, lineHeight: 10 });
+  const inner = Column({ children: [leaf] });
+  const whole = Column({ height: 60, breakable: false, children: [inner] });
+  const page = Page({ dimensions: [200, 100], children: [
+    Spacer({ size: 60 }), whole,
+  ] });
+  const { pages } = await plan(page);
+  // The initial whitespace page is pruned; the whole subtree keeps this page.
+  assert.equal(pages.length, 1);
+  const fragment = pages[0].roots[0];
+  assert.equal(fragment.widget, whole);
+  assert.equal(fragment.mode, 'whole');
+  assert.equal('children' in fragment, false);
+  const scope = new PageScope(new FakeContext(), pages[0]);
+  assert.equal(scope.getRenderChildren(whole), undefined);
+  assert.equal(scope.getRenderChildren(inner), undefined);
+  const original = leaf.getAbsoluteLayoutBox();
+  const root = whole.getAbsoluteLayoutBox();
+  assert.deepEqual(scope.getLayoutBox(leaf), {
+    ...original,
+    x: original.x + fragment.box.x - root.x,
+    y: original.y + fragment.box.y - root.y,
+  });
+});
+
+test('PageScope distinguishes empty decomposition, self-painted slice, and whole subtree', async () => {
+  const child = Text('child');
+  const widget = Column({ children: [child] });
+  const base = { widget, box: { x: 0, y: 0, width: 200, height: 10 },
+    sliceTop: 0, continuation: false, repeated: false };
+  const scope = (fragment) => new PageScope(new FakeContext(), {
+    index: 0, pageSize: [200, 100], roots: [fragment], fixed: [], clipped: false,
+  });
+  assert.deepEqual(scope({ ...base, mode: 'decomposed', children: [] }).getRenderChildren(widget), []);
+  assert.deepEqual(scope({ ...base, mode: 'slice' }).getRenderChildren(widget), []);
+  assert.equal(scope({ ...base, mode: 'whole' }).getRenderChildren(widget), undefined);
 });
 
 // --- Runner ---

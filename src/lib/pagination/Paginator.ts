@@ -15,6 +15,7 @@ export interface BreakRules {
 
 /** Internal per-page accumulation state (fragment builders). */
 interface FragmentBuilder {
+  mode: Fragment['mode'];
   widget: Widget;
   box: LayoutBox;
   sliceTop: number;
@@ -152,7 +153,7 @@ export class Paginator {
     // page numbering is doc-global.
     if (fixedWidgets.length === 0) {
       const kept = this.pagesAcc.filter((acc) =>
-        acc.roots.some((root) => !this.paintsNothing(root.widget)),
+        acc.roots.some((root) => !this.fragmentPaintsNothing(root)),
       );
       if (kept.length > 0) {
         this.pagesAcc = kept;
@@ -168,13 +169,18 @@ export class Paginator {
     return { pages, pageCount: pages.length, overflow: true };
   }
 
-  /**
-   * Whitespace-only content: Spacers, and pure layout containers (Flex/
-   * Row/Column/Stack - no background, no border) whose entire subtree is
-   * whitespace. Walks the WIDGET tree, not the fragment tree: whole-placed
-   * fragments carry no fragment children, but the widget subtree is always
-   * complete.
-   */
+  /** Split layouts inspect only this page; whole placements inspect their widget tree. */
+  private fragmentPaintsNothing(fragment: FragmentBuilder): boolean {
+    if (fragment.mode === 'whole') return this.paintsNothing(fragment.widget);
+    if (fragment.widget instanceof SpacerWidget) return true;
+    if (fragment.mode === 'decomposed' &&
+        (fragment.widget instanceof FlexContainer || fragment.widget instanceof StackWidget)) {
+      return fragment.children.every((child) => this.fragmentPaintsNothing(child));
+    }
+    return false;
+  }
+
+  /** Whitespace-only widget subtree: Spacers and pure layout containers. */
   private paintsNothing(widget: Widget): boolean {
     if (widget instanceof SpacerWidget) return true;
     if (widget instanceof FlexContainer || widget instanceof StackWidget) {
@@ -272,6 +278,7 @@ export class Paginator {
     if (u.widget) {
       const abs = u.widget.getAbsoluteLayoutBox();
       const frag: FragmentBuilder = {
+        mode: 'whole',
         widget: u.widget,
         box: {
           x: abs.x,
@@ -318,6 +325,7 @@ export class Paginator {
     const top = Math.max(frame.origin, contentTop);
     const bottom = Math.min(frame.origin + frame.flowHeight, contentBottom);
     const frag: FragmentBuilder = {
+      mode: frame.units?.some((unit) => unit.widget !== undefined) ? 'decomposed' : 'slice',
       widget: frame.widget,
       box: {
         x: frame.x,
@@ -358,6 +366,7 @@ export class Paginator {
       const bottom = Math.min(pageY + geometry.height, rangeBottom);
       if (bottom <= top + EPS) continue;
       frame.frag.children.push({
+        mode: 'whole',
         widget: child,
         box: {
           x: frame.x + geometry.left,
@@ -416,6 +425,7 @@ export class Paginator {
         const abs = u.widget.getAbsoluteLayoutBox();
         const fragY = this.content.y + (u.offset - repeatBase);
         const frag: FragmentBuilder = {
+          mode: 'whole',
           widget: u.widget,
           box: {
             x: abs.x,
@@ -498,24 +508,28 @@ export class Paginator {
     }
 
     return {
+      mode: 'whole',
       widget,
       box: { x, y, width, height },
       sliceTop: 0,
       continuation: false,
       repeated: false,
-      children: [],
     };
   }
 
   private freezePage(acc: PageAcc, fixed: Fragment[]): PagePlan {
-    const freeze = (b: FragmentBuilder): Fragment => ({
-      widget: b.widget,
-      box: b.box,
-      sliceTop: b.sliceTop,
-      continuation: b.sliceTop > EPS,
-      repeated: b.repeated,
-      children: b.children.map(freeze),
-    });
+    const freeze = (b: FragmentBuilder): Fragment => {
+      const base = {
+        widget: b.widget,
+        box: b.box,
+        sliceTop: b.sliceTop,
+        continuation: b.sliceTop > EPS,
+        repeated: b.repeated,
+      };
+      return b.mode === 'decomposed'
+        ? { ...base, mode: b.mode, children: b.children.map(freeze) }
+        : { ...base, mode: b.mode };
+    };
     return {
       index: acc.index,
       pageSize: acc.pageSize,

@@ -34,19 +34,29 @@ export interface BreakUnit {
  * Descendants of a whole-placed widget are not expanded into fragments - the
  * scope translates their flow boxes by the placed ancestor's delta.
  */
-export interface Fragment {
+interface FragmentBase {
   readonly widget: Widget;
   /** Box on this page - top-left origin, page-relative points. */
   readonly box: LayoutBox;
-  /** Where this slice starts inside the widget's own flow box (0 = whole widget). */
+  /** Flow offset of this occurrence; zero also applies to a first slice. */
   readonly sliceTop: number;
   /** True when sliceTop > 0 (the widget continues from the previous page). */
   readonly continuation: boolean;
   /** True when this fragment is a re-emitted `repeat` unit (table head). */
   readonly repeated: boolean;
-  /** Placed child fragments in paint order; PageScope serves them to renderChildren. */
-  readonly children: Fragment[];
 }
+
+/**
+ * Whole subtrees stay compact: descendants use their original widget tree and
+ * PageScope translates their geometry. Decomposed occurrences render only their
+ * page-local children (even when empty). Slices are self-painted flow windows.
+ * A clipped atomic placement is still whole, not a self-painted slice.
+ */
+export type Fragment = FragmentBase & (
+  | { readonly mode: 'whole' }
+  | { readonly mode: 'decomposed'; readonly children: Fragment[] }
+  | { readonly mode: 'slice' }
+);
 
 /** One output page: a window onto flow space. */
 export interface PagePlan {
