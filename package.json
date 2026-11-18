@@ -15,7 +15,7 @@
   },
   "homepage": "https://alaypanov.github.io/pdf-kalem/",
   "engines": {
-    "node": ">=18"
+    "node": ">=22.18.0"
   },
   "files": [
     "dist",
@@ -99,7 +99,6 @@
     "vue": "^3.5.43"
   },
   "dependencies": {
-    "@chenglou/pretext": "^0.0.8",
     "@pdf-lib/fontkit": "^1.1.1",
     "marked": "^18.0.14",
     "pdf-lib": "^1.17.1",

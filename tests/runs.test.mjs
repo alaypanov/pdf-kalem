@@ -45,7 +45,6 @@ function richEngine(runs, overrides = {}) {
     align: 'left',
     ascent: SIZE,
     whiteSpace: 'normal',
-    wordBreak: 'normal',
     overflow: 'visible',
     measureTextWidth: (text) => measure(text, 'Helvetica'),
     runs: runs.map((run) => ({
@@ -131,7 +130,7 @@ test('newlines inside runs force hard breaks', () => {
 
 test('natural width sums per-run measurements', () => {
   const engine = richEngine([{ text: 'aaa' }, { text: 'bb', fontWeight: 700 }]);
-  assert.equal(engine.getNaturalWidth(''), 18 + 14);
+  assert.equal(engine.getNaturalWidth(), 18 + 14);
 });
 
 test('ellipsis truncates in the truncated fragment\'s font', () => {

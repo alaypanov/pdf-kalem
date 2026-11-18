@@ -4,12 +4,7 @@ import { resolveColor, resolveFont } from './theme-resolve';
 import { Widget, WidgetOptions } from './Widget';
 import type { RenderContext } from './RenderContextInterface';
 import type { RenderColor } from './RenderContextTypes';
-import {
-  BuiltinPdfFonts,
-  builtinPdfNameFace,
-  resolveBuiltinPdfFont,
-  type BuiltinPdfFontName,
-} from './types/doc-fonts';
+import { builtinPdfNameFace, resolveBuiltinPdfFont } from './types/doc-fonts';
 import { faceId, parseFaceId, resolveFaceStyle } from './fonts/face';
 import type { FontStyle, FontStyleValue, FontWeightValue } from './fonts/types';
 import { fromHex } from './utils/color-utils';
@@ -19,10 +14,10 @@ import {
   type TextLayoutResult,
   type TextOverflow,
   type TextLayoutConfig,
+  type TextWhiteSpace,
 } from './TextLayoutEngine';
 import { TextPainter, type PaintRun, type RenderedTextLayout } from './TextPainter';
 import type { BreakUnit } from './pagination/types';
-import type { PrepareOptions } from '@chenglou/pretext';
 
 export type { TextOverflow } from './TextLayoutEngine';
 
@@ -70,46 +65,11 @@ export interface TextOptions extends WidgetOptions {
   lineHeightMultiplier?: number;
   maxLines?: number;
   overflow?: TextOverflow;
-  whiteSpace?: PrepareOptions['whiteSpace'];
-  wordBreak?: PrepareOptions['wordBreak'];
+  whiteSpace?: TextWhiteSpace;
   variant?: string;
 }
 
-/**
- * Quotes a single font family for a canvas font string. Comma-separated
- * lists (the builtin canvas stacks) are already valid font-family lists and
- * stay unquoted; only single names containing whitespace get quoted.
- */
-function toCanvasFontFamily(family: string): string {
-  if (!/\s/.test(family) || family.includes(',')) {
-    return family;
-  }
-  return `"${family.replace(/"/g, '\\"')}"`;
-}
-
-/**
- * The canvas font string that measures the same face `face` draws: builtin
- * faces get the weight/style keywords over their canvas stack; custom
- * families measure under the face id - browser `FontFace`s register per face
- * id (`inter-bold`), so measuring under the plain family name would use the
- * regular face for styled text (B17).
- */
-function canvasFontForFace(face: string, size: number): string {
-  const builtin = BuiltinPdfFonts[face as BuiltinPdfFontName];
-  if (builtin) {
-    const style = parseFaceId(face)?.style ?? 'regular';
-    const bold = style === 'bold' || style === 'boldItalic';
-    const italic = style === 'italic' || style === 'boldItalic';
-    const prefix = `${bold ? 'bold ' : ''}${italic ? 'italic ' : ''}`;
-    return `${prefix}${size}px ${builtin.canvas}`;
-  }
-  return `${size}px ${toCanvasFontFamily(face)}`;
-}
-
-/** A run fully resolved to concrete fonts and colors for measure/draw. */
 interface ResolvedRun extends PaintRun {
-  text: string;
-  canvasFont: string;
   href?: string;
 }
 
@@ -126,8 +86,7 @@ export class TextWidget extends Widget {
   private readonly lineHeightMultiplierOverride?: number;
   private readonly maxLines?: number;
   private readonly overflow: TextOverflow;
-  private readonly whiteSpace: PrepareOptions['whiteSpace'];
-  private readonly wordBreak: PrepareOptions['wordBreak'];
+  private readonly whiteSpace: TextWhiteSpace;
   private readonly variant?: string;
   private measureConfigured = false;
   private engine?: TextLayoutEngine;
@@ -149,7 +108,6 @@ export class TextWidget extends Widget {
     this.maxLines = options.maxLines;
     this.overflow = options.overflow ?? 'visible';
     this.whiteSpace = options.whiteSpace ?? 'normal';
-    this.wordBreak = options.wordBreak ?? 'normal';
     this.variant = options.variant;
   }
 
@@ -248,14 +206,14 @@ export class TextWidget extends Widget {
   }
 
   /**
-   * Resolves a run to the pdf font name + canvas font that measure and draw
-   * it. `font`/`mono` overrides swap the family but inherit the block's
+   * Resolves a run to the PDF font name used to measure and draw it.
+   * `font`/`mono` overrides swap the family but inherit the block's
    * typography (CSS inheritance); otherwise the base font - already styled
    * by the block - is decomposed into family + style and the run's
    * weight/style replace their axis (an explicit weight of 400 un-bolds a
    * bold base), falling back down the face chain when a face is missing.
    */
-  private resolveRunFont(run: Run): { fontName: string; canvasFont: string } {
+  private resolveRunFont(run: Run): string {
     let family: string;
     let baseStyle: FontStyle;
 
@@ -291,8 +249,7 @@ export class TextWidget extends Widget {
     }
 
     const face = faceId(family, resolveFaceStyle(baseStyle, run.fontWeight, run.fontStyle));
-    const pdfFamily = resolveBuiltinPdfFont(face) ?? face;
-    return { fontName: pdfFamily, canvasFont: canvasFontForFace(face, this.getSize()) };
+    return resolveBuiltinPdfFont(face) ?? face;
   }
 
   /** Runs as the engine sees them (text + measuring font), memoized. */
@@ -305,7 +262,7 @@ export class TextWidget extends Widget {
     }
     this.engineRuns = this.runs.map((run) => ({
       text: run.text,
-      fontName: this.resolveRunFont(run).fontName,
+      fontName: this.resolveRunFont(run),
     }));
     return this.engineRuns;
   }
@@ -318,18 +275,13 @@ export class TextWidget extends Widget {
     if (this.paintRuns) {
       return this.paintRuns;
     }
-    this.paintRuns = this.runs.map((run) => {
-      const { fontName, canvasFont } = this.resolveRunFont(run);
-      return {
-        text: run.text,
-        fontName,
-        canvasFont,
-        color: resolveColor(this.context?.getTheme(), run.color, undefined, this.getColor()),
-        strike: run.strike ?? false,
-        underline: run.underline ?? false,
-        href: run.href,
-      };
-    });
+    this.paintRuns = this.runs.map((run) => ({
+      fontName: this.resolveRunFont(run),
+      color: resolveColor(this.context?.getTheme(), run.color, undefined, this.getColor()),
+      strike: run.strike ?? false,
+      underline: run.underline ?? false,
+      href: run.href,
+    }));
     return this.paintRuns;
   }
 
@@ -360,11 +312,6 @@ export class TextWidget extends Widget {
     return this.getSize();
   }
 
-  protected getCanvasFont(): string {
-    // Measure with the same face that draws (B17) - getFontName() is the
-    // fully-styled face id (e.g. 'sans-bold', 'inter-bold').
-    return canvasFontForFace(this.getFontName(), this.getSize());
-  }
 
   /**
    * Builds (and caches) the pure {@link TextLayoutEngine} for this widget's
@@ -389,7 +336,6 @@ export class TextWidget extends Widget {
       align: this.getAlign(),
       ascent: this.getFontAscent(),
       whiteSpace: this.whiteSpace,
-      wordBreak: this.wordBreak,
       maxLines: this.maxLines,
       overflow: this.overflow,
       runs,
@@ -410,7 +356,7 @@ export class TextWidget extends Widget {
   }
 
   protected getNaturalWidth(): number {
-    return this.getEngine().getNaturalWidth(this.getCanvasFont());
+    return this.getEngine().getNaturalWidth();
   }
 
   protected getHeightLineLimit(height: number): number | undefined {
@@ -425,7 +371,7 @@ export class TextWidget extends Widget {
     // sub-0.01pt overflow: invisible at any zoom, and exactly the noise
     // floor of the float32 boundary. Zero stays the natural-width sentinel.
     const effectiveMaxWidth = maxWidth > 0 ? maxWidth + 0.01 : maxWidth;
-    return this.getEngine().layoutText(effectiveMaxWidth, heightLineLimit, this.getCanvasFont());
+    return this.getEngine().layoutText(effectiveMaxWidth, heightLineLimit);
   }
 
   protected getRenderedTextLayout(context: RenderContext): RenderedTextLayout {
@@ -541,22 +487,9 @@ export class TextWidget extends Widget {
     // them (B9).
     this.engine = undefined;
 
-    if (typeof document !== 'undefined' && 'fonts' in document) {
-      if (paintRuns.length > 0) {
-        const textByCanvasFont = new Map<string, string>();
-        for (const run of paintRuns) {
-          textByCanvasFont.set(run.canvasFont, (textByCanvasFont.get(run.canvasFont) ?? '') + run.text);
-        }
-        await Promise.all(
-          [...textByCanvasFont].map(([canvasFont, text]) => document.fonts.load(canvasFont, text))
-        );
-      } else {
-        await document.fonts.load(this.getCanvasFont(), this.plainText);
-      }
-    }
-
-    // Prime the engine + pretext cache.
-    this.getEngine().ensurePreparedText(this.getCanvasFont());
+    // Layout uses the embedded PDF fonts in every environment; browser
+    // FontFace loading and canvas preparation are not prerequisites.
+    this.getEngine();
 
     if (!this.measureConfigured) {
       this.node.setMeasureFunc((width, widthMode, height, heightMode) => {

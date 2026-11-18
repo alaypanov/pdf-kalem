@@ -81,9 +81,11 @@ Text([{ text: 'Read the ' }, { text: 'full report', href: 'https://example.com' 
 Text([{ text: 'const x = 1', mono: true }]);
 ```
 
-Run fields: `fontWeight`, `fontStyle`, `strike`, `href`, `mono`, `font`, `color`. Weight follows CSS matching - 100–500 renders regular, 600–900 renders bold - and each axis replaces the base style (an explicit `fontWeight: 400` un-bolds a bold base). Faces resolve through the run's family with the usual fallback chain. Words that span run boundaries never break internally; wrapping, `maxLines`, and `ellipsis` all work across runs.
+Run fields: `fontWeight`, `fontStyle`, `strike`, `href`, `mono`, `font`, `color`. Weight follows CSS matching - 100–500 renders regular, 600–900 renders bold - and each axis replaces the base style (an explicit `fontWeight: 400` un-bolds a bold base). Faces resolve through the run's family with the usual fallback chain. Run boundaries do not introduce word breaks; oversized words use emergency grapheme breaks, including across runs. Wrapping, `maxLines`, and `ellipsis` all work across runs.
 
 Text options include `variant` (theme text variant), `size`, `color`, `align`, `fontWeight`, `fontStyle`, `lineHeight`, `lineHeightMultiplier`, `maxLines`, and `overflow: 'ellipsis'`. Theme text variants accept the same `fontWeight`/`fontStyle`, so a variant can set its weight once: `heading: { fontWeight: 700 }`.
+
+Plain strings and styled runs share one wrapping engine, using PDF font metrics in both Node and the browser-no browser canvas is needed for text layout. `whiteSpace` (typed as `TextWhiteSpace` from `pdf-kalem/widgets`) defaults to `'normal'`, which collapses whitespace. Use `'pre-wrap'` to preserve indentation and hard breaks; tabs expand to eight spaces, not tab stops. Text wraps at whitespace and splits oversized words at grapheme boundaries. Language-aware CJK breaking is not implemented, and grapheme clusters split across separate styled runs are not guaranteed to remain intact.
 
 ::: warning `lineHeight` is points, not a multiplier
 `lineHeight` is the vertical distance between baselines **in points**: `lineHeight: 16` at size 10 gives 16pt lines. It is **not** CSS's `line-height: 1.4` multiplier - `lineHeight: 1.4` means 1.4pt and piles lines on top of each other. For the CSS behavior use `lineHeightMultiplier` (`1.4` at size 10 → 14pt lines); explicit points win over the multiplier when both are set, and user values beat the theme variant's.

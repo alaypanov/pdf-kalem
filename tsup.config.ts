@@ -26,5 +26,5 @@ export default defineConfig({
   // entry points (e.g. `Page()` from 'pdf-kalem/widgets' passed to `PdfDoc` from
   // 'pdf-kalem').
   splitting: true,
-  external: ['@chenglou/pretext', 'pdf-lib', 'yoga-layout', '@pdf-lib/fontkit', 'pdfjs-dist', '@napi-rs/canvas'],
+  external: ['pdf-lib', 'yoga-layout', '@pdf-lib/fontkit', 'pdfjs-dist', '@napi-rs/canvas'],
 });

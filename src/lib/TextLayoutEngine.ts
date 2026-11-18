@@ -1,10 +1,3 @@
-import {
-  layoutWithLines,
-  measureNaturalWidth,
-  prepareWithSegments,
-  type PrepareOptions,
-  type PreparedTextWithSegments,
-} from '@chenglou/pretext';
 
 /**
  * A single laid-out line of text: the substring to draw and its measured
@@ -55,6 +48,9 @@ export interface TextLayoutResult {
  */
 export type TextOverflow = 'visible' | 'clip' | 'ellipsis';
 
+/** Collapse whitespace (`normal`) or preserve it (`pre-wrap`, tabs expand to eight spaces). */
+export type TextWhiteSpace = 'normal' | 'pre-wrap';
+
 /**
  * Pure configuration for {@link TextLayoutEngine}. Everything the engine
  * needs to measure and wrap text, with no dependency on theme, widgets, or
@@ -72,10 +68,7 @@ export interface TextLayoutConfig {
   align: 'left' | 'center' | 'right';
   /** Font ascent in PDF points, used to position the baseline. */
   ascent: number;
-  /** `whiteSpace` mode forwarded to pretext. */
-  whiteSpace: PrepareOptions['whiteSpace'];
-  /** `wordBreak` mode forwarded to pretext. */
-  wordBreak: PrepareOptions['wordBreak'];
+  whiteSpace: TextWhiteSpace;
   /** Max visible lines before overflow handling kicks in. */
   maxLines?: number;
   /** Overflow behavior when content exceeds `maxLines` / height. */
@@ -88,21 +81,14 @@ export interface TextLayoutConfig {
   /**
    * Rich runs to lay out instead of `text`. When present, the engine wraps
    * across run boundaries (including mid-word) and emits per-run fragments;
-   * `text` is ignored for layout (it stays the flattened plain text for
-   * font preloading and back-compat).
+   * `text` is ignored for layout.
    */
   runs?: ReadonlyArray<EngineRun>;
   /**
    * Measures the width of a string in a specific run's font. Required when
-   * `runs` is set; falls back to a per-character estimate otherwise.
+   * `runs` is set for exact per-font metrics; otherwise uses measureTextWidth.
    */
   measureRunWidth?: (text: string, fontName: string) => number;
-  /**
-   * Returns the natural (unwrapped) width of the text. Optional; defaults to
-   * measuring the full string. Provided separately because pretext can
-   * compute this more accurately than a naive measurement.
-   */
-  measureNaturalWidth?: () => number;
 }
 
 /** A piece of styled text: `runIndex` indexes into the config's runs. */
@@ -135,8 +121,6 @@ interface RichParagraph {
 export class TextLayoutEngine {
   private readonly config: TextLayoutConfig;
   private readonly graphemeSegmenter: Intl.Segmenter | undefined;
-  private preparedText?: PreparedTextWithSegments;
-  private preparedTextKey?: string;
 
   constructor(config: TextLayoutConfig) {
     this.config = config;
@@ -146,64 +130,9 @@ export class TextLayoutEngine {
         : undefined;
   }
 
-  private canUsePretext(): boolean {
-    if (typeof Intl === 'undefined' || !('Segmenter' in Intl)) {
-      return false;
-    }
-    // Pretext measures through a canvas (OffscreenCanvas or DOM canvas).
-    // Without one (e.g. Node) it throws, so fall back to the built-in wrapper.
-    return (
-      typeof OffscreenCanvas !== 'undefined' ||
-      (typeof document !== 'undefined' && typeof document.createElement === 'function')
-    );
-  }
-
-  /**
-   * Lazily prepares the text with pretext (grapheme-aware segmentation) for
-   * accurate wrapping. Cached by (text, font, whiteSpace, wordBreak).
-   */
-  ensurePreparedText(canvasFont: string): PreparedTextWithSegments | undefined {
-    // Rich runs bypass pretext: they measure through `measureRunWidth` (the
-    // same font that draws), so no canvas-backed preparation is needed.
-    if (this.config.runs) {
-      return undefined;
-    }
-
-    if (!this.canUsePretext()) {
-      return undefined;
-    }
-
-    const key = JSON.stringify([
-      this.config.text,
-      canvasFont,
-      this.config.whiteSpace,
-      this.config.wordBreak,
-    ]);
-
-    if (this.preparedText && this.preparedTextKey === key) {
-      return this.preparedText;
-    }
-
-    this.preparedText = prepareWithSegments(
-      this.config.text,
-      canvasFont,
-      { whiteSpace: this.config.whiteSpace, wordBreak: this.config.wordBreak }
-    );
-    this.preparedTextKey = key;
-    return this.preparedText;
-  }
-
-  /** Natural (unwrapped) width of the text. */
-  getNaturalWidth(canvasFont: string): number {
-    if (this.config.runs) {
-      return this.getRichNaturalWidth();
-    }
-
-    const preparedText = this.ensurePreparedText(canvasFont);
-    if (preparedText) {
-      return measureNaturalWidth(preparedText);
-    }
-    return this.config.measureTextWidth(this.config.text);
+  /** Natural width is the widest normalized hard-break paragraph. */
+  getNaturalWidth(): number {
+    return this.getRichNaturalWidth();
   }
 
   /**
@@ -246,140 +175,12 @@ export class TextLayoutEngine {
     return Array.from(this.graphemeSegmenter.segment(text), (segment) => segment.segment);
   }
 
-  private ellipsizeLine(text: string, maxWidth: number): TextLayoutLine {
-    if (maxWidth <= 0) {
-      return { text: '', width: 0 };
-    }
-
-    const ellipsis = '…';
-    const ellipsisWidth = this.config.measureTextWidth(ellipsis);
-    if (ellipsisWidth > maxWidth) {
-      return { text: '', width: 0 };
-    }
-
-    const trimmedText = text.replace(/\s+$/u, '');
-    const graphemes = this.splitGraphemes(trimmedText);
-    let low = 0;
-    let high = graphemes.length;
-    let best = ellipsis;
-    let bestWidth = ellipsisWidth;
-
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      const prefix = graphemes.slice(0, mid).join('').replace(/\s+$/u, '');
-      const candidate = prefix ? `${prefix}${ellipsis}` : ellipsis;
-      const candidateWidth = this.config.measureTextWidth(candidate);
-
-      if (candidateWidth <= maxWidth) {
-        best = candidate;
-        bestWidth = candidateWidth;
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
-    }
-
-    return { text: best, width: bestWidth };
-  }
-
-  private appendFallbackLine(lines: TextLayoutLine[], lineText: string): void {
-    lines.push({ text: lineText, width: this.config.measureTextWidth(lineText) });
-  }
-
-  private breakLongToken(token: string, maxWidth: number): TextLayoutLine[] {
-    if (maxWidth <= 0) {
-      return [{ text: token, width: this.config.measureTextWidth(token) }];
-    }
-
-    const graphemes = this.splitGraphemes(token);
-    const lines: TextLayoutLine[] = [];
-    let current = '';
-
-    for (const grapheme of graphemes) {
-      const candidate = current + grapheme;
-      if (!current || this.config.measureTextWidth(candidate) <= maxWidth) {
-        current = candidate;
-        continue;
-      }
-
-      lines.push({ text: current, width: this.config.measureTextWidth(current) });
-      current = grapheme;
-    }
-
-    if (current) {
-      lines.push({ text: current, width: this.config.measureTextWidth(current) });
-    }
-
-    return lines;
-  }
-
-  private layoutFallback(maxWidth: number): TextLayoutLine[] {
-    const normalizedText = this.config.text.replace(/\r\n?/g, '\n');
-    const paragraphs = normalizedText.split('\n');
-    const lines: TextLayoutLine[] = [];
-
-    for (const paragraph of paragraphs) {
-      const normalizedParagraph = this.config.whiteSpace === 'pre-wrap'
-        ? paragraph.replace(/\t/g, '        ')
-        : paragraph.trim().replace(/\s+/g, ' ');
-
-      if (!normalizedParagraph) {
-        this.appendFallbackLine(lines, '');
-        continue;
-      }
-
-      const words = normalizedParagraph.split(' ');
-
-      // pre-wrap preserves a whitespace-only paragraph literally (the rich
-      // path keeps it as a space-only word); the split(' ') walk below
-      // produces only empty words for it, so emit it as-is (B20).
-      if (this.config.whiteSpace === 'pre-wrap' && words.every((word) => word === '')) {
-        this.appendFallbackLine(lines, normalizedParagraph);
-        continue;
-      }
-
-      let currentLine = '';
-
-      for (const word of words) {
-        const candidate = currentLine ? `${currentLine} ${word}` : word;
-        if (maxWidth <= 0 || this.config.measureTextWidth(candidate) <= maxWidth) {
-          currentLine = candidate;
-          continue;
-        }
-
-        if (currentLine) {
-          this.appendFallbackLine(lines, currentLine);
-          currentLine = '';
-        }
-
-        if (this.config.measureTextWidth(word) <= maxWidth || maxWidth <= 0) {
-          currentLine = word;
-          continue;
-        }
-
-        const brokenWordLines = this.breakLongToken(word, maxWidth);
-        lines.push(...brokenWordLines.slice(0, -1));
-        currentLine = brokenWordLines[brokenWordLines.length - 1]?.text ?? '';
-      }
-
-      if (currentLine || normalizedParagraph.length === 0) {
-        this.appendFallbackLine(lines, currentLine);
-      }
-    }
-
-    if (paragraphs.length === 0) {
-      return [];
-    }
-
-    return lines;
-  }
-
   // --- Rich-run layout ---
 
   /** Lays out rich runs into lines constrained to `maxWidth`. */
   private layoutRichText(maxWidth: number, heightLineLimit?: number): TextLayoutResult {
     const effectiveWidth = maxWidth > 0 ? maxWidth : this.getRichNaturalWidth();
-    let lines = this.layoutRichLines(effectiveWidth);
+    const lines = this.layoutRichLines(effectiveWidth);
 
     const effectiveMaxLines = this.getEffectiveMaxLines(heightLineLimit);
     const visibleLines = effectiveMaxLines === undefined ? lines : lines.slice(0, effectiveMaxLines);
@@ -400,33 +201,13 @@ export class TextLayoutEngine {
    * Lays out the text into lines constrained to `maxWidth` (and optionally a
    * height-derived line limit). Applies `overflow` truncation.
    */
-  layoutText(maxWidth: number, heightLineLimit?: number, canvasFont?: string): TextLayoutResult {
-    if (this.config.runs) {
-      return this.layoutRichText(maxWidth, heightLineLimit);
+  layoutText(maxWidth: number, heightLineLimit?: number): TextLayoutResult {
+    const result = this.layoutRichText(maxWidth, heightLineLimit);
+    if (!this.config.runs) {
+      // Keep the public plain-text shape and whole-line painting path.
+      result.lines = result.lines.map(({ text, width }) => ({ text, width }));
     }
-
-    const preparedText = canvasFont ? this.ensurePreparedText(canvasFont) : undefined;
-    const effectiveWidth = maxWidth > 0 ? maxWidth : this.getNaturalWidth(canvasFont ?? '');
-    const rawLines = preparedText
-      ? layoutWithLines(preparedText, effectiveWidth, this.config.lineHeight).lines.map((line) => ({
-          text: line.text,
-          width: line.width,
-        }))
-      : this.layoutFallback(effectiveWidth);
-
-    const effectiveMaxLines = this.getEffectiveMaxLines(heightLineLimit);
-    const visibleLines = effectiveMaxLines === undefined ? rawLines : rawLines.slice(0, effectiveMaxLines);
-    const wasTruncated = effectiveMaxLines !== undefined && rawLines.length > visibleLines.length;
-    const lines = [...visibleLines];
-
-    if (wasTruncated && this.config.overflow === 'ellipsis' && lines.length > 0) {
-      lines[lines.length - 1] = this.ellipsizeLine(lines[lines.length - 1].text, effectiveWidth);
-    }
-
-    return {
-      lines,
-      maxLineWidth: lines.reduce((max, line) => Math.max(max, line.width), 0),
-    };
+    return result;
   }
 
   // --- Rich-run layout internals ---
@@ -435,15 +216,18 @@ export class TextLayoutEngine {
 
   /** The font name that measures and draws run `runIndex`. */
   private runFontName(runIndex: number): string {
-    return this.config.runs![runIndex].fontName;
+    return this.config.runs?.[runIndex]?.fontName ?? '';
   }
 
   private measureRunWidthFor(runIndex: number, text: string): number {
+    if (!this.config.runs) {
+      return this.config.measureTextWidth(text);
+    }
     const measure = this.config.measureRunWidth;
     if (measure) {
       return measure(text, this.runFontName(runIndex));
     }
-    return text.length * this.config.size * 0.6;
+    return this.config.measureTextWidth(text);
   }
 
   private measureRichPiece(piece: RichPiece): number {
@@ -465,7 +249,7 @@ export class TextLayoutEngine {
       return this.richParagraphs;
     }
 
-    const runs = this.config.runs ?? [];
+    const runs = this.config.runs ?? [{ text: this.config.text, fontName: '' }];
     const preWrap = this.config.whiteSpace === 'pre-wrap';
     const paragraphs: RichParagraph[] = [];
     let words: RichWord[] = [];
@@ -540,18 +324,15 @@ export class TextLayoutEngine {
 
   /** Natural (unwrapped) width: every piece measured in its own run's font. */
   private getRichNaturalWidth(): number {
-    let total = 0;
+    let widest = 0;
+    const preWrap = this.config.whiteSpace === 'pre-wrap';
     for (const paragraph of this.getRichParagraphs()) {
-      for (const word of paragraph.words) {
-        for (const piece of word.pre) {
-          total += this.measureRichPiece(piece);
-        }
-        for (const piece of word.pieces) {
-          total += this.measureRichPiece(piece);
-        }
-      }
+      const pieces = paragraph.words.flatMap((word, index) =>
+        index === 0 && !preWrap ? word.pieces : [...word.pre, ...word.pieces]
+      );
+      widest = Math.max(widest, this.finishRichLine(pieces).width);
     }
-    return total;
+    return widest;
   }
 
   /**
@@ -565,16 +346,14 @@ export class TextLayoutEngine {
 
     for (const paragraph of this.getRichParagraphs()) {
       let current: RichPiece[] = [];
-      let currentWidth = 0;
       let producedLine = false;
 
       const startWithWord = (word: RichWord): void => {
         const pieces = preWrap ? [...word.pre, ...word.pieces] : [...word.pieces];
-        const width = pieces.reduce((sum, piece) => sum + this.measureRichPiece(piece), 0);
+        const width = this.finishRichLine(pieces).width;
 
         if (maxWidth <= 0 || width <= maxWidth) {
           current = pieces;
-          currentWidth = width;
           return;
         }
 
@@ -584,7 +363,6 @@ export class TextLayoutEngine {
           producedLine = true;
         }
         current = broken.tail;
-        currentWidth = broken.tail.reduce((sum, piece) => sum + this.measureRichPiece(piece), 0);
       };
 
       for (const word of paragraph.words) {
@@ -593,19 +371,16 @@ export class TextLayoutEngine {
           continue;
         }
 
-        const preWidth = word.pre.reduce((sum, piece) => sum + this.measureRichPiece(piece), 0);
-        const wordWidth = word.pieces.reduce((sum, piece) => sum + this.measureRichPiece(piece), 0);
+        const candidateWidth = this.finishRichLine([...current, ...word.pre, ...word.pieces]).width;
 
-        if (maxWidth <= 0 || currentWidth + preWidth + wordWidth <= maxWidth) {
+        if (maxWidth <= 0 || candidateWidth <= maxWidth) {
           current.push(...word.pre, ...word.pieces);
-          currentWidth += preWidth + wordWidth;
           continue;
         }
 
         lines.push(this.finishRichLine(current));
         producedLine = true;
         current = [];
-        currentWidth = 0;
         startWithWord(word);
       }
 
@@ -653,7 +428,7 @@ export class TextLayoutEngine {
         const candidate = builtText + grapheme;
         const candidateWidth = this.measureRunWidthFor(piece.runIndex, candidate);
 
-        if (line.length === 0 || maxWidth <= 0 || lineWidth + candidateWidth <= maxWidth) {
+        if ((line.length === 0 && !builtText) || maxWidth <= 0 || lineWidth + candidateWidth <= maxWidth) {
           builtText = candidate;
           builtTextWidth = candidateWidth;
           continue;
@@ -682,20 +457,19 @@ export class TextLayoutEngine {
   /** Merges consecutive same-run pieces into fragments and measures the line. */
   private finishRichLine(pieces: RichPiece[]): TextLayoutLine {
     const fragments: LineFragment[] = [];
-    let width = 0;
 
     for (const piece of pieces) {
       const pieceWidth = this.measureRichPiece(piece);
-      width += pieceWidth;
       const last = fragments[fragments.length - 1];
       if (last && last.runIndex === piece.runIndex) {
         last.text += piece.text;
-        last.width += pieceWidth;
+        last.width = this.measureRunWidthFor(last.runIndex, last.text);
       } else {
         fragments.push({ runIndex: piece.runIndex, text: piece.text, width: pieceWidth });
       }
     }
 
+    const width = fragments.reduce((sum, fragment) => sum + fragment.width, 0);
     return { text: pieces.map((piece) => piece.text).join(''), width, fragments };
   }
 
@@ -740,9 +514,9 @@ export class TextLayoutEngine {
       let found = -1;
       while (low <= high) {
         const mid = Math.floor((low + high) / 2);
-        const kept = graphemes.slice(0, mid).join('');
-        const keptWidth = this.measureRunWidthFor(fragment.runIndex, kept);
-        if (prefixWidth + keptWidth + ellipsisWidth <= maxWidth) {
+        const kept = graphemes.slice(0, mid).join('').replace(/\s+$/u, '');
+        const keptWidth = this.measureRunWidthFor(fragment.runIndex, `${kept}…`);
+        if (prefixWidth + keptWidth <= maxWidth) {
           found = mid;
           low = mid + 1;
         } else {
@@ -751,7 +525,7 @@ export class TextLayoutEngine {
       }
 
       if (found >= 0) {
-        best = { index, keep: graphemes.slice(0, found).join('') };
+        best = { index, keep: graphemes.slice(0, found).join('').replace(/\s+$/u, '') };
       }
       prefixWidth += fragment.width;
     }

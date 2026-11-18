@@ -7,13 +7,12 @@ import { StandardFonts } from 'pdf-lib';
  * `PdfDoc` (static `browserFontLoads` + `registerFontFromUrl`) and
  * `RenderContext` (static `registeredFonts` + `fontkit`):
  *
- * 1. Registered font bytes (name → `Uint8Array`). Shared because every
- *    backend needs the bytes: PDF embeds them via fontkit, canvas loads them
- *    as `FontFace` for measurement (pretext) and drawing.
+ * 1. Registered font bytes (name → `Uint8Array`), used by the PDF backend
+ *    to embed custom fonts via fontkit.
  * 2. The fontkit instance (only used by the PDF backend, but stored here so
  *    registration is backend-neutral).
- * 3. Browser `FontFace` loading into `document.fonts` (shared by any backend
- *    that uses pretext for canvas-based measurement).
+ * 3. Browser `FontFace` loading into `document.fonts` for explicit browser
+ *    font registration, independent of PDF embedding.
  *
  * This is a singleton accessed via {@link FontRegistry.instance}. Public API
  * on `PdfDoc` (`registerFont`, `registerFontkit`, `registerFonts`,
@@ -65,8 +64,7 @@ export class FontRegistry {
   }
 
   /**
-   * Loads a registered font into the browser's `document.fonts` so that
-   * canvas-based measurement (pretext) and canvas drawing can use it.
+   * Loads a registered font into the browser's `document.fonts`.
    * No-op in non-browser runtimes. Cached per font name.
    */
   async loadBrowserFont(fontName: string, fontData: Uint8Array): Promise<void> {
