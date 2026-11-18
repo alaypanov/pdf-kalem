@@ -473,7 +473,7 @@ containers and the widget subtree for compact whole placements (I26). The exact
 200×100 Column repro is covered in `tests/pagination.test.mjs` at both planning and
 save/reload seams; both returned two pages before the fix and one afterward.
 
-### B27 - Repeated table headers use stale continuation ancestor geometry
+### B27 - Repeated table headers use stale continuation ancestor geometry - FIXED (2026-11-18)
 
 **Priority: medium · verified by plan repro (2026-11-11 review).**
 
@@ -484,9 +484,10 @@ a decorated Container, and a table with a 20pt head and two 70pt body rows. On t
 continuation, Container/Table start at y=10 while the repeated head starts at y=0;
 the header paints outside its ancestor background/border.
 
-**Fix / regression:** calculate repeat extent and re-anchor frames before creating
-continuation fragments. Assert containment with a decorated ancestor and nonzero
-first-page table origin.
+**Fix / regression:** repeat extent is calculated and continuation frames are
+re-anchored before repeat fragments create their ancestors. Painting tests assert
+header cell containment within background and border geometry for a nonzero original
+origin, nested padded ancestors, page padding, and multiple continuation pages.
 
 ### B28 - Oversized atomic subtrees are marked clipped but still paint outside the page content box
 
@@ -499,9 +500,25 @@ containing 15 text lines at 10pt line height has an 80pt row fragment but 150pt 
 and text boxes. All 15 lines draw, including through the bottom padding/off-page.
 This is distinct from B20's previously fixed oversized repeated-header case.
 
-**Fix / regression:** enforce a painting clip at the atomic fragment boundary, not
-just root geometry truncation. Test descendant text, backgrounds, and media. This is
-an internal pagination guarantee, separate from I24's public Container clip option.
+**Investigation (2026-11-18):** `node tests/b28-clipping.repro.mjs` rasterizes the saved PDF at
+72 dpi and finds 94 dark pixels in the bottom 10pt padding, consistently across two
+runs. The planner records `clipped` only on the page, not on the individual whole
+fragment; `PageScope` delegates drawing without establishing a graphics clip. Nested
+whole fragments are rendered by their ancestors, while fixed fragments are painted
+separately and must not be clipped as ordinary flow content. A page-wide clip is not
+a safe replacement for fragment-local clipping.
+
+PDF graphics clips do not constrain annotation rectangles. Link annotations pass
+through `PageScope`, but AcroForm widgets place annotations directly using pdf-lib's
+page and form surface; their appearances and interactive hit areas require separate
+handling. No fix is claimed until both are addressed or explicitly rejected for
+clipped subtrees. Any graphics-state clip must be restored even if rendering throws.
+
+**Fix / regression:** mark clipped atomic occurrences and enforce a balanced painting
+clip at each atomic fragment boundary, not just root geometry truncation. Test nested
+and fixed fragments, normal clipping, descendant text, backgrounds, media, links and
+forms. This is an internal pagination guarantee, separate from I24's public Container
+clip option.
 
 ### B29 - Dropdown ignores its fontSize option
 

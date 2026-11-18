@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Known issues
+
+- Oversized atomic pagination fragments can paint into page padding; interactive link and form annotations are not constrained by a graphics clip (B28). No clipping behavior has changed.
+
 ### Changed
 
 - README quick start now writes `hello.pdf`, with a browser download alternative and an executable smoke test. Correct the local docs command and the per-face font recipe; `FamilyFiles.regular` is now required in TypeScript, matching runtime validation.
@@ -23,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Repeated table headers now paint inside their decorated continuation ancestors when the table starts below the page content top (B27).
 - Removing loaded pages now drops supported AcroForm fields with no remaining placement and keeps shared field values with only their retained widgets (B24). Unsupported form structures or references reject the save. This is not redaction.
 - Saving pages from multiple form-bearing loaded PDFs now rejects instead of silently losing fields (B23). Full form merging is not supported.
 

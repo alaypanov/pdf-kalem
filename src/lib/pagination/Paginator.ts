@@ -412,9 +412,9 @@ export class Paginator {
     };
     for (const f of chain) f.frag = null;
 
-    // Re-emit repeat units (e.g. a table head) at the top of the new page.
-    // They do not count as flow content: a unit that cannot fit below them
-    // takes the clip path instead of breaking again (loop guard).
+    // Collect repeats before anchoring, but do not materialize their ancestors
+    // until the continuation origins have been updated.
+    const repeats: FragmentBuilder[] = [];
     let repeatExtent = 0;
     if (this.repeatEnabled && deepest.units && !deepest.isPageRoot) {
       let repeatBase: number | null = null;
@@ -439,7 +439,7 @@ export class Paginator {
           repeated: true,
           children: [],
         };
-        this.ensureFrameFrag(deepest, chain).children.push(frag);
+        repeats.push(frag);
         repeatExtent = u.offset + u.height - repeatBase;
       }
     }
@@ -454,6 +454,10 @@ export class Paginator {
       const deeper = chain[idx + 1];
       f.origin = deeper.origin - (deeper.absY - f.absY);
     }
+
+    // Repeats do not count as flow content, preventing repeated page breaks
+    // when the next unit cannot fit below them.
+    for (const frag of repeats) this.ensureFrameFrag(deepest, chain).children.push(frag);
   }
 
   private closePage(chain: Frame[]): void {

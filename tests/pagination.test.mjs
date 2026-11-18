@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { PDFDocument } from 'pdf-lib';
 
 import { FakeContext, plan } from './fake-context.mjs';
-import { PageScope } from '../dist/internals.js';
+import { PageScope, Paginator } from '../dist/internals.js';
 import {
   Page,
   Text,
@@ -27,6 +27,58 @@ const words = (count) => Array.from({ length: count }, () => 'word').join(' ');
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
+
+test('repeated table header paints inside its decorated continuation ancestor', async () => {
+  const row = (height) => TableRow({ minHeight: height, children: [TableCell({ child: Text('x', { size: 10, lineHeight: 10 }) })] });
+  const head = TableHead({ rows: [row(20)] });
+  const table = Table({ head, body: TableBody({ rows: [row(70), row(70)] }) });
+  const container = Container({ bgColor: '#ff0000', border: { width: 1 }, child: table });
+  const page = Page({ dimensions: [200, 100], children: [Spacer({ size: 10 }), container] });
+  const context = new FakeContext();
+  const rectangles = [];
+  context.drawRectangle = (args) => rectangles.push(args);
+  page.setContext(context);
+  const result = await new Paginator().paginate(page, context);
+  assert.equal(result.pageCount, 2);
+  const scope = new PageScope(context, result.pages[1]);
+  await result.pages[1].roots[0].widget.render(scope);
+  const background = rectangles[0];
+  const border = rectangles[1];
+  const headerCell = rectangles[2];
+  assert.equal(border.borderWidth, 1);
+  assert.ok(headerCell.y >= background.y, `header y=${headerCell.y} above background y=${background.y}`);
+  assert.ok(headerCell.y + headerCell.height <= background.y + background.height);
+});
+
+test('repeated headers paint inside nested padded ancestors on every continuation', async () => {
+  const row = (height) => TableRow({ minHeight: height, children: [TableCell({ child: Text('x', { size: 10, lineHeight: 10 }) })] });
+  const head = TableHead({ rows: [row(20)] });
+  const table = Table({ head, body: TableBody({ rows: Array.from({ length: 4 }, () => row(55)) }) });
+  const inner = Container({ padding: 5, bgColor: '#00ff00', border: { width: 1 }, child: table });
+  const outer = Container({ padding: 5, bgColor: '#ff0000', border: { width: 1 }, child: inner });
+  const page = Page({ dimensions: [200, 120], padding: 10, children: [Spacer({ size: 10 }), outer] });
+  const context = new FakeContext();
+  const rectangles = [];
+  context.drawRectangle = (args) => rectangles.push(args);
+  page.setContext(context);
+  const result = await new Paginator().paginate(page, context);
+  assert.ok(result.pageCount >= 3);
+  for (const pagePlan of result.pages.slice(1)) {
+    rectangles.length = 0;
+    const scope = new PageScope(context, pagePlan);
+    for (const root of pagePlan.roots) await root.widget.render(scope);
+    const [outerBg, outerBorder, innerBg, innerBorder, headerCell] = rectangles;
+    assert.equal(outerBorder.borderWidth, 1);
+    assert.equal(innerBorder.borderWidth, 1);
+    assert.equal(headerCell.y, 10);
+    for (const ancestor of [outerBg, innerBg]) {
+      assert.ok(headerCell.y >= ancestor.y, `header y=${headerCell.y} above ancestor y=${ancestor.y}`);
+      assert.ok(headerCell.y + headerCell.height <= ancestor.y + ancestor.height);
+      assert.ok(headerCell.x >= ancestor.x);
+      assert.ok(headerCell.x + headerCell.width <= ancestor.x + ancestor.width);
+    }
+  }
+});
 
 // --- Plan tests ---
 
