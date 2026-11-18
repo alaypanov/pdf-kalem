@@ -258,9 +258,9 @@ right face). `resolveRunFont` (L238) has the same flaw, which also mis-targets t
 (family, style) and use the face id as the canvas family for custom fonts, plus
 `bold`/`italic` keywords for the builtin stacks.
 
-**Fixed 2026-10-11** - `getCanvasFont`/`resolveRunFont` build the canvas font from the
-resolved face id via a shared `canvasFontForFace` helper. Browser-only path - not
-covered by the Node test suite.
+**Fixed 2026-10-11** - `getCanvasFont`/`resolveRunFont` built the canvas font from the
+resolved face id via a shared `canvasFontForFace` helper. This browser-only path was
+later removed when text layout switched to PDF font metrics in both runtimes (I25).
 
 ### B18 - The edit subpath drops AcroForm (verified by repro)
 
@@ -405,6 +405,165 @@ Small but real; grouped by area:
 **Fixed 2026-10-11** - the `CONTEXT.md` references now describe the `savePdf` walk; the
 `TextOverflow` doc is corrected (see B20); "form fields preserved" is true as of B18's
 fix.
+
+### B22 - Rich-run long words overflow their wrapping width
+
+**Priority: high · verified by engine repro (2026-11-11 review).**
+
+In `src/lib/TextLayoutEngine.ts`, `breakRichWord()` tests `line.length === 0`
+while the current piece is still accumulated in `builtText`. The empty-line exception
+therefore accepts an entire piece, not just one oversized grapheme. With width `3`
+and measurement `text => text.length`, plain `abcdefghij` wraps into
+`abc` / `def` / `ghi` / `j`, but a single rich run remains one width-10 line.
+Two runs `abcde` + `fghij` produce two width-5 lines. Markdown also uses rich runs.
+
+**Fix / regression:** count pending text as occupied content; retain the exception
+only for one oversized grapheme. Test long words within one run and across runs.
+
+**Fixed 2026-11-11** - the canonical run-based wrapper counts pending text when
+splitting long words. Regressions live in `tests/text-layout.test.mjs`.
+
+### B23 - Merging loaded PDFs loses earlier sources' registered form fields
+
+**Priority: high · verified by save/reload repro (2026-11-11 review).**
+
+`src/lib/PdfRenderContext.ts`'s page adoption assigns each source's `/AcroForm`
+to the output catalog, replacing the previous source's form. Combining two loaded
+PDFs with fields `first` and `second` leaves only `second` in
+`PDFDocument.load(output).getForm().getFields()`, although earlier page annotations
+remain. This extends B18 beyond its single-source round-trip coverage.
+
+**Beta guard implemented (2026-11-18):** saving pages from multiple form-bearing
+loaded sources rejects rather than replacing the first form. A source with no fields
+and no special form structures does not block a merge. Full merging remains deferred:
+merge field trees and form resources, and define duplicate-name handling.
+
+### B24 - Removing loaded pages retains their form fields and values - FIXED for supported forms (2026-11-18)
+
+Selecting a subset of a loaded PDF previously copied the whole AcroForm, including
+values whose only placement was on a removed page. The save path now filters flat
+terminal text, button, and choice fields before copying. It retains a shared field's
+value and just its selected placements. Unsupported structures (including nested
+fields, XFA, signatures, calculation order, and references back into the excluded
+form or page tree) reject instead of risking retention. Save/reload tests inspect
+serialized objects for orphan values and verify repeated saves and source preservation.
+Removing pages is not redaction.
+
+### B25 - Repeated fixed form widgets fail with duplicate field names - FIXED (2026-11-18)
+
+A page-root `FixedContainer` repeats on every output page. Its form widgets now
+initialize one field per widget and output `PDFForm`, then add an annotation on each
+placement. Distinct widgets with duplicate names still fail, and a second save
+creates fresh fields. Reload-based tests cover TextField, CheckBox, Dropdown, Button,
+and RadioGroup, including radio export values and on-states across three or more pages.
+
+### B26 - Trailing blank pages survive inside a split Column - FIXED (2026-11-18)
+
+**Priority: medium · verified by planning and save/reload (2026-11-11 review).**
+
+`src/lib/pagination/Paginator.ts`'s whitespace pruning examines a root's complete
+original widget subtree even when the root has split into page-local fragments.
+On a `[200, 100]` page, `Text('visible', { size: 10, lineHeight: 10 })` followed by
+`Spacer({ size: 100 })` produces one page as direct children, but two pages (the last
+blank) when both are wrapped in one Column. The earlier visible text makes every
+fragment of that Column appear paint-bearing.
+
+**Fix / regression:** pruning now follows page-local child fragments for decomposed
+containers and the widget subtree for compact whole placements (I26). The exact
+200×100 Column repro is covered in `tests/pagination.test.mjs` at both planning and
+save/reload seams; both returned two pages before the fix and one afterward.
+
+### B27 - Repeated table headers use stale continuation ancestor geometry
+
+**Priority: medium · verified by plan repro (2026-11-11 review).**
+
+In `src/lib/pagination/Paginator.ts`, `breakPage()` materializes repeated headers via
+`ensureFrameFrag()` before re-anchoring continuation frames. Their ancestor fragment
+boxes retain first-page positions. Repro: a `[200, 100]` page with a 10pt Spacer,
+a decorated Container, and a table with a 20pt head and two 70pt body rows. On the
+continuation, Container/Table start at y=10 while the repeated head starts at y=0;
+the header paints outside its ancestor background/border.
+
+**Fix / regression:** calculate repeat extent and re-anchor frames before creating
+continuation fragments. Assert containment with a decorated ancestor and nonzero
+first-page table origin.
+
+### B28 - Oversized atomic subtrees are marked clipped but still paint outside the page content box
+
+**Priority: medium · verified by plan/scope geometry and instrumented render (2026-11-11 review).**
+
+`src/lib/pagination/Paginator.ts` shortens an oversized atomic root's fragment box;
+`src/lib/pagination/PageScope.ts` still exposes original descendant sizes, and no
+painting clip is established. On a `[200, 100]` page with 10pt padding, a table row
+containing 15 text lines at 10pt line height has an 80pt row fragment but 150pt cell
+and text boxes. All 15 lines draw, including through the bottom padding/off-page.
+This is distinct from B20's previously fixed oversized repeated-header case.
+
+**Fix / regression:** enforce a painting clip at the atomic fragment boundary, not
+just root geometry truncation. Test descendant text, backgrounds, and media. This is
+an internal pagination guarantee, separate from I24's public Container clip option.
+
+### B29 - Dropdown ignores its fontSize option
+
+**Priority: medium · verified from saved appearances (2026-11-11 review).**
+
+`src/lib/forms/Dropdown.ts` accepts the shared `fontSize` option but never applies it.
+Saved/reloaded dropdowns configured with sizes 7 and 30 both have `/Helvetica 18 Tf`
+in their default appearance. TextField and Button apply their size after placement.
+
+**Fix / regression:** call `setFontSize()` after `addToPage()` and assert the resulting
+saved appearance uses the requested size.
+
+### B30 - RadioGroup ignores explicit width and height
+
+**Priority: medium · verified by layout repro (2026-11-11 review).**
+
+`src/lib/forms/RadioGroup.ts` inherits width/height options but applies only direction
+and gap. A group requested as 80×80 with two radios on a 300pt-wide page lays out as
+300×32; following content starts at y=32 instead of y=80.
+
+**Fix / regression:** forward both dimensions to Yoga; assert explicit group geometry
+and following-sibling placement.
+
+### B31 - Plain pre-wrap drops leading indentation in Node
+
+**Priority: medium · verified by fallback-engine repro (2026-11-11 review).**
+
+`src/lib/TextLayoutEngine.ts` reconstructs space-split words using a truthy
+`currentLine` check, discarding empty tokens representing leading spaces. With
+`whiteSpace: 'pre-wrap'` and ample width, `'  indented'` becomes `'indented'` and
+`'a\n   b'` becomes lines `['a', 'b']`. B20's whitespace-only-paragraph fix does not
+cover indentation followed by text.
+
+**Fix / regression:** preserve whitespace tokens explicitly. Cover leading spaces,
+tabs, and indentation after hard breaks; compare plain and rich paths.
+
+**Fixed 2026-11-11** - plain strings now use the whitespace-preserving run wrapper;
+indentation and plain/run parity are covered in `tests/text-layout.test.mjs`.
+
+### B32 - Markdown renders named character references literally
+
+**Priority: medium · verified through markdownToWidgets (2026-11-11 review).**
+
+`src/lib/markdown/inline.ts` forwards marked text tokens without decoding named
+character references. `markdownToWidgets('Tom &amp; Jerry &lt;tag&gt; &#65;')` yields
+`'Tom &amp; Jerry &lt;tag&gt; A'` rather than `'Tom & Jerry <tag> A'`.
+
+**Fix / regression:** decode references in applicable Markdown text tokens, avoiding
+double decoding and preserving literal references in code spans/fences.
+
+### B33 - Declared Node support disagrees with dependency engine ranges
+
+**Priority: medium · verified against installed package manifests (2026-11-11 review).**
+
+`package.json` declares Node `>=18`, but mandatory `marked@18.0.14` declares `>=20`.
+The optional preview peer `pdfjs-dist@6.4.299` declares `>=22.13.0 || >=24`.
+These are declared-support mismatches; runtime failure on each older Node version
+was not separately tested.
+
+**Fix / regression:** choose the supported core Node floor and align dependencies or
+the engine declaration. Document preview's separate minimum if it stays higher; run
+CI at the advertised minimum(s).
 
 ### Fixed (for the record)
 
@@ -736,3 +895,85 @@ From external-agent feedback (2026-10-14), alongside the Image-fit fix: a
 Implementation is PDF mechanics: push a clip rect (`W n`) around the children's
 drawing - a `pushClip`/`popClip` pair on the render surface (PDF-typed per ADR 0001,
 or neutral if clipping is considered generic drawing).
+
+## Structural review - 2026-11-11
+
+The widget/Yoga model, pagination module, geometry adapter (`PageScope`), shared
+aspect-fit/theme policies, and optional feature subpaths earn their complexity.
+No rewrite is proposed. Focus on eliminating duplicated policy and implicit state,
+not reducing file counts or introducing more abstraction.
+
+### I25 - One canonical text layout policy - IMPLEMENTED (2026-11-11)
+
+Plain browser text used pretext/canvas, plain Node text used a fallback wrapper, and
+rich runs used a third path. This duplicated whitespace/wrapping/truncation policy
+and made output environment-dependent (B22, B31).
+
+Plain strings now normalize to one run internally and share the run-based wrapper
+with styled text, measured using the supplied PDF font callbacks. Plain results keep
+their existing fragment-free shape. The canvas font plumbing, compatibility hooks,
+unused word-break option, and pretext dependency are gone. Browser pagination may
+change to match PDF metrics. Text wraps at whitespace with emergency grapheme breaks;
+language-aware CJK breaking is not provided. `TextWhiteSpace` defines the two modes:
+`normal` collapses whitespace, and `pre-wrap` preserves it with tabs expanded to
+eight spaces, not tab stops. See `tests/text-layout.test.mjs`.
+
+### I26 - Explicit whole / decomposed / sliced fragment modes - IMPLEMENTED (2026-11-18)
+
+`Fragment` now discriminates `mode: 'whole' | 'decomposed' | 'slice'`. Only
+`decomposed` exposes page-local `children`; whole subtrees remain compact, and slices
+are self-painted flow windows. `PageScope` indexes decomposed children, returns an
+explicit empty render-child list for slices/empty decomposition, and translates
+unexpanded descendants from whole ancestors. Pruning selects the appropriate tree
+(B26). Tests cover the three modes, moved whole descendant geometry, text slicing,
+and repeated/fixed placements. This does not unify painting paths (I27), implement
+paint clipping (B28), or change PdfDoc/resource ownership (I28).
+
+### I27 - One normal plan-driven painting path
+
+`Page.render()` uses direct painting when content fits and scoped fragment painting
+when it overflows; the planner returns no pages for the fitting case. The historical
+byte-identical compatibility shortcut now multiplies feature interactions. Explore
+always returning a plan for default pagination and painting through the same path.
+Keep `overflow: false` as an intentional policy; test output/geometry before removing
+its separate implementation. Do not change this as incidental cleanup.
+
+### I28 - Explicit per-save ownership of PDF resources
+
+**Form ownership shipped with B25:** a weak map scoped to the output `PDFForm`
+handles field identity without changing the render lifecycle.
+
+Other PDF resources and caches still have overlapping lifetimes with widget
+configuration, prepared layout, and the persistent context. Evaluate explicit per-save
+ownership for those resources where needed; no generic render session was introduced
+for B25. Keep the existing widget model.
+
+### I29 - Narrow the painting interface
+
+`PageScope` is justified, but forwards document setup mutators, resources, metrics,
+drawing, and dimensions. Consider separating setup/resources from per-page painting
+so a geometry adapter need not implement setup operations. Preserve the real seam;
+avoid a proliferation of tiny interfaces or merging the adapter into the backend
+(the rejected ARCHITECTURE proposal still applies).
+
+### I30 - Protect widget-tree mutation invariants
+
+`Widget.getChildWidgets()` and `PdfDoc.getChildren()` expose mutable arrays even
+though safe mutation must maintain Yoga ownership, parent pointers, context, and
+cache validity. Return readonly inspection views and provide explicit supported
+mutation operations. Keep loaded-PDF page editing's intentionally mutable contract
+separate from widget-child ownership.
+
+### Scope cuts and priorities
+
+1. Consolidate text policy (I25, implemented), then explicit fragment modes (I26).
+2. Centralize per-save ownership (I28), then evaluate one painting path (I27).
+3. Tighten mutable access and interface breadth incrementally (I30/I29).
+4. Limit or explicitly reject unsupported AcroForm editing combinations until robust;
+   page copying is not equivalent to correctly merging/filtering form trees (B23/B24).
+5. Prefer document-scoped FontSet for new work; do not grow parallel legacy global
+   font-registration features. Describe supported layout behavior, not CSS parity.
+
+Do not split files solely by length, replace all widget inheritance, introduce a
+generic plugin/backend system, or remove ergonomic PdfDoc output methods that already
+delegate cleanly. Those changes would move complexity rather than remove it.

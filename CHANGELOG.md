@@ -4,6 +4,35 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) - while in `0.x`, breaking changes bump the minor version.
 
+## [Unreleased]
+
+### Changed
+
+- README quick start now writes `hello.pdf`, with a browser download alternative and an executable smoke test. Correct the local docs command and the per-face font recipe; `FamilyFiles.regular` is now required in TypeScript, matching runtime validation.
+
+- Internal pagination `Fragment` plans explicitly distinguish compact `whole` subtrees, page-local `decomposed` children, and self-painted `slice` windows (I26). Only decomposed fragments expose `children`; painting paths and clipping behavior are unchanged.
+
+- **Breaking:** Require Node.js 22.18.0 or newer, aligning the library, optional preview dependencies, documentation tooling, and native-TypeScript examples. Local development and docs CI share the Node 22 baseline through `.nvmrc`.
+- Plain and styled text now share one run-based wrapping engine measured with PDF font metrics in Node and browsers. Browser wrapping and page counts can change to match PDF metrics. Text wraps at whitespace with emergency grapheme breaks, not language-aware CJK breaking. Plain results remain fragment-free. `whiteSpace` uses the library's `TextWhiteSpace` type (`'normal' | 'pre-wrap'`).
+
+### Removed
+
+- **Breaking:** Drop `wordBreak` from text options and engine config; it had no effect. Remove `TextLayoutEngine.ensurePreparedText()`, the unused `measureNaturalWidth` config hook, and the canvas font arguments to `getNaturalWidth()` and `layoutText()`.
+- **Breaking:** Remove `TextWidget.getCanvasFont()`, `resolveBuiltinCanvasFont()`, and the `.canvas` fields on `BuiltinPdfFonts`. PDF embedding no longer automatically registers browser fonts. Explicit browser font registration and preview rasterization still work. The `@chenglou/pretext` dependency is removed.
+- **Breaking for subclasses:** Remove the protected `PdfDoc.size` field. The public `size` option is unchanged; `getWidth()` and `getHeight()` still report the effective document size.
+
+### Fixed
+
+- Removing loaded pages now drops supported AcroForm fields with no remaining placement and keeps shared field values with only their retained widgets (B24). Unsupported form structures or references reject the save. This is not redaction.
+- Saving pages from multiple form-bearing loaded PDFs now rejects instead of silently losing fields (B23). Full form merging is not supported.
+
+- Form widgets in a repeating `FixedContainer` now share one AcroForm field across output pages, with a separate annotation on each page (B25). Distinct widgets still require unique names, and each save creates fresh fields.
+- Node image loading correctly decodes `file:` URLs containing escaped filenames (for example, `logo%20%231.png`), including images loaded through Markdown.
+- Drop trailing blank pages when visible text and trailing whitespace share a split Column (B26); pruning now inspects page-local fragments for decomposed layouts and widget subtrees for whole placements.
+- Oversized rich-run words now wrap within and across runs instead of overflowing (B22).
+- Plain `pre-wrap` preserves leading indentation and indentation after hard breaks (B31).
+- Natural text width uses the widest normalized hard-break paragraph; merged fragments and ellipsis candidates measure the strings actually painted.
+
 ## [0.5.1] - 2026-10-14
 
 ### Fixed
