@@ -19,9 +19,9 @@ function isNode(): boolean {
 }
 
 /** Node fs via the same `new Function` escape hatch `doc-output.ts` uses. */
-async function readNodeFile(path: string): Promise<Uint8Array> {
+async function readNodeFile(path: string | URL): Promise<Uint8Array> {
   const loadFs = new Function("return import('node:fs/promises')") as () => Promise<{
-    readFile(path: string): Promise<Uint8Array>;
+    readFile(path: string | URL): Promise<Uint8Array>;
   }>;
   return loadFs().then((fs) => fs.readFile(path));
 }
@@ -36,10 +36,10 @@ export async function fetchImageBytes(url: string): Promise<ArrayBuffer> {
   // A single-letter "scheme" is a Windows drive letter (`C:\\img.png`), not
   // a URL scheme (B20).
   const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url) && !/^[a-zA-Z]:/.test(url);
-  const isFileUrl = url.startsWith('file://');
+  const isFileUrl = /^file:/i.test(url);
 
   if (isNode() && (!hasScheme || isFileUrl)) {
-    const path = isFileUrl ? url.slice('file://'.length) : url;
+    const path = isFileUrl ? new URL(url) : url;
     const bytes = await readNodeFile(path);
     return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
   }

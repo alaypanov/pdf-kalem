@@ -8,6 +8,8 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { PDFDocument, PDFName } from 'pdf-lib';
 
 import { Container, Image, ImageSizing, Page } from '../dist/widgets.js';
 import { PdfDoc } from '../dist/index.js';
@@ -71,8 +73,25 @@ test('Image.png reads a file:// URL in Node', async () => {
   const path = join(dir, 'logo.png');
   await writeFile(path, Buffer.from(PNG_1X1, 'base64'));
   try {
-    const bytes = await saveWith(Image.png(`file://${path}`));
+    const bytes = await saveWith(Image.png(pathToFileURL(path).href));
     assert.ok(bytes.length > 0);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('Image.png decodes escaped filenames in file URLs', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'pdf-kalem-image-'));
+  const path = join(dir, 'logo #1.png');
+  await writeFile(path, Buffer.from(PNG_1X1, 'base64'));
+  try {
+    const url = pathToFileURL(path).href;
+    assert.match(url, /logo%20%231\.png$/);
+    const bytes = await saveWith(Image.png(url));
+    const pdf = await PDFDocument.load(bytes);
+    assert.equal(pdf.getPageCount(), 1);
+    const images = pdf.getPage(0).node.Resources().lookup(PDFName.of('XObject'));
+    assert.ok(images.keys().length > 0, 'the image must be embedded, not silently skipped');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
